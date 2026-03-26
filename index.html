@@ -649,6 +649,7 @@ async function spAdd(listName, data) {
   var digest = await getDigest();
   var meta = await getListItemType(listName);
   data.__metadata = { type: meta };
+  data = spClean(data);
   console.log('SP ADD to', listName, ':', JSON.stringify(data));
   var r = await spFetch(SP_API + "/getbytitle('" + listName + "')/items", {
     method: 'POST',
@@ -670,6 +671,7 @@ async function spUpdate(listName, id, data) {
   var digest = await getDigest();
   var meta = await getListItemType(listName);
   data.__metadata = { type: meta };
+  data = spClean(data);
   console.log('SP UPDATE', listName, id, ':', JSON.stringify(data));
   var r = await spFetch(SP_API + "/getbytitle('" + listName + "')/items(" + id + ")", {
     method: 'POST',
@@ -741,11 +743,23 @@ function spSet(fieldMap, pairs) {
     var key = (fieldMap && fieldMap[p[0]]) || p[0];
     var val = p[1];
     if (val === null || val === undefined) val = '';
-    // Ensure string values for text fields (SharePoint may expect specific types)
     if (typeof val === 'number') val = String(val);
     obj[key] = val;
   });
   return obj;
+}
+
+// Wrapper that removes empty string values that might cause Edm.Double errors
+// SharePoint Number fields can't accept empty strings
+function spClean(obj) {
+  var clean = {};
+  for (var k in obj) {
+    if (k === '__metadata') { clean[k] = obj[k]; continue; }
+    // Keep non-empty values, and convert "0" to 0 for potential number fields
+    if (obj[k] === '' || obj[k] === null || obj[k] === undefined) continue; // skip empty
+    clean[k] = obj[k];
+  }
+  return clean;
 }
 async function getListItemType(listName) {
   if (_listTypes[listName]) return _listTypes[listName];
@@ -798,13 +812,16 @@ function spToUser(item,fm) {
 
 function auditToSP(h) {
   var fm=_fieldMaps['AuditLog']||{};
-  return spSet(fm,[['Title',gid()],['Type',h.type||''],['Text',(h.text||'').slice(0,255)],['Detail',(h.detail||'').slice(0,255)],['User',h.user||''],['Timestamp',h.timestamp||new Date().toISOString()]]);
+  var obj=spSet(fm,[['Title',gid()],['Text',(h.text||'').slice(0,255)],['Detail',(h.detail||'').slice(0,255)],['User',h.user||''],['Timestamp',h.timestamp||new Date().toISOString()]]);
+  // "Type" is a reserved word in SharePoint, manually set field_1
+  obj['field_1']=h.type||'';
+  return obj;
 }
 
 function spToAudit(item,fm) {
   fm=fm||_fieldMaps['AuditLog']||{};
   var g=function(n){return spVal(item,n,fm);};
-  return {type:g('Type')||'',text:g('Text')||'',detail:g('Detail')||'',user:g('User')||'',timestamp:g('Timestamp')||'',_spId:item.Id};
+  return {type:item.field_1||g('Type')||'',text:g('Text')||'',detail:g('Detail')||'',user:g('User')||'',timestamp:g('Timestamp')||'',_spId:item.Id};
 }
 
 function tryParse(s, def) {
