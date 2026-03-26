@@ -691,6 +691,44 @@ async function spDelete(listName, id) {
 }
 
 var _listTypes = {};
+var _fieldMaps = {};
+
+// Discover the actual internal field names for a list
+async function discoverFields(listName) {
+  if (_fieldMaps[listName]) return _fieldMaps[listName];
+  try {
+    var r = await spFetch(SP_API + "/getbytitle('" + listName + "')/fields?$filter=Hidden eq false and ReadOnlyField eq false&$select=InternalName,Title,StaticName");
+    var d = await r.json();
+    var map = {};
+    (d.d.results || []).forEach(function(f) {
+      map[f.Title] = f.InternalName;
+      map[f.StaticName] = f.InternalName;
+    });
+    _fieldMaps[listName] = map;
+    console.log('Field map for ' + listName + ':', JSON.stringify(map));
+    return map;
+  } catch(e) {
+    console.error('Field discovery failed for ' + listName, e);
+    return {};
+  }
+}
+
+// Get value from SP item using display name, trying mapped internal name
+function spVal(item, displayName, fieldMap) {
+  if (item[displayName] !== undefined) return item[displayName];
+  if (fieldMap && fieldMap[displayName] && item[fieldMap[displayName]] !== undefined) return item[fieldMap[displayName]];
+  return undefined;
+}
+
+// Build SP data object using mapped field names
+function spSet(fieldMap, pairs) {
+  var obj = {};
+  pairs.forEach(function(p) {
+    var key = (fieldMap && fieldMap[p[0]]) || p[0];
+    obj[key] = p[1];
+  });
+  return obj;
+}
 async function getListItemType(listName) {
   if (_listTypes[listName]) return _listTypes[listName];
   var r = await spFetch(SP_API + "/getbytitle('" + listName + "')?$select=ListItemEntityTypeFullName");
@@ -703,136 +741,52 @@ async function getListItemType(listName) {
 // Convert app objects <-> SharePoint list items
 
 function entryToSP(e) {
-  return {
-    Title: e.id,
-    Date: e.date || null,
-    Time: e.time || '',
-    Shift: e.shift || '',
-    ReportedBy: e.reportedBy || '',
-    AuthorInitials: e.authorInitials || '',
-    Category: e.category || '',
-    Priority: e.priority || '',
-    Description: e.description || '',
-    Action: e.action || '',
-    Status: e.status || 'Open',
-    FollowUp: e.followUp || 'No',
-    FollowUpAssign: e.followUpAssign || '',
-    ResolvedBy: e.resolvedBy || '',
-    ResDate: e.resDate || null,
-    Notes: e.notes || '',
-    AttachmentsJSON: JSON.stringify(e.attachments || []),
-    LastModified0: e.lastModified || new Date().toISOString()
-  };
+  var fm=_fieldMaps['ShiftEntries']||{};
+  return spSet(fm,[['Title',e.id],['Date',e.date||null],['Time',e.time||''],['Shift',e.shift||''],['ReportedBy',e.reportedBy||''],['AuthorInitials',e.authorInitials||''],['Category',e.category||''],['Priority',e.priority||''],['Description',e.description||''],['Action',e.action||''],['Status',e.status||'Open'],['FollowUp',e.followUp||'No'],['FollowUpAssign',e.followUpAssign||''],['ResolvedBy',e.resolvedBy||''],['ResDate',e.resDate||null],['Notes',e.notes||''],['AttachmentsJSON',JSON.stringify(e.attachments||[])],['LastModified0',e.lastModified||new Date().toISOString()]]);
 }
 
-function spToEntry(item) {
-  return {
-    id: item.Title,
-    _spId: item.Id,
-    date: item.Date ? item.Date.split('T')[0] : '',
-    time: item.Time || '',
-    shift: item.Shift || '',
-    reportedBy: item.ReportedBy || '',
-    authorInitials: item.AuthorInitials || '',
-    category: item.Category || '',
-    priority: item.Priority || '',
-    description: item.Description || '',
-    action: item.Action || '',
-    status: item.Status || 'Open',
-    followUp: item.FollowUp || 'No',
-    followUpAssign: item.FollowUpAssign || '',
-    resolvedBy: item.ResolvedBy || '',
-    resDate: item.ResDate ? item.ResDate.split('T')[0] : '',
-    notes: item.Notes || '',
-    attachments: tryParse(item.AttachmentsJSON, []),
-    lastModified: item.LastModified0 || ''
-  };
+function spToEntry(item,fm) {
+  fm=fm||_fieldMaps['ShiftEntries']||{};
+  var g=function(n){return spVal(item,n,fm);};
+  var dt=g('Date')||'';if(dt&&dt.indexOf('T')>-1)dt=dt.split('T')[0];
+  var rd=g('ResDate')||'';if(rd&&rd.indexOf('T')>-1)rd=rd.split('T')[0];
+  return {id:item.Title,_spId:item.Id,date:dt,time:g('Time')||'',shift:g('Shift')||'',reportedBy:g('ReportedBy')||'',authorInitials:g('AuthorInitials')||'',category:g('Category')||'',priority:g('Priority')||'',description:g('Description')||'',action:g('Action')||'',status:g('Status')||'Open',followUp:g('FollowUp')||'No',followUpAssign:g('FollowUpAssign')||'',resolvedBy:g('ResolvedBy')||'',resDate:rd,notes:g('Notes')||'',attachments:tryParse(g('AttachmentsJSON'),[]),lastModified:g('LastModified0')||''};
 }
 
 function annToSP(a) {
-  return {
-    Title: a.id,
-    AnnType: a.annType || 'standard',
-    Text: a.text || '',
-    Priority: a.priority || 'Low',
-    PostedBy: a.postedBy || '',
-    PostedByIni: a.postedByIni || '',
-    WelcomeName: a.welcomeName || '',
-    WelcomeRole: a.welcomeRole || '',
-    CommentsJSON: JSON.stringify(a.comments || []),
-    AcknowledgedJSON: JSON.stringify(a.acknowledged || []),
-    IsResolved: !!a.resolved,
-    ResolvedDate: a.resolvedDate || null,
-    ResolvedBy0: a.resolvedBy || '',
-    PostedDate: a.date || '',
-    Timestamp: a.timestamp || new Date().toISOString()
-  };
+  var fm=_fieldMaps['Announcements']||{};
+  return spSet(fm,[['Title',a.id],['AnnType',a.annType||'standard'],['Text',a.text||''],['Priority',a.priority||'Low'],['PostedBy',a.postedBy||''],['PostedByIni',a.postedByIni||''],['WelcomeName',a.welcomeName||''],['WelcomeRole',a.welcomeRole||''],['CommentsJSON',JSON.stringify(a.comments||[])],['AcknowledgedJSON',JSON.stringify(a.acknowledged||[])],['IsResolved',a.resolved?'Yes':'No'],['ResolvedDate',a.resolvedDate||null],['ResolvedBy0',a.resolvedBy||''],['PostedDate',a.date||''],['Timestamp',a.timestamp||new Date().toISOString()]]);
 }
 
-function spToAnn(item) {
-  return {
-    id: item.Title,
-    _spId: item.Id,
-    annType: item.AnnType || 'standard',
-    text: item.Text || '',
-    priority: item.Priority || 'Low',
-    postedBy: item.PostedBy || '',
-    postedByIni: item.PostedByIni || '',
-    welcomeName: item.WelcomeName || '',
-    welcomeRole: item.WelcomeRole || '',
-    comments: tryParse(item.CommentsJSON, []),
-    acknowledged: tryParse(item.AcknowledgedJSON, []),
-    resolved: !!item.IsResolved,
-    resolvedDate: item.ResolvedDate ? item.ResolvedDate.split('T')[0] : '',
-    resolvedBy: item.ResolvedBy0 || '',
-    date: item.PostedDate || '',
-    timestamp: item.Timestamp || ''
-  };
+function spToAnn(item,fm) {
+  fm=fm||_fieldMaps['Announcements']||{};
+  var g=function(n){return spVal(item,n,fm);};
+  var rd=g('ResolvedDate')||'';if(rd&&rd.indexOf('T')>-1)rd=rd.split('T')[0];
+  return {id:item.Title,_spId:item.Id,annType:g('AnnType')||'standard',text:g('Text')||'',priority:g('Priority')||'Low',postedBy:g('PostedBy')||'',postedByIni:g('PostedByIni')||'',welcomeName:g('WelcomeName')||'',welcomeRole:g('WelcomeRole')||'',comments:tryParse(g('CommentsJSON'),[]),acknowledged:tryParse(g('AcknowledgedJSON'),[]),resolved:g('IsResolved')==='Yes'||g('IsResolved')===true,resolvedDate:rd,resolvedBy:g('ResolvedBy0')||'',date:g('PostedDate')||'',timestamp:g('Timestamp')||''};
 }
 
 function userToSP(ini, u) {
-  return {
-    Title: ini,
-    FullName: u.fullName || '',
-    Role: u.role || 'MLS1',
-    IsAdmin: !!u.isAdmin,
-    Nickname: u.nickname || '',
-    PictureData: u.picture || ''
-  };
+  var fm=_fieldMaps['HubUsers']||{};
+  return spSet(fm,[['Title',ini],['FullName',u.fullName||''],['Role',u.role||'MLS1'],['IsAdmin',u.isAdmin?'Yes':'No'],['Nickname',u.nickname||''],['PictureData',u.picture||'']]);
 }
+function spSetUser(ini,u){return userToSP(ini,u);}
 
-function spToUser(item) {
-  return {
-    fullName: item.FullName || '',
-    role: item.Role || 'MLS1',
-    isAdmin: !!item.IsAdmin,
-    nickname: item.Nickname || '',
-    picture: item.PictureData || '',
-    password: '', // passwords handled differently in SP version
-    _spId: item.Id
-  };
+function spToUser(item,fm) {
+  fm=fm||_fieldMaps['HubUsers']||{};
+  var g=function(n){return spVal(item,n,fm);};
+  var admin=g('IsAdmin');
+  return {fullName:g('FullName')||'',role:g('Role')||'MLS1',isAdmin:admin==='Yes'||admin===true,nickname:g('Nickname')||'',picture:g('PictureData')||'',password:'',_spId:item.Id};
 }
 
 function auditToSP(h) {
-  return {
-    Title: gid(),
-    Type: h.type || '',
-    Text: (h.text || '').slice(0, 255),
-    Detail: (h.detail || '').slice(0, 255),
-    User: h.user || '',
-    Timestamp: h.timestamp || new Date().toISOString()
-  };
+  var fm=_fieldMaps['AuditLog']||{};
+  return spSet(fm,[['Title',gid()],['Type',h.type||''],['Text',(h.text||'').slice(0,255)],['Detail',(h.detail||'').slice(0,255)],['User',h.user||''],['Timestamp',h.timestamp||new Date().toISOString()]]);
 }
 
-function spToAudit(item) {
-  return {
-    type: item.Type || '',
-    text: item.Text || '',
-    detail: item.Detail || '',
-    user: item.User || '',
-    timestamp: item.Timestamp || '',
-    _spId: item.Id
-  };
+function spToAudit(item,fm) {
+  fm=fm||_fieldMaps['AuditLog']||{};
+  var g=function(n){return spVal(item,n,fm);};
+  return {type:g('Type')||'',text:g('Text')||'',detail:g('Detail')||'',user:g('User')||'',timestamp:g('Timestamp')||'',_spId:item.Id};
 }
 
 function tryParse(s, def) {
@@ -842,25 +796,29 @@ function tryParse(s, def) {
 // === SP CRUD OPERATIONS ===
 async function loadAllData() {
   try {
+    // Discover field names for all lists
+    var [fmE, fmA, fmU, fmH] = await Promise.all([
+      discoverFields('ShiftEntries'),
+      discoverFields('Announcements'),
+      discoverFields('HubUsers'),
+      discoverFields('AuditLog')
+    ]);
     var [spEntries, spAnns, spUsers, spAudit] = await Promise.all([
       spGet('ShiftEntries'),
       spGet('Announcements'),
       spGet('HubUsers'),
       spGet('AuditLog', null, null, 2000)
     ]);
-    entries = spEntries.map(spToEntry);
-    announcements = spAnns.map(spToAnn);
-    hist = spAudit.map(spToAudit);
+    entries = spEntries.map(function(i){return spToEntry(i,fmE);});
+    announcements = spAnns.map(function(i){return spToAnn(i,fmA);});
+    hist = spAudit.map(function(i){return spToAudit(i,fmH);});
     users = {};
-    console.log('Raw SP users:', JSON.stringify(spUsers.map(function(u){return Object.keys(u).filter(function(k){return k!=='__metadata'&&!k.startsWith('odata');});})));
-    if(spUsers.length>0)console.log('First user raw:', JSON.stringify(Object.fromEntries(Object.entries(spUsers[0]).filter(function(e){return e[0]!=='__metadata'&&!e[0].startsWith('odata');}))));
     spUsers.forEach(function(item) {
-      users[item.Title] = spToUser(item);
+      users[item.Title] = spToUser(item,fmU);
     });
-    // Ensure admin exists
     if (!users[ADMIN_INI]) {
       users[ADMIN_INI] = { fullName: 'Jesus Martinez', role: 'MLS Lead', isAdmin: true, nickname: '', picture: '', password: '' };
-      await spAdd('HubUsers', userToSP(ADMIN_INI, users[ADMIN_INI]));
+      await spAdd('HubUsers', spSetUser(ADMIN_INI, users[ADMIN_INI]));
     }
     users[ADMIN_INI].isAdmin = true;
     return true;
