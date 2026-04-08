@@ -579,9 +579,15 @@ var SP_USER = null;
 
 async function initMSAL() {
   msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-  // Handle redirect callback
-  try { await msalInstance.handleRedirectPromise(); } catch(e) { console.error('Redirect error:', e); }
-  // Check if already signed in
+  // Handle redirect response — fires after returning from Microsoft login
+  try {
+    var response = await msalInstance.handleRedirectPromise();
+    if (response && response.account) {
+      msalInstance.setActiveAccount(response.account);
+      return response.account;
+    }
+  } catch(e) { console.error('Redirect error:', e); }
+  // Check if already signed in from cache
   var accounts = msalInstance.getAllAccounts();
   if (accounts.length > 0) {
     msalInstance.setActiveAccount(accounts[0]);
@@ -591,16 +597,12 @@ async function initMSAL() {
 }
 
 async function loginMSAL() {
-  try {
-    var result = await msalInstance.loginPopup({
-      scopes: ['https://uwnetid.sharepoint.com/AllSites.Write', 'User.Read']
-    });
-    msalInstance.setActiveAccount(result.account);
-    return result.account;
-  } catch(e) {
-    console.error('Login failed:', e);
-    throw e;
-  }
+  // Use redirect instead of popup — no popup blocker issues
+  await msalInstance.loginRedirect({
+    scopes: ['https://uwnetid.sharepoint.com/AllSites.Write', 'User.Read']
+  });
+  // Execution stops here — page redirects to Microsoft then back
+  // initMSAL will handle the response on return via handleRedirectPromise
 }
 
 async function getToken() {
@@ -613,11 +615,11 @@ async function getToken() {
     });
     return result.accessToken;
   } catch(e) {
-    // Silent failed, try popup
-    var result = await msalInstance.acquireTokenPopup({
+    // Silent failed — redirect to re-authenticate (no popup needed)
+    await msalInstance.acquireTokenRedirect({
       scopes: ['https://uwnetid.sharepoint.com/AllSites.Write']
     });
-    return result.accessToken;
+    throw e; // redirect takes over
   }
 }
 

@@ -581,7 +581,8 @@ var INV_FIELDS = {
 };
 var LOG_FIELDS = {
   Action:'field_1',QuantityDelta:'field_2',QuantityAfter:'field_3',
-  LotNumber:'field_4',ExpiryDate:'field_5',Timestamp:'field_6',ReasonNote:'field_7'
+  LotNumber:'field_4',ExpiryDate:'field_5',Timestamp:'field_6',ReasonNote:'field_7',
+  ScannedBy:'ScannedBy'
 };
 
 function catFields(obj){ var o={}; for(var k in obj) o[CAT_FIELDS[k]||k]=obj[k]; return o; }
@@ -969,6 +970,8 @@ async function submitEntry(){
     // Log entry
     var today = new Date().toISOString().slice(0,10);
     var actionLabel = currentAction.charAt(0).toUpperCase() + currentAction.slice(1);
+    var account = msalInstance?.getActiveAccount();
+    var scannedBy = account ? (account.name || account.username || '') : '';
     var logData = logFields({
       Action: actionLabel,
       QuantityDelta: delta,
@@ -976,7 +979,8 @@ async function submitEntry(){
       LotNumber: lot || '',
       ExpiryDate: expiry || '',
       Timestamp: new Date().toISOString(),
-      ReasonNote: reason || ''
+      ReasonNote: reason || '',
+      ScannedBy: scannedBy
     });
     logData.Title = currentItem.Title + ' — ' + actionLabel + ' — ' + today;
     await spPost(SP.lists.log, logData);
@@ -986,6 +990,7 @@ async function submitEntry(){
       delta: delta > 0 ? '+' + delta : String(delta),
       newStock: newStock,
       lot: lot || '—',
+      scannedBy: scannedBy,
       time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})
     };
     hideLoading();
@@ -1069,14 +1074,17 @@ async function submitManual(addToCatalog){
       invRowData.Title = name;
       await spPost(SP.lists.inventory, invRowData);
     }
+    var manualAccount = msalInstance?.getActiveAccount();
+    var manualScannedBy = manualAccount ? (manualAccount.name || manualAccount.username || '') : '';
     var logData = logFields({
       Action: actionLabel, QuantityDelta: delta, QuantityAfter: qty,
       LotNumber: lot||'', ExpiryDate: expiry||'',
-      Timestamp: new Date().toISOString(), ReasonNote: notes||''
+      Timestamp: new Date().toISOString(), ReasonNote: notes||'',
+      ScannedBy: manualScannedBy
     });
     logData.Title = name + ' — ' + actionLabel + ' — ' + today;
     await spPost(SP.lists.log, logData);
-    lastEntry = { item:name, action:actionLabel, delta:delta>0?'+'+delta:String(delta), newStock:qty, lot:lot||'—', time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) };
+    lastEntry = { item:name, action:actionLabel, delta:delta>0?'+'+delta:String(delta), newStock:qty, lot:lot||'—', scannedBy:manualScannedBy, time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) };
     lastScannedRaw=''; lastParsedGS1=null;
     hideLoading();
     showSuccessScreen();
@@ -1099,7 +1107,7 @@ function showSuccessScreen(){
   log.innerHTML = [
     ['Item', lastEntry.item],['Action', lastEntry.action],
     ['Quantity Change', lastEntry.delta],['New Stock', lastEntry.newStock],
-    ['Lot Number', lastEntry.lot],['Time', lastEntry.time]
+    ['Lot Number', lastEntry.lot],['Scanned By', lastEntry.scannedBy||'—'],['Time', lastEntry.time]
   ].map(function(r){ return '<div class="log-row"><span class="lbl">'+r[0]+'</span><span class="val">'+r[1]+'</span></div>'; }).join('');
   goScreen('screen-success');
 }
