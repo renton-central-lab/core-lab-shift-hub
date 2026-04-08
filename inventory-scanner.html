@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Renton Inventory Scanner</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 <style>
+.mi{ font-family:'Material Icons Outlined';font-style:normal;font-size:22px;
+     line-height:1;vertical-align:middle;display:inline-flex;align-items:center; }
+.mi-sm{ font-size:18px; }
+.mi-lg{ font-size:36px; }
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --purple:#4C1D95;
@@ -205,7 +211,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     <span id="sp-user-text"></span>
   </div>
   <div class="scan-area">
-    <div class="scan-icon">📦</div>
+    <div class="scan-icon"><span class="material-icons-outlined" style="font-size:52px;color:var(--teal-light)">inventory_2</span></div>
     <div class="scan-hint">
       Point barcode scanner at a reagent label,<br>or type/paste a barcode string below
     </div>
@@ -221,7 +227,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
           background:var(--bg-input);border:1px solid var(--border);border-radius:8px;
           color:var(--text);font-size:22px;padding:0 14px;cursor:pointer;flex-shrink:0;
           display:flex;align-items:center;justify-content:center;
-          -webkit-tap-highlight-color:transparent;" title="Scan with camera">📷</button>
+          -webkit-tap-highlight-color:transparent;" title="Scan with camera"><span class="material-icons-outlined" style="font-size:22px">photo_camera</span></button>
       </div>
     </div>
     <!-- Camera view (hidden by default) -->
@@ -241,9 +247,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     <!-- Fallback file input for iOS -->
     <input type="file" id="camera-file-input" accept="image/*" capture="environment"
       style="display:none" onchange="handleCameraFile(this)">
-    <button class="btn btn-primary" onclick="lookupBarcode()">🔍 Look Up Item</button>
+    <!-- iOS-specific camera input — forces camera not photo library -->
+    <input type="file" id="camera-ios-input" accept="image/*" capture
+      style="display:none" onchange="handleCameraFile(this)">
+    <button class="btn btn-primary" onclick="lookupBarcode()"><span class="material-icons-outlined mi-sm">search</span> Look Up Item</button>
     <div style="margin:14px 0"><div class="divider">or</div></div>
-    <button class="btn btn-ghost" onclick="resetManualScreen();goScreen('screen-manual')">✏️ Enter Manually</button>
+    <button class="btn btn-ghost" onclick="resetManualScreen();goScreen('screen-manual')"><span class="material-icons-outlined mi-sm">edit</span> Enter Manually</button>
   </div>
 </div>
 
@@ -308,7 +317,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     </div>
   </div>
   <div class="footer">
-    <button class="btn btn-primary" onclick="submitEntry()">✓ Submit Entry</button>
+    <button class="btn btn-primary" onclick="submitEntry()"><span class="material-icons-outlined mi-sm">check_circle</span> Submit Entry</button>
   </div>
 </div>
 
@@ -403,7 +412,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     </div>
   </div>
   <div class="footer" style="display:flex;flex-direction:column;gap:8px">
-    <button class="btn btn-primary" onclick="submitManual()">✓ Add to Catalog &amp; Submit</button>
+    <button class="btn btn-primary" onclick="submitManual()"><span class="material-icons-outlined mi-sm">add_circle</span> Add to Catalog &amp; Submit</button>
     <button class="btn btn-ghost" style="font-size:13px" onclick="submitManualLogOnly()">Log only — don't add to catalog</button>
   </div>
 </div>
@@ -417,14 +426,14 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     </div>
   </div>
   <div class="success-body">
-    <div class="success-icon">✓</div>
+    <div class="success-icon"><span class="material-icons-outlined" style="font-size:52px;color:var(--teal-light)">check_circle</span></div>
     <div class="success-title">Submitted</div>
     <div class="success-detail">The inventory has been updated and the transaction has been logged to InventoryLog.</div>
     <div class="success-log" id="success-log"></div>
   </div>
   <div class="footer" style="display:flex;flex-direction:column;gap:10px">
-    <button class="btn btn-purple" onclick="scanAnother()">📦 Scan Another Item</button>
-    <button class="btn btn-ghost" onclick="goScreen('screen-manual')">✏️ Manual Entry</button>
+    <button class="btn btn-purple" onclick="scanAnother()"><span class="material-icons-outlined mi-sm">qr_code_scanner</span> Scan Another Item</button>
+    <button class="btn btn-ghost" onclick="goScreen('screen-manual')"><span class="material-icons-outlined mi-sm">edit</span> Manual Entry</button>
   </div>
 </div>
 
@@ -774,24 +783,21 @@ async function spPost(listName, fields){
 }
 // ============================================================
 // Auto-fill Manual Entry screen from parsed GS1 data
-// ============================================================
-// UPC LOOKUP via UPCItemDB free API
-// ============================================================
+// UPC lookup stub — requires paid API key for CORS access
+// Set UPC_API_KEY to enable automatic product name lookup
+var UPC_API_KEY = null; // e.g. 'your_key_here'
 async function lookupUPC(upc){
+  if(!UPC_API_KEY) return null;
   try{
-    var res = await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc=' + upc, {
-      headers: { 'Accept': 'application/json' }
+    var res = await fetch('https://api.upcitemdb.com/prod/v1/lookup?upc=' + upc, {
+      headers: { 'Accept': 'application/json', 'user_key': UPC_API_KEY }
     });
     if(!res.ok) return null;
     var data = await res.json();
     if(data.items && data.items.length > 0){
       var item = data.items[0];
-      return {
-        title: item.title || null,
-        brand: item.brand || null,
-        description: item.description || null,
-        category: item.category || null,
-      };
+      return { title: item.title || null, brand: item.brand || null,
+               description: item.description || null, category: item.category || null };
     }
   } catch(e){ console.warn('UPC lookup failed:', e); }
   return null;
@@ -1232,10 +1238,13 @@ async function startCamera(){
   var hasBarcodeDetector = 'BarcodeDetector' in window;
 
   if(!hasBarcodeDetector){
-    // iOS / unsupported — use file input with camera capture
-    document.getElementById('camera-file-input').click();
+    // No BarcodeDetector — fall back to file/camera input
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    document.getElementById(isIOS ? 'camera-ios-input' : 'camera-file-input').click();
     return;
   }
+  // On Android, BarcodeDetector exists but getUserMedia gives better UX
+  // Try getUserMedia first, fall back to file input on permission denial
 
   try{
     // Request camera access
@@ -1244,7 +1253,7 @@ async function startCamera(){
     });
     video.srcObject = cameraStream;
     container.style.display = 'block';
-    document.getElementById('camera-btn').textContent = '⏹';
+    document.getElementById('camera-btn').innerHTML = '<span class="material-icons-outlined" style="font-size:22px">stop_circle</span>';
     document.getElementById('camera-btn').onclick = stopCamera;
 
     // Init BarcodeDetector
@@ -1288,7 +1297,7 @@ function stopCamera(){
   if(container) container.style.display = 'none';
   if(video) video.srcObject = null;
   var btn = document.getElementById('camera-btn');
-  if(btn){ btn.textContent = '📷'; btn.onclick = startCamera; }
+  if(btn){ btn.innerHTML = '<span class="material-icons-outlined" style="font-size:22px">photo_camera</span>'; btn.onclick = startCamera; }
 }
 
 async function handleCameraFile(input){
