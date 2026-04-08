@@ -810,18 +810,20 @@ async function lookupBarcode(){
 
   showLoading('Looking up barcode...');
   try{
-    // OData filter — build cleanly without encodeURIComponent wrapping quotes
     var safeRaw = raw.replace(/'/g, "''");
-    var select = 'Title,field_1,Instrument,Unit,BarcodeType,CatalogNumber,GS1ParsesExpiry,GS1ParsesLot';
+    // All field names are internal (field_1, field_2 etc)
+    // BarcodeString=field_6, CatalogNumber=field_7
+    var catSelect = 'Title,field_1,field_2,field_4,field_5,field_6,field_7,field_8,field_9';
 
-    // Use spGet — exact Shift Hub pattern
-    var results = await spGet(SP.lists.catalog, "BarcodeString eq '" + safeRaw + "'", select, 1);
-    let catalogRow = results[0] || null;
+    let data = await spFetch(SP.lists.catalog,
+      '?$top=1&$select=' + catSelect + '&$filter=' + encodeURIComponent("field_6 eq '" + safeRaw + "'"));
+    let catalogRow = data.value?.[0] || null;
 
-    // If no match, try CatalogNumber
+    // If no match, try CatalogNumber (field_7)
     if(!catalogRow){
-      results = await spGet(SP.lists.catalog, "CatalogNumber eq '" + safeRaw + "'", select, 1);
-      catalogRow = results[0] || null;
+      data = await spFetch(SP.lists.catalog,
+        '?$top=1&$select=' + catSelect + '&$filter=' + encodeURIComponent("field_7 eq '" + safeRaw + "'"));
+      catalogRow = data.value?.[0] || null;
     }
 
     if(!catalogRow){
