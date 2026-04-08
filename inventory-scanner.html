@@ -739,6 +739,29 @@ async function spPost(listName, fields){
 // CATALOG LOOKUP
 // ============================================================
 // Auto-fill Manual Entry screen from parsed GS1 data
+// ============================================================
+// UPC LOOKUP via UPCItemDB free API
+// ============================================================
+async function lookupUPC(upc){
+  try{
+    var res = await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc=' + upc, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if(!res.ok) return null;
+    var data = await res.json();
+    if(data.items && data.items.length > 0){
+      var item = data.items[0];
+      return {
+        title: item.title || null,
+        brand: item.brand || null,
+        description: item.description || null,
+        category: item.category || null,
+      };
+    }
+  } catch(e){ console.warn('UPC lookup failed:', e); }
+  return null;
+}
+
 function resetManualScreen(){
   lastScannedRaw = '';
   lastParsedGS1 = null;
@@ -757,8 +780,8 @@ function resetManualScreen(){
   if(alertEl) alertEl.textContent = 'Enter item details below.';
 }
 
-function autoFillManualScreen(parsed, raw){
-  // Pre-fill barcode field and check Add to Catalog
+async function autoFillManualScreen(parsed, raw){
+  // Pre-fill barcode field
   document.getElementById('manual-barcode').value = raw;
 
   // Pre-fill expiry if parsed
@@ -800,6 +823,30 @@ function autoFillManualScreen(parsed, raw){
       alertEl.textContent = 'Barcode not in catalog. Enter details to add it.';
     }
   }
+
+  // For UPC-A/EAN barcodes, try to auto-fill item name from UPCItemDB
+  if(parsed.barcodeType === 'UPC-A' || parsed.barcodeType === 'EAN-13'){
+    var nameField = document.getElementById('manual-name');
+    var alertEl2 = document.getElementById('manual-alert');
+    if(alertEl2) alertEl2.innerHTML += ' <em style="color:var(--text-muted)">Looking up product name...</em>';
+    var upcData = await lookupUPC(raw);
+    if(upcData && upcData.title){
+      nameField.value = upcData.title;
+      // Guess instrument from category
+      var cat = (upcData.category || '').toLowerCase();
+      if(cat.includes('office') || cat.includes('paper') || cat.includes('pen') || cat.includes('marker') || cat.includes('ink')){
+        document.getElementById('manual-instrument').value = 'Office Supplies';
+      } else if(cat.includes('lab') || cat.includes('medical') || cat.includes('glove') || cat.includes('safety')){
+        document.getElementById('manual-instrument').value = 'Lab Supplies';
+      }
+      if(alertEl2) alertEl2.innerHTML = 'Auto-filled: <strong>product name</strong> from UPC database' + (parsed_fields && parsed_fields.length ? ', ' + parsed_fields.join(', ') : '') + '. Review and submit.';
+    } else {
+      if(alertEl2){
+        var base = alertEl2.innerHTML.replace(/<em[^>]*>.*?<\/em>/g, '');
+        alertEl2.innerHTML = base;
+      }
+    }
+  }
 }
 
 async function lookupBarcode(){
@@ -825,10 +872,78 @@ async function lookupBarcode(){
     }
 
     if(!catalogRow){
-      hideLoading();
-      // Parse GS1 data from the raw barcode
+      // Parse GS1/UPC data from the raw barcode
       lastScannedRaw = raw;
       lastParsedGS1 = parseGS1(raw);
+
+      // For UPC-A/EAN: try UPCItemDB lookup and auto-confirm if found
+      if(lastParsedGS1.barcodeType === 'UPC-A' || lastParsedGS1.barcodeType === 'EAN-13'){
+        showLoading('Looking up product...');
+        var upcData = await lookupUPC(raw);
+        if(upcData && upcData.title){
+          // Auto-add to catalog and go straight to confirm
+          var cat = (upcData.category || '').toLowerCase();
+          var instrument = 'Office Supplies';
+          if(cat.includes('lab') || cat.includes('medical') || cat.includes('glove') || cat.includes('safety')) instrument = 'Lab Supplies';
+          var catalogID = 'UPC-' + raw;
+          var today = new Date().toISOString().slice(0,10);
+          var catalogData = catFields({
+            CatalogID: catalogID,
+            BarcodeString: raw,
+            CatalogNumber: raw,
+            Instrument: instrument,
+            Unit: 'ea',
+            Manufacturer: upcData.brand || 'Other',
+            BarcodeType: 'UPC-A',
+            GS1ParsesExpiry: 'No',
+            GS1ParsesLot: 'No',
+            Notes: (upcData.description || '').slice(0,255) || 'Added via UPC lookup'
+          });
+          catalogData.Title = upcData.title;
+          try{
+            await spPost(SP.lists.catalog, catalogData);
+          } catch(e){ console.warn('Catalog add failed:', e); }
+          // Set up a synthetic currentItem for the confirm screen
+          currentItem = {
+            Title: upcData.title,
+            ID: null, // new item, no inventory row yet
+            _instrument: instrument,
+            _unit: 'ea',
+            _isNew: true,
+            _catalogID: catalogID
+          };
+          // Also create an inventory row for it
+          try{
+            var invData = invFields({
+              Instrument: instrument,
+              ItemType: 'Supply',
+              Unit: 'ea',
+              InStock: 0,
+              MinPAR: 1,
+              DailyUse: 0,
+              CatalogID: catalogID,
+              IsActive: 'Yes'
+            });
+            invData.Title = upcData.title;
+            var invRes = await spPost(SP.lists.inventory, invData);
+            var invJson = await invRes.json();
+            currentItem.ID = invJson.d ? invJson.d.ID : invJson.ID;
+            currentItem.InStock = 0;
+            currentItem.MinPAR = 1;
+            currentItem[INV_FIELDS.Instrument] = instrument;
+            currentItem[INV_FIELDS.Unit] = 'ea';
+            currentItem[INV_FIELDS.ItemType] = 'Supply';
+          } catch(e){ console.warn('Inventory add failed:', e); }
+          hideLoading();
+          showToast('Found: ' + upcData.title);
+          populateConfirmScreen();
+          goScreen('screen-confirm');
+          return;
+        }
+      }
+
+      // No UPC match or GS1 barcode — go to manual screen
+      hideLoading();
       autoFillManualScreen(lastParsedGS1, raw);
       goScreen('screen-manual');
       return;
@@ -866,12 +981,14 @@ async function lookupBarcode(){
 // ============================================================
 function populateConfirmScreen(){
   if(!currentItem) return;
+  // Support both internal field names (from SP) and display names (synthetic items)
+  var getName = function(k){ return invVal(currentItem,k) || currentItem['_'+k.toLowerCase()] || currentItem[k] || null; };
   document.getElementById('preview-name').textContent = currentItem.Title;
-  document.getElementById('preview-instrument').textContent = invVal(currentItem,'Instrument') || '—';
-  document.getElementById('preview-unit').textContent = invVal(currentItem,'Unit') || '—';
-  document.getElementById('preview-type').textContent = invVal(currentItem,'ItemType') || '—';
-  document.getElementById('preview-stock').textContent = invVal(currentItem,'InStock') ?? '0';
-  document.getElementById('preview-par').textContent = invVal(currentItem,'MinPAR') ?? '—';
+  document.getElementById('preview-instrument').textContent = getName('Instrument') || '—';
+  document.getElementById('preview-unit').textContent = getName('Unit') || '—';
+  document.getElementById('preview-type').textContent = getName('ItemType') || '—';
+  document.getElementById('preview-stock').textContent = invVal(currentItem,'InStock') ?? currentItem.InStock ?? '0';
+  document.getElementById('preview-par').textContent = invVal(currentItem,'MinPAR') ?? currentItem.MinPAR ?? '—';
   document.getElementById('qty-input').value = 1;
   document.getElementById('lot-input').value = '';
   document.getElementById('expiry-input').value = '';
