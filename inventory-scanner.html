@@ -627,8 +627,8 @@ function scanAnother(){
 async function _spRequest(url, options){
   var token = await getToken();
   var headers = Object.assign({
-    'Accept': 'application/json;odata=nometadata',
-    'Content-Type': 'application/json;odata=nometadata',
+    'Accept': 'application/json;odata=verbose',
+    'Content-Type': 'application/json;odata=verbose',
     'Authorization': 'Bearer ' + token
   }, (options && options.headers) || {});
   var opts = Object.assign({}, options || {}, { headers: headers });
@@ -641,12 +641,20 @@ async function _spRequest(url, options){
   return res;
 }
 
+// SP_API base like Shift Hub
+var SP_API = SP.siteUrl + '/_api/web/lists';
+
 async function spFetch(listName, endpoint, opts){
   endpoint = endpoint || '';
   opts = opts || {};
-  var url = SP.siteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items" + endpoint;
+  var url = SP_API + "/getbytitle('" + listName + "')/items" + endpoint;
   var res = await _spRequest(url, opts);
-  if(!opts.method || opts.method === 'GET') return res.json();
+  if(!opts.method || opts.method === 'GET'){
+    var json = await res.json();
+    // Support both odata=verbose (d.results) and nometadata (value)
+    if(json.d && json.d.results) return { value: json.d.results };
+    return json;
+  }
   return res;
 }
 
@@ -753,17 +761,18 @@ async function lookupBarcode(){
   try{
     // OData filter — build cleanly without encodeURIComponent wrapping quotes
     var safeRaw = raw.replace(/'/g, "''");
-    var select = '$select=Title,CatalogID,Instrument,Unit,BarcodeType,CatalogNumber,GS1ParsesExpiry,GS1ParsesLot';
+    var select = 'Title,CatalogID,Instrument,Unit,BarcodeType,CatalogNumber,GS1ParsesExpiry,GS1ParsesLot';
 
+    // Use encodeURIComponent on filter string — exact Shift Hub pattern
     let data = await spFetch(SP.lists.catalog,
-      "?$filter=BarcodeString eq '" + safeRaw + "'&$top=1&" + select);
+      '?$top=1&$select=' + select + '&$filter=' + encodeURIComponent("BarcodeString eq '" + safeRaw + "'"));
 
     let catalogRow = data.value?.[0] || null;
 
     // If no match, try CatalogNumber
     if(!catalogRow){
       data = await spFetch(SP.lists.catalog,
-        "?$filter=CatalogNumber eq '" + safeRaw + "'&$top=1&" + select);
+        '?$top=1&$select=' + select + '&$filter=' + encodeURIComponent("CatalogNumber eq '" + safeRaw + "'"));
       catalogRow = data.value?.[0] || null;
     }
 
@@ -782,7 +791,7 @@ async function lookupBarcode(){
     // Now look up the inventory row
     var safeCatId = catalogRow.CatalogID.replace(/'/g, "''");
     const invData = await spFetch(SP.lists.inventory,
-      "?$filter=CatalogID eq '" + safeCatId + "'&$top=1");
+      '?$top=1&$filter=' + encodeURIComponent("CatalogID eq '" + safeCatId + "'"));
 
     const invRow = invData.value?.[0] || null;
     if(!invRow){
