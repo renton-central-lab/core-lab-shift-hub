@@ -641,8 +641,60 @@ async function _spRequest(url, options){
   return res;
 }
 
-// SP_API base like Shift Hub
+// SP_API base — exact Shift Hub pattern
 var SP_API = SP.siteUrl + '/_api/web/lists';
+
+// ============================================================
+// SHAREPOINT FIELD NAME MAPS
+// Internal names assigned by SP during Excel import
+// ============================================================
+var CAT_FIELDS = {
+  CatalogID:'field_1', Instrument:'field_2', Manufacturer:'field_3',
+  Unit:'field_4', BarcodeType:'field_5', BarcodeString:'field_6',
+  CatalogNumber:'field_7', GS1ParsesExpiry:'field_8', GS1ParsesLot:'field_9',
+  Notes:'field_10'
+};
+var INV_FIELDS = {
+  Instrument:'field_1', ItemType:'field_2', Unit:'field_3',
+  InStock:'field_4', MinPAR:'field_5', DailyUse:'field_6',
+  ExpiryDate:'field_7', OpenLifeDays:'field_8', DateOpened:'field_9',
+  LotNumber:'field_10', Notes:'field_11', CatalogID:'field_12', IsActive:'field_13'
+};
+var LOG_FIELDS = {
+  Action:'field_1', QuantityDelta:'field_2', QuantityAfter:'field_3',
+  LotNumber:'field_4', ExpiryDate:'field_5', Timestamp:'field_6', ReasonNote:'field_7'
+};
+function logFields(obj){
+  var out={};
+  for(var k in obj){ out[LOG_FIELDS[k]||k]=obj[k]; }
+  return out;
+}
+// Build an object using internal field names
+function catFields(obj){
+  var out={};
+  for(var k in obj){ out[CAT_FIELDS[k]||k]=obj[k]; }
+  return out;
+}
+function invFields(obj){
+  var out={};
+  for(var k in obj){ out[INV_FIELDS[k]||k]=obj[k]; }
+  return out;
+}
+// Read a field from a SP row using display name
+function catVal(row,name){ return row[CAT_FIELDS[name]||name]; }
+function invVal(row,name){ return row[INV_FIELDS[name]||name]; }
+
+
+// spGet mirrors Shift Hub exactly
+async function spGet(listName, filter, select, top){
+  var url = SP_API + "/getbytitle('" + listName + "')/items?$top=" + (top || 500);
+  if(filter) url += '&$filter=' + encodeURIComponent(filter);
+  if(select) url += '&$select=' + select;
+  url += '&$orderby=Id desc';
+  var r = await _spRequest(url, {});
+  var d = await r.json();
+  return d.d ? (d.d.results || []) : (d.value || []);
+}
 
 async function spFetch(listName, endpoint, opts){
   endpoint = endpoint || '';
@@ -651,7 +703,6 @@ async function spFetch(listName, endpoint, opts){
   var res = await _spRequest(url, opts);
   if(!opts.method || opts.method === 'GET'){
     var json = await res.json();
-    // Support both odata=verbose (d.results) and nometadata (value)
     if(json.d && json.d.results) return { value: json.d.results };
     return json;
   }
@@ -761,19 +812,16 @@ async function lookupBarcode(){
   try{
     // OData filter — build cleanly without encodeURIComponent wrapping quotes
     var safeRaw = raw.replace(/'/g, "''");
-    var select = 'Title,CatalogID,Instrument,Unit,BarcodeType,CatalogNumber,GS1ParsesExpiry,GS1ParsesLot';
+    var select = 'Title,field_1,Instrument,Unit,BarcodeType,CatalogNumber,GS1ParsesExpiry,GS1ParsesLot';
 
-    // Use encodeURIComponent on filter string — exact Shift Hub pattern
-    let data = await spFetch(SP.lists.catalog,
-      '?$top=1&$select=' + select + '&$filter=' + encodeURIComponent("BarcodeString eq '" + safeRaw + "'"));
-
-    let catalogRow = data.value?.[0] || null;
+    // Use spGet — exact Shift Hub pattern
+    var results = await spGet(SP.lists.catalog, "BarcodeString eq '" + safeRaw + "'", select, 1);
+    let catalogRow = results[0] || null;
 
     // If no match, try CatalogNumber
     if(!catalogRow){
-      data = await spFetch(SP.lists.catalog,
-        '?$top=1&$select=' + select + '&$filter=' + encodeURIComponent("CatalogNumber eq '" + safeRaw + "'"));
-      catalogRow = data.value?.[0] || null;
+      results = await spGet(SP.lists.catalog, "CatalogNumber eq '" + safeRaw + "'", select, 1);
+      catalogRow = results[0] || null;
     }
 
     if(!catalogRow){
@@ -789,9 +837,8 @@ async function lookupBarcode(){
     currentCatalog = catalogRow;
 
     // Now look up the inventory row
-    var safeCatId = catalogRow.CatalogID.replace(/'/g, "''");
-    const invData = await spFetch(SP.lists.inventory,
-      '?$top=1&$filter=' + encodeURIComponent("CatalogID eq '" + safeCatId + "'"));
+    var safeTitle = (catalogRow.Title || '').replace(/'/g, "''");
+    const invData = await spFetch(SP.lists.inventory, '?$top=1&$filter=' + encodeURIComponent("Title eq '" + safeTitle + "'"));
 
     const invRow = invData.value?.[0] || null;
     if(!invRow){
@@ -820,11 +867,11 @@ async function lookupBarcode(){
 function populateConfirmScreen(){
   if(!currentItem) return;
   document.getElementById('preview-name').textContent = currentItem.Title;
-  document.getElementById('preview-instrument').textContent = currentItem.Instrument || '—';
-  document.getElementById('preview-unit').textContent = currentItem.Unit || '—';
-  document.getElementById('preview-type').textContent = currentItem.ItemType || '—';
-  document.getElementById('preview-stock').textContent = currentItem.InStock ?? '0';
-  document.getElementById('preview-par').textContent = currentItem.MinPAR ?? '—';
+  document.getElementById('preview-instrument').textContent = invVal(currentItem,'Instrument') || '—';
+  document.getElementById('preview-unit').textContent = invVal(currentItem,'Unit') || '—';
+  document.getElementById('preview-type').textContent = invVal(currentItem,'ItemType') || '—';
+  document.getElementById('preview-stock').textContent = invVal(currentItem,'InStock') ?? '0';
+  document.getElementById('preview-par').textContent = invVal(currentItem,'MinPAR') ?? '—';
   document.getElementById('qty-input').value = 1;
   document.getElementById('lot-input').value = '';
   document.getElementById('expiry-input').value = '';
@@ -871,16 +918,15 @@ async function submitEntry(){
   showLoading('Updating inventory...');
   try{
     // Patch ReagentInventory
-    const invFields = { InStock: newStock };
-    if(lot) invFields.LotNumber = lot;
-    if(expiry) invFields.ExpiryDate = expiry;
-    if(action === 'Opened') invFields.DateOpened = new Date().toISOString().slice(0,10);
-    await spPatch(SP.lists.inventory, currentItem.ID, invFields);
+    var patchData = invFields({ InStock: newStock });
+    if(lot) patchData[INV_FIELDS.LotNumber] = lot;
+    if(expiry) patchData[INV_FIELDS.ExpiryDate] = expiry;
+    if(action === 'Opened') patchData[INV_FIELDS.DateOpened] = new Date().toISOString().slice(0,10);
+    await spPatch(SP.lists.inventory, currentItem.ID, patchData);
 
-    // Append InventoryLog
+    // Append InventoryLog — Title is built-in, Action/etc are custom
     const today = new Date().toISOString().slice(0,10);
-    const logFields = {
-      Title: `${currentItem.Title} — ${action} — ${today}`,
+    var logData = logFields({
       Action: action,
       QuantityDelta: delta,
       QuantityAfter: newStock,
@@ -888,8 +934,9 @@ async function submitEntry(){
       ExpiryDate: expiry || '',
       Timestamp: new Date().toISOString(),
       ReasonNote: reason || ''
-    };
-    await spPost(SP.lists.log, logFields);
+    });
+    logData.Title = currentItem.Title + ' — ' + action + ' — ' + today;
+    await spPost(SP.lists.log, logData);
 
     lastEntry = {
       item: currentItem.Title,
@@ -940,8 +987,8 @@ async function submitManual(addToCatalog){
 
     // Always add to catalog if barcode present and addToCatalog = true
     if(addToCatalog && barcodeStr){
-      const catalogFields = {
-        Title: name,
+      var catalogData = catFields({
+        CatalogID: catalogID,
         BarcodeString: barcodeStr,
         CatalogNumber: catalogNum || barcodeStr,
         Instrument: instrument,
@@ -950,16 +997,15 @@ async function submitManual(addToCatalog){
         BarcodeType: barcodeType,
         GS1ParsesExpiry: gs1Expiry,
         GS1ParsesLot: gs1Lot,
-        CatalogID: catalogID,
         Notes: notes || 'Added via scanner — ' + today
-      };
-      await spPost(SP.lists.catalog, catalogFields);
+      });
+      catalogData.Title = name;
+      await spPost(SP.lists.catalog, catalogData);
       showToast('Added to catalog');
     }
 
     // Log the transaction
-    const logFields = {
-      Title: name + ' — ' + action + ' — ' + today,
+    var manualLogData = logFields({
       Action: action,
       QuantityDelta: action === 'Discarded' ? -qty : qty,
       QuantityAfter: qty,
@@ -967,8 +1013,9 @@ async function submitManual(addToCatalog){
       ExpiryDate: expiry || '',
       Timestamp: new Date().toISOString(),
       ReasonNote: notes || ''
-    };
-    await spPost(SP.lists.log, logFields);
+    });
+    manualLogData.Title = name + ' — ' + action + ' — ' + today;
+    await spPost(SP.lists.log, manualLogData);
 
     lastEntry = {
       item: name,
