@@ -219,7 +219,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     </div>
     <button class="btn btn-primary" onclick="lookupBarcode()">🔍 Look Up Item</button>
     <div style="margin:14px 0"><div class="divider">or</div></div>
-    <button class="btn btn-ghost" onclick="goScreen('screen-manual')">✏️ Enter Manually</button>
+    <button class="btn btn-ghost" onclick="resetManualScreen();goScreen('screen-manual')">✏️ Enter Manually</button>
   </div>
 </div>
 
@@ -293,20 +293,22 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <div class="hdr">
     <button class="hdr-back" onclick="goScreen('screen-scan')">←</button>
     <div>
-      <div class="hdr-title">Manual Entry</div>
-      <div class="hdr-sub">Item not in catalog</div>
+      <div class="hdr-title">New Item</div>
+      <div class="hdr-sub">Add to catalog &amp; log entry</div>
     </div>
   </div>
   <div class="body">
-    <div class="alert">
-      Barcode not found in catalog. Enter details manually. The entry will be logged to InventoryLog.
+    <div class="alert" id="manual-alert">
+      Barcode not in catalog. Enter details to add it.
     </div>
     <div class="card">
-      <div class="card-title">Item Details</div>
+      <div class="card-title">Catalog Details
+        <span id="manual-barcode-type" class="badge badge-teal" style="display:none;margin-left:8px;font-size:10px"></span>
+      </div>
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="field">
           <label>Item Name *</label>
-          <input type="text" id="manual-name" placeholder="e.g. Cellpack DCL">
+          <input type="text" id="manual-name" placeholder="e.g. Cellpack DCL" autofocus>
         </div>
         <div class="field">
           <label>Instrument / Section *</label>
@@ -321,6 +323,34 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
           </select>
         </div>
         <div class="field">
+          <label>Unit</label>
+          <select id="manual-unit">
+            <option value="L">L (liter)</option>
+            <option value="mL">mL</option>
+            <option value="vial">vial</option>
+            <option value="kit">kit</option>
+            <option value="btl">btl (bottle)</option>
+            <option value="box">box</option>
+            <option value="pk">pk (pack)</option>
+            <option value="ea">ea (each)</option>
+            <option value="set">set</option>
+            <option value="roll">roll</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Catalog Number <span style="color:var(--text-muted);font-weight:400">(auto-filled from GS1)</span></label>
+          <input type="text" id="manual-catalog-number" class="scan-field" placeholder="e.g. XE-2021">
+        </div>
+        <div class="field" id="manual-barcode-field">
+          <label>Barcode String</label>
+          <input type="text" id="manual-barcode" class="scan-field" placeholder="Scanned barcode">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Transaction Details</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="field">
           <label>Action *</label>
           <select id="manual-action">
             <option value="Received">Received — Add to stock</option>
@@ -334,32 +364,23 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
           <input type="number" id="manual-qty" value="1" min="0" step="0.1">
         </div>
         <div class="field">
-          <label>Lot Number <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+          <label>Lot Number <span style="color:var(--text-muted);font-weight:400">(auto-filled from GS1)</span></label>
           <input type="text" id="manual-lot" placeholder="e.g. LOT-2026-001">
         </div>
         <div class="field">
-          <label>Expiry Date <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+          <label>Expiry Date <span style="color:var(--text-muted);font-weight:400">(auto-filled from GS1)</span></label>
           <input type="date" id="manual-expiry">
         </div>
         <div class="field">
           <label>Notes <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
           <textarea id="manual-notes" placeholder="Any additional notes"></textarea>
         </div>
-        <div class="field">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="manual-add-catalog" style="width:auto;accent-color:var(--teal)">
-            Add this item to ReagentCatalog for future scans
-          </label>
-        </div>
-        <div class="field" id="manual-barcode-field" style="display:none">
-          <label>Barcode String (for catalog)</label>
-          <input type="text" id="manual-barcode" class="scan-field" placeholder="Paste scanned barcode string">
-        </div>
       </div>
     </div>
   </div>
-  <div class="footer">
-    <button class="btn btn-primary" onclick="submitManual()">✓ Submit Entry</button>
+  <div class="footer" style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn btn-primary" onclick="submitManual()">✓ Add to Catalog &amp; Submit</button>
+    <button class="btn btn-ghost" style="font-size:13px" onclick="submitManualLogOnly()">Log only — don't add to catalog</button>
   </div>
 </div>
 
@@ -458,13 +479,127 @@ async function getToken(){
 }
 
 // ============================================================
+// GS1 BARCODE PARSER
+// ============================================================
+// Parses GS1-128 and GS1-DataMatrix strings using Application Identifiers
+// Format: (01)GTIN(17)YYMMDD(10)LOT or ]d2 prefix + raw AIs
+function parseGS1(raw){
+  var result = {
+    raw: raw,
+    gtin: null,
+    catalogNumber: null,
+    expiry: null,       // ISO date string YYYY-MM-DD
+    lot: null,
+    quantity: null,
+    isGS1: false,
+    barcodeType: 'Unknown'
+  };
+
+  // Detect GS1-DataMatrix (starts with ]d2 or ]C1)
+  var str = raw;
+  if(str.startsWith(']d2') || str.startsWith(']C1')){
+    str = str.slice(3);
+    result.isGS1 = true;
+    result.barcodeType = 'GS1-DataMatrix';
+  }
+
+  // Normalize parenthetical format: (01)12345 → parse sequentially
+  // Also handle raw AI format without parens: 011234517YYMMDD10LOT
+  var hasParens = str.includes('(');
+
+  if(hasParens){
+    result.isGS1 = true;
+    result.barcodeType = result.barcodeType === 'GS1-DataMatrix' ? 'GS1-DataMatrix' : 'GS1-128';
+    // Parse (AI)value pairs
+    var regex = /\((\d{2,4})\)([^(]*)/g;
+    var match;
+    while((match = regex.exec(str)) !== null){
+      var ai = match[1];
+      var val = match[2].trim();
+      applyAI(result, ai, val);
+    }
+  } else if(result.isGS1 || /^\d{14}/.test(str)){
+    // Raw GS1 without parens — parse fixed-length AIs
+    result.isGS1 = true;
+    if(result.barcodeType === 'Unknown') result.barcodeType = 'GS1-DataMatrix';
+    var pos = 0;
+    while(pos < str.length){
+      // Try 2-digit AI first
+      var ai2 = str.slice(pos, pos+2);
+      var ai3 = str.slice(pos, pos+3);
+      var ai4 = str.slice(pos, pos+4);
+      if(ai2 === '01' && pos+2+14 <= str.length){
+        applyAI(result, '01', str.slice(pos+2, pos+2+14)); pos += 16;
+      } else if(ai2 === '17' && pos+2+6 <= str.length){
+        applyAI(result, '17', str.slice(pos+2, pos+2+6)); pos += 8;
+      } else if(ai2 === '10'){
+        // Variable length — read until next AI or end
+        var val = ''; pos += 2;
+        while(pos < str.length && !/^(01|17|10|30|21|11|15)\d/.test(str.slice(pos))){ val += str[pos]; pos++; }
+        applyAI(result, '10', val);
+      } else if(ai2 === '30'){
+        applyAI(result, '30', str.slice(pos+2, pos+2+8)); pos += 10;
+      } else {
+        pos++; // skip unknown byte
+      }
+    }
+  } else if(/^\d{12,13}$/.test(str)){
+    // UPC-A or EAN-13
+    result.barcodeType = str.length === 12 ? 'UPC-A' : 'EAN-13';
+    result.catalogNumber = str;
+  } else if(/^[A-Z0-9\-]{4,}$/i.test(str)){
+    // Likely Code128 catalog number
+    result.barcodeType = 'Code128';
+    result.catalogNumber = str;
+  }
+
+  return result;
+}
+
+function applyAI(result, ai, val){
+  if(ai === '01'){
+    result.gtin = val;
+    // Strip leading zeros to get catalog number (last 13 or fewer digits)
+    result.catalogNumber = val.replace(/^0+/, '') || val;
+  } else if(ai === '17'){
+    // YYMMDD → YYYY-MM-DD
+    if(val.length === 6){
+      var yy = parseInt(val.slice(0,2));
+      var year = yy < 50 ? 2000+yy : 1900+yy;
+      var mm = val.slice(2,4);
+      var dd = val.slice(4,6) === '00' ? '28' : val.slice(4,6); // 00 = last day of month
+      result.expiry = year + '-' + mm + '-' + dd;
+    }
+  } else if(ai === '10'){
+    result.lot = val.trim();
+  } else if(ai === '30'){
+    result.quantity = parseInt(val) || null;
+  }
+}
+
+// Guess instrument from GTIN/catalog number prefix
+function guessInstrument(parsed){
+  var cat = (parsed.catalogNumber || '').toUpperCase();
+  var gtin = (parsed.gtin || '');
+  // Sysmex GTINs start with 4712345 area
+  if(gtin.startsWith('04712345') || cat.startsWith('XE') || cat.includes('CELLPACK') || cat.includes('SULFO') || cat.includes('LYSER') || cat.includes('FLUORO') || cat.includes('STOMATO') || cat.includes('DILUENT') || cat.includes('UF-') || cat.includes('EIGHTCHEK')) return 'XN';
+  if(cat.includes('STA-') || cat.includes('PTT') || cat.includes('NEOPLASTIN') || cat.includes('FIB') || cat.startsWith('006')) return 'Stago';
+  if(cat.includes('UN-') || cat.startsWith('UA-') || cat.includes('UF-SH') || cat.includes('UF-ST')) return 'UN';
+  if(cat.includes('DI-') || cat.includes('DM-') || cat.includes('BSB') || cat.includes('CYTOPREP') || cat.includes('BF-')) return 'DI-60';
+  if(cat.startsWith('458') || cat.includes('COBAS') || cat.includes('ISE') || cat.includes('PRECICONT') || cat.includes('E801') || cat.includes('P612')) return 'Roche';
+  return 'XN'; // default
+}
+
+// ============================================================
 // STATE
 
 
 // ============================================================
-let currentItem = null;   // matched ReagentInventory row
-let currentCatalog = null; // matched ReagentCatalog row
+let currentItem = null;
+let currentCatalog = null;
 let lastEntry = {};
+let lastScannedRaw = '';  // raw barcode from last scan attempt
+let lastParsedGS1 = null; // parsed GS1 data from last scan
 
 // ============================================================
 // SCREEN NAVIGATION
@@ -544,6 +679,72 @@ async function spPost(listName, fields){
 // ============================================================
 // CATALOG LOOKUP
 // ============================================================
+// Auto-fill Manual Entry screen from parsed GS1 data
+function resetManualScreen(){
+  lastScannedRaw = '';
+  lastParsedGS1 = null;
+  document.getElementById('manual-name').value = '';
+  document.getElementById('manual-lot').value = '';
+  document.getElementById('manual-expiry').value = '';
+  document.getElementById('manual-notes').value = '';
+  document.getElementById('manual-barcode').value = '';
+  document.getElementById('manual-catalog-number').value = '';
+  document.getElementById('manual-qty').value = '1';
+  document.getElementById('manual-action').value = 'Received';
+  document.getElementById('manual-instrument').value = 'XN';
+  var typeEl = document.getElementById('manual-barcode-type');
+  if(typeEl) typeEl.style.display = 'none';
+  var alertEl = document.getElementById('manual-alert');
+  if(alertEl) alertEl.textContent = 'Enter item details below.';
+}
+
+function autoFillManualScreen(parsed, raw){
+  // Pre-fill barcode field and check Add to Catalog
+  document.getElementById('manual-barcode').value = raw;
+  document.getElementById('manual-add-catalog').checked = true;
+  document.getElementById('manual-barcode-field').style.display = 'flex';
+
+  // Pre-fill expiry if parsed
+  if(parsed.expiry){
+    document.getElementById('manual-expiry').value = parsed.expiry;
+  }
+
+  // Pre-fill lot if parsed
+  if(parsed.lot){
+    document.getElementById('manual-lot').value = parsed.lot;
+  }
+
+  // Pre-fill catalog number in notes if available
+  if(parsed.catalogNumber){
+    document.getElementById('manual-catalog-number').value = parsed.catalogNumber;
+  }
+
+  // Guess instrument
+  var instGuess = guessInstrument(parsed);
+  document.getElementById('manual-instrument').value = instGuess;
+
+  // Show barcode type badge
+  var typeEl = document.getElementById('manual-barcode-type');
+  if(typeEl){
+    typeEl.textContent = parsed.barcodeType + (parsed.isGS1 ? ' · GS1 parsed' : '');
+    typeEl.style.display = 'inline-flex';
+  }
+
+  // Update alert message based on what was parsed
+  var alertEl = document.getElementById('manual-alert');
+  if(alertEl){
+    var parsed_fields = [];
+    if(parsed.expiry) parsed_fields.push('expiry');
+    if(parsed.lot) parsed_fields.push('lot number');
+    if(parsed.catalogNumber) parsed_fields.push('catalog number');
+    if(parsed_fields.length > 0){
+      alertEl.innerHTML = 'Barcode not in catalog. Auto-filled: <strong>' + parsed_fields.join(', ') + '</strong>. Enter item name to add it.';
+    } else {
+      alertEl.textContent = 'Barcode not in catalog. Enter details to add it.';
+    }
+  }
+}
+
 async function lookupBarcode(){
   const raw = document.getElementById('scan-input').value.trim();
   if(!raw){ showToast('Please scan or enter a barcode first'); return; }
@@ -566,7 +767,10 @@ async function lookupBarcode(){
 
     if(!catalogRow){
       hideLoading();
-      showToast('Barcode not in catalog — try manual entry', true);
+      // Parse GS1 data from the raw barcode
+      lastScannedRaw = raw;
+      lastParsedGS1 = parseGS1(raw);
+      autoFillManualScreen(lastParsedGS1, raw);
       goScreen('screen-manual');
       return;
     }
@@ -696,24 +900,53 @@ async function submitEntry(){
 // ============================================================
 // SUBMIT MANUAL ENTRY
 // ============================================================
-async function submitManual(){
+async function submitManual(addToCatalog){
+  if(addToCatalog === undefined) addToCatalog = true;
   const name = document.getElementById('manual-name').value.trim();
   const instrument = document.getElementById('manual-instrument').value;
+  const unit = document.getElementById('manual-unit').value;
   const action = document.getElementById('manual-action').value;
   const qty = parseFloat(document.getElementById('manual-qty').value) || 0;
   const lot = document.getElementById('manual-lot').value.trim();
   const expiry = document.getElementById('manual-expiry').value;
   const notes = document.getElementById('manual-notes').value.trim();
-  const addCatalog = document.getElementById('manual-add-catalog').checked;
   const barcodeStr = document.getElementById('manual-barcode').value.trim();
+  const catalogNum = document.getElementById('manual-catalog-number').value.trim();
 
   if(!name){ showToast('Item name is required', true); return; }
 
-  showLoading('Logging entry...');
+  const parsed = lastParsedGS1 || (barcodeStr ? parseGS1(barcodeStr) : null);
+  const barcodeType = parsed ? parsed.barcodeType : 'Unknown';
+  const gs1Expiry = parsed && parsed.expiry ? 'Yes' : 'No';
+  const gs1Lot = parsed && parsed.lot ? 'Yes' : 'No';
+
+  showLoading('Saving...');
   try{
     const today = new Date().toISOString().slice(0,10);
+    const catalogID = 'MAN-' + Date.now();
+
+    // Always add to catalog if barcode present and addToCatalog = true
+    if(addToCatalog && barcodeStr){
+      const catalogFields = {
+        Title: name,
+        BarcodeString: barcodeStr,
+        CatalogNumber: catalogNum || barcodeStr,
+        Instrument: instrument,
+        Unit: unit,
+        Manufacturer: 'Other',
+        BarcodeType: barcodeType,
+        GS1ParsesExpiry: gs1Expiry,
+        GS1ParsesLot: gs1Lot,
+        CatalogID: catalogID,
+        Notes: notes || 'Added via scanner — ' + today
+      };
+      await spPost(SP.lists.catalog, catalogFields);
+      showToast('Added to catalog');
+    }
+
+    // Log the transaction
     const logFields = {
-      Title: `${name} — ${action} — ${today}`,
+      Title: name + ' — ' + action + ' — ' + today,
       Action: action,
       QuantityDelta: action === 'Discarded' ? -qty : qty,
       QuantityAfter: qty,
@@ -724,31 +957,18 @@ async function submitManual(){
     };
     await spPost(SP.lists.log, logFields);
 
-    // Add to catalog if requested
-    if(addCatalog && barcodeStr){
-      const catalogFields = {
-        Title: name,
-        BarcodeString: barcodeStr,
-        Instrument: instrument,
-        Unit: '',
-        Manufacturer: 'Other',
-        BarcodeType: 'Unknown',
-        GS1ParsesExpiry: 'No',
-        GS1ParsesLot: 'No',
-        CatalogID: `MAN-${Date.now()}`,
-        Notes: notes || 'Added via manual entry'
-      };
-      await spPost(SP.lists.catalog, catalogFields);
-    }
-
     lastEntry = {
       item: name,
-      action,
-      delta: action === 'Discarded' ? `-${qty}` : `+${qty}`,
+      action: action,
+      delta: action === 'Discarded' ? '-'+qty : '+'+qty,
       newStock: qty,
       lot: lot || '—',
       time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})
     };
+
+    // Reset manual screen for next use
+    lastScannedRaw = '';
+    lastParsedGS1 = null;
 
     hideLoading();
     showSuccessScreen();
@@ -758,6 +978,10 @@ async function submitManual(){
     console.error('Manual submit error:', e);
     showToast('Submit failed — check connection. Entry NOT saved.', true);
   }
+}
+
+async function submitManualLogOnly(){
+  await submitManual(false);
 }
 
 // ============================================================
@@ -779,9 +1003,6 @@ function showSuccessScreen(){
 // ============================================================
 // MANUAL CATALOG TOGGLE
 // ============================================================
-document.getElementById('manual-add-catalog').addEventListener('change', function(){
-  document.getElementById('manual-barcode-field').style.display = this.checked ? 'flex' : 'none';
-});
 
 // ============================================================
 // SCAN INPUT — ENTER KEY & AUTO-SUBMIT
