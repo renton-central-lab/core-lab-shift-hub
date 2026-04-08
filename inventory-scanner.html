@@ -204,6 +204,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <div class="status-bar">
     <span><span class="status-dot"></span><span id="sp-status-text">Ready</span></span>
     <span id="sp-user-text"></span>
+    <button id="signin-btn" onclick="manualSignIn()" style="display:none;background:var(--purple);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">Sign In</button>
   </div>
   <div class="scan-area">
     <div class="scan-icon">📦</div>
@@ -425,6 +426,13 @@ async function initMSAL(){
   const accounts = msalInstance.getAllAccounts();
   if(accounts.length > 0) msalInstance.setActiveAccount(accounts[0]);
   return accounts[0] || null;
+}
+
+async function manualSignIn(){
+  try{
+    await loginMSAL();
+    location.reload();
+  } catch(e){ showToast("Sign in failed — try again", true); }
 }
 
 async function getToken(){
@@ -824,32 +832,26 @@ window.addEventListener('load', async ()=>{
   showLoading('Connecting to SharePoint...');
   try{
     await initMSAL();
-    const accounts = msalInstance.getAllAccounts();
+    let accounts = msalInstance.getAllAccounts();
     if(accounts.length === 0){
-      // No cached account — redirect to Microsoft login (no popup needed)
-      document.getElementById('sp-status-text').textContent = 'Redirecting to sign in...';
+      document.getElementById('sp-status-text').textContent = 'Sign in required';
+      document.getElementById('signin-btn').style.display = 'inline-block';
       hideLoading();
-      await msalInstance.loginRedirect({ scopes: SP.scopes });
-      return; // Redirect takes over
+      return;
     }
     const account = accounts[0];
     document.getElementById('sp-user-text').textContent = account?.name || account?.username || '';
-    // Acquire token silently then test SP connection
     await getToken();
     await spFetch(SP.lists.inventory, '?$top=1&$select=Title');
     document.getElementById('sp-status-text').textContent = 'SharePoint connected';
+    document.getElementById('signin-btn').style.display = 'none';
     hideLoading();
     scanInput.focus();
   } catch(e){
     hideLoading();
     console.error('Init error:', e);
-    // If it's a token error, try redirect
-    if(e.name === 'InteractionRequiredAuthError'){
-      await msalInstance.acquireTokenRedirect({ scopes: SP.scopes });
-    } else {
-      document.getElementById('sp-status-text').textContent = 'Connection error';
-      showToast('Could not connect to SharePoint — check network', true);
-    }
+    document.getElementById('sp-status-text').textContent = 'Sign in required';
+    document.getElementById('signin-btn').style.display = 'inline-block';
   }
 });
 </script>
