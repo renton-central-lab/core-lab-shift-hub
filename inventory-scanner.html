@@ -770,7 +770,6 @@ async function initAuth(){
     // Connected — go to action screen
     var account = msalInstance.getActiveAccount();
     if(account){
-      document.getElementById('user-name-display').textContent = account.name || account.username;
       var und = document.getElementById('user-name-display'); if(und) und.textContent = account.name || account.username;
       var sut = document.getElementById('sp-user-text'); if(sut) sut.textContent = account.name || '';
       var navName = document.getElementById('nav-user-name');
