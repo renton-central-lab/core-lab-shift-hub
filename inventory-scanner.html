@@ -798,8 +798,10 @@ async function lookupBarcode(){
 
   } catch(e){
     hideLoading();
-    console.error('Lookup error:', e);
-    showToast('Connection error — check network and try again', true);
+    console.error('Lookup error full:', e);
+    // Show the actual error message so we can debug
+    var msg = e.message || String(e);
+    showToast('Error: ' + msg.slice(0, 80), true);
   }
 }
 
