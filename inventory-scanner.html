@@ -667,6 +667,16 @@ async function _spRequest(url, options){
 
 // SP_API base — exact Shift Hub pattern
 var SP_API = SP.siteUrl + '/_api/web/lists';
+var _listTypes = {};
+
+async function getListItemType(listName){
+  if(_listTypes[listName]) return _listTypes[listName];
+  var r = await _spRequest(SP_API + "/getbytitle('" + listName + "')?$select=ListItemEntityTypeFullName");
+  var d = await r.json();
+  _listTypes[listName] = d.d.ListItemEntityTypeFullName;
+  return _listTypes[listName];
+}
+
 
 // ============================================================
 // SHAREPOINT FIELD NAME MAPS
@@ -741,6 +751,8 @@ async function getDigest(){
 
 async function spPatch(listName, itemId, fields){
   var digest = await getDigest();
+  var meta = await getListItemType(listName);
+  fields.__metadata = { type: meta };
   var url = SP.siteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items(" + itemId + ")";
   return _spRequest(url, {
     method: 'POST',
@@ -751,6 +763,8 @@ async function spPatch(listName, itemId, fields){
 
 async function spPost(listName, fields){
   var digest = await getDigest();
+  var meta = await getListItemType(listName);
+  fields.__metadata = { type: meta };
   var url = SP.siteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items";
   return _spRequest(url, {
     method: 'POST',
@@ -758,9 +772,6 @@ async function spPost(listName, fields){
     body: fields
   });
 }
-
-// ============================================================
-// CATALOG LOOKUP
 // ============================================================
 // Auto-fill Manual Entry screen from parsed GS1 data
 // ============================================================
