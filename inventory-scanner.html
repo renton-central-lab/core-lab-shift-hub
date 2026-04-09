@@ -386,15 +386,104 @@ async function spPatch(listName,itemId,fields){var digest=await getDigest(),meta
 
 function parseGS1(raw){
   var r={raw,gtin:null,catalogNumber:null,expiry:null,lot:null,isGS1:false,barcodeType:'Unknown'};var str=raw;
+  // Strip symbology prefixes
   if(str.startsWith(']d2')||str.startsWith(']C1')){str=str.slice(3);r.isGS1=true;r.barcodeType='GS1-DataMatrix';}
+  // Strip FNC1/GS characters
+  str=str.replace(/[\x1d\x1e]/g,String.fromCharCode(29));
+  // Parenthetical AIs: (01)...(17)...(10)...
   if(str.includes('(')){r.isGS1=true;if(r.barcodeType==='Unknown')r.barcodeType='GS1-128';var rx=/\((\d{2,4})\)([^(]*)/g,m;while((m=rx.exec(str))!==null)applyAI(r,m[1],m[2].trim());}
-  else if(r.isGS1||/^\d{14}/.test(str)){r.isGS1=true;if(r.barcodeType==='Unknown')r.barcodeType='GS1-DataMatrix';var pos=0;while(pos<str.length){var a2=str.slice(pos,pos+2);if(a2==='01'&&pos+16<=str.length){applyAI(r,'01',str.slice(pos+2,pos+16));pos+=16;}else if(a2==='17'&&pos+8<=str.length){applyAI(r,'17',str.slice(pos+2,pos+8));pos+=8;}else if(a2==='10'){var v='';pos+=2;while(pos<str.length&&!/^(01|17|10|30)/.test(str.slice(pos))){v+=str[pos];pos++;}applyAI(r,'10',v);}else{pos++;}}}
+  // Fixed-length AI parsing starting at position 0
+  else if(r.isGS1||/^\d{14}/.test(str)||str.slice(0,2)==='01'){
+    r.isGS1=true;if(r.barcodeType==='Unknown')r.barcodeType='GS1-DataMatrix';
+    var fixedLen={'01':14,'02':14,'11':6,'13':6,'15':6,'17':6,'20':2};
+    var foundAIs={};
+    function isRealAI(s,j){
+      var a2=s.slice(j,j+2);var fl=fixedLen[a2];
+      if(!fl)return false;if(j+2+fl>s.length)return false;
+      var val=s.slice(j+2,j+2+fl);
+      if(a2==='01'||a2==='02'){if(foundAIs[a2])return false;return /^\d{14}$/.test(val);}
+      if(a2==='11'||a2==='13'||a2==='15'||a2==='17'){
+        if(!/^\d{6}$/.test(val))return false;
+        var mm=parseInt(val.slice(2,4));var dd=parseInt(val.slice(4,6));
+        return mm>=1&&mm<=12&&dd>=0&&dd<=31;
+      }
+      if(a2==='20')return /^\d{2}$/.test(val);
+      return true;
+    }
+    var pos=0;while(pos<str.length){var a2=str.slice(pos,pos+2);
+      if(fixedLen[a2]&&isRealAI(str,pos)){
+        var val=str.slice(pos+2,pos+2+fixedLen[a2]);foundAIs[a2]=true;
+        if(a2==='01')applyAI(r,'01',val);
+        else if(a2==='17')applyAI(r,'17',val);
+        pos+=2+fixedLen[a2];
+      }
+      else if(a2==='10'||a2==='21'||a2==='24'||a2==='30'){
+        pos+=2;var end=str.length;
+        var gs=str.indexOf(String.fromCharCode(29),pos);
+        if(gs>=0)end=gs;
+        else{for(var j=pos+1;j<str.length-1;j++){if(isRealAI(str,j)){end=j;break;}}}
+        var val=str.slice(pos,end);
+        if(a2==='10')applyAI(r,'10',val);
+        else if(a2==='21')r.serial=val.trim();
+        else if(a2==='24'){r.additionalId=val.trim();r.refNumber=val.trim().replace(/^0+/,'')||val.trim();}
+        else if(a2==='30')r.quantity=val.trim();
+        pos=end+(gs>=0&&end===gs?1:0);
+      }
+      else{pos++;}
+    }
+  }
+  // UPC-A / EAN-13
   else if(/^\d{12,13}$/.test(str)){r.barcodeType=str.length===12?'UPC-A':'EAN-13';r.catalogNumber=str;}
+  // Fallback: scan for embedded AI 01 anywhere in a long numeric string
+  else if(/^\d{20,}$/.test(str)){
+    var idx=str.indexOf('01');
+    if(idx>=0&&idx+16<=str.length){
+      r.isGS1=true;r.barcodeType='GS1-DataMatrix';
+      // Parse from the found 01 position
+      var pos=idx;while(pos<str.length){var a2=str.slice(pos,pos+2);
+        if(a2==='01'&&pos+16<=str.length){applyAI(r,'01',str.slice(pos+2,pos+16));pos+=16;}
+        else if(a2==='17'&&pos+8<=str.length){applyAI(r,'17',str.slice(pos+2,pos+8));pos+=8;}
+        else if(a2==='10'){var v=str.slice(pos+2);applyAI(r,'10',v);pos=str.length;}
+        else{pos++;}
+      }
+      // Prefix before AI 01 could be packaging/internal code
+      if(idx>0)r.prefix=str.slice(0,idx);
+    } else {
+      r.barcodeType='Code128';r.catalogNumber=str;
+    }
+  }
+  // Delimiter-separated QR codes (Roche cobas uses underscore: materialNum_productCode_lot)
+  else if(/[_|;]/.test(str)){
+    var delim=str.includes('_')?'_':str.includes('|')?'|':';';
+    var parts=str.split(delim).map(function(s){return s.trim();}).filter(Boolean);
+    r.barcodeType='QR-Delimited';r.qrSegments=parts;
+    // Roche cobas QR pattern: 8-digit material _ 11-digit product code _ lot
+    // Try to identify segments by pattern
+    for(var i=0;i<parts.length;i++){
+      var p=parts[i];
+      // Date-like: YYYYMMDD or YYYY-MM-DD
+      if(!r.expiry&&/^\d{4}[-]?\d{2}[-]?\d{2}$/.test(p)){
+        var d=p.replace(/-/g,'');r.expiry=d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8);
+      }
+      // First numeric segment 6+ digits: likely material/catalog number
+      else if(!r.catalogNumber&&/^\d{6,}$/.test(p)&&i===0){
+        r.catalogNumber=p;r.rocheMaterial=p;
+      }
+      // Second numeric segment 9+ digits: product/GTIN code
+      else if(r.catalogNumber&&!r.gtin&&/^\d{9,}$/.test(p)){
+        r.gtin=p;r.gtinRaw=p;
+      }
+      // Shorter alphanumeric at end: lot number
+      else if(!r.lot&&i>=1&&/^[A-Z0-9]{3,}$/i.test(p)&&!/^\d{4}[-]?\d{2}[-]?\d{2}$/.test(p)){
+        r.lot=p;
+      }
+    }
+  }
   else if(/^[A-Z0-9\-]{4,}$/i.test(str)){r.barcodeType='Code128';r.catalogNumber=str;}
   return r;
 }
-function applyAI(r,ai,val){if(ai==='01'){r.gtin=val;r.catalogNumber=val.replace(/^0+/,'')||val;}else if(ai==='17'&&val.length===6){var yy=parseInt(val.slice(0,2)),yr=yy<50?2000+yy:1900+yy;r.expiry=yr+'-'+val.slice(2,4)+'-'+(val.slice(4,6)==='00'?'28':val.slice(4,6));}else if(ai==='10'){r.lot=val.trim();}}
-function guessInst(p){var c=(p.catalogNumber||'').toUpperCase();if(c.startsWith('XE')||c.includes('CELLPACK')||c.includes('SULFO')||c.includes('LYSER')||c.includes('FLUORO')||c.includes('STOMATO')||c.includes('DILUENT'))return'XN';if(c.includes('STA-')||c.includes('PTT')||c.includes('FIB')||c.startsWith('006'))return'Stago';if(c.includes('UN-')||c.startsWith('UA-'))return'UN';if(c.includes('DI-')||c.includes('DM-'))return'DI-60';if(c.startsWith('458')||c.includes('COBAS'))return'Roche';return'XN';}
+function applyAI(r,ai,val){if(ai==='01'){r.gtin=val;r.catalogNumber=val.replace(/^0+/,'')||val;r.gtinRaw=val;}else if(ai==='17'&&val.length===6){var yy=parseInt(val.slice(0,2)),yr=yy<50?2000+yy:1900+yy;var dd=val.slice(4,6)==='00'?'28':val.slice(4,6);r.expiry=yr+'-'+val.slice(2,4)+'-'+dd;}else if(ai==='10'){r.lot=val.trim();}else if(ai==='21'){r.serial=val.trim();}}
+function guessInst(p){var c=(p.catalogNumber||'').toUpperCase();var g=(p.gtin||'').toUpperCase();var rm=(p.rocheMaterial||'');if(c.startsWith('XE')||c.includes('CELLPACK')||c.includes('SULFO')||c.includes('LYSER')||c.includes('FLUORO')||c.includes('STOMATO')||c.includes('DILUENT'))return'XN';if(c.includes('STA-')||c.includes('PTT')||c.includes('FIB')||c.startsWith('006'))return'Stago';if(c.includes('UN-')||c.startsWith('UA-'))return'UN';if(c.includes('DI-')||c.includes('DM-'))return'DI-60';if(c.startsWith('458')||c.includes('COBAS')||g.startsWith('0762651')||c.startsWith('762651')||/^\d{8}$/.test(rm)||c.startsWith('0702'))return'Roche';return'XN';}
 
 async function lookupBarcode(){
   var raw=document.getElementById('scan-input').value.trim();
@@ -402,12 +491,33 @@ async function lookupBarcode(){
   showLoad('Looking up item...');
   try{
     var safe=raw.replace(/'/g,"''");
+    var parsed=parseGS1(raw);
     var sel='Id,Title,field_1,field_2,field_3,field_4,field_5,field_6,field_7,field_8,field_9,field_10,field_11,field_12,field_13';
     var catSel='Id,Title,field_1,field_2,field_3,field_4,field_5,field_6,field_7,field_8,field_9';
+    // 1. Try full barcode string match (field_6 = BarcodeString)
     var data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_6 eq '"+safe+"'"));
     var catRow=data.value?.[0]||null;
+    // 2. Try full barcode as CatalogNumber (field_7)
     if(!catRow){data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safe+"'"));catRow=data.value?.[0]||null;}
-    if(!catRow){lastRaw=raw;lastParsedGS1=parseGS1(raw);fillManualFromBarcode(lastParsedGS1,raw);hideLoad();goScreen('screen-manual');return;}
+    // 3. If GS1 parsed a catalog number (leading zeros stripped), try that
+    if(!catRow&&parsed.catalogNumber){var safeCat=parsed.catalogNumber.replace(/'/g,"''");data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safeCat+"'"));catRow=data.value?.[0]||null;}
+    // 4. If GS1 has raw GTIN (with leading zeros), try that too
+    if(!catRow&&parsed.gtinRaw&&parsed.gtinRaw!==parsed.catalogNumber){var safeGtin=parsed.gtinRaw.replace(/'/g,"''");data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safeGtin+"'"));catRow=data.value?.[0]||null;}
+    // 5. If GS1 AI 24 parsed a REF/additional ID (Roche), try that
+    if(!catRow&&parsed.refNumber){var safeRef=parsed.refNumber.replace(/'/g,"''");data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safeRef+"'"));catRow=data.value?.[0]||null;}
+    if(!catRow&&parsed.additionalId&&parsed.additionalId!==parsed.refNumber){var safeAid=parsed.additionalId.replace(/'/g,"''");data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safeAid+"'"));catRow=data.value?.[0]||null;}
+    // 7. QR-Delimited: try each segment against BarcodeString and CatalogNumber
+    if(!catRow&&parsed.qrSegments&&parsed.qrSegments.length>0){
+      for(var si=0;si<parsed.qrSegments.length&&!catRow;si++){
+        var seg=parsed.qrSegments[si].replace(/'/g,"''");
+        data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_6 eq '"+seg+"'"));catRow=data.value?.[0]||null;
+        if(!catRow){data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+seg+"'"));catRow=data.value?.[0]||null;}
+        var segStripped=seg.replace(/^0+/,'');
+        if(!catRow&&segStripped!==seg){data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+segStripped+"'"));catRow=data.value?.[0]||null;}
+      }
+    }
+    // 8. Not found anywhere
+    if(!catRow){lastRaw=raw;lastParsedGS1=parsed;fillManualFromBarcode(parsed,raw);hideLoad();goScreen('screen-manual');return;}
     var safeCatID=(catRow[CAT.CatalogID]||'').replace(/'/g,"''");
     var invData;
     if(safeCatID){invData=await spFetch(SP.lists.inventory,'?$top=1&$select='+sel+'&$filter='+encodeURIComponent("field_12 eq '"+safeCatID+"'"));}
@@ -415,7 +525,6 @@ async function lookupBarcode(){
     var invRow=invData.value?.[0]||null;
     if(!invRow)invRow=await autoCreateInvRow(catRow);
     currentItem=invRow;
-    var parsed=parseGS1(raw);
     if(parsed.expiry){document.getElementById('exp-receive').value=parsed.expiry;}
     if(parsed.lot){document.getElementById('lot-receive').value=parsed.lot;}
     renderItem();hideLoad();goScreen('screen-item');
