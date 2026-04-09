@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Inventory Scanner">
-<meta name="theme-color" content="#F3EDF7">
+<meta name="theme-color" content="#EFEDE6">
 <link rel="manifest" href="manifest.json">
 <title>Renton Inventory Scanner</title>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&display=swap" rel="stylesheet">
@@ -17,27 +17,27 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --md-primary:#65558F;--md-on-primary:#FFFFFF;
-  --md-primary-container:#EADDFF;--md-on-primary-container:#21005D;
-  --md-secondary:#625B71;--md-on-secondary:#FFFFFF;
-  --md-secondary-container:#E8DEF8;--md-on-secondary-container:#1D192B;
-  --md-tertiary:#7D5260;--md-on-tertiary:#FFFFFF;
-  --md-tertiary-container:#FFD8E4;--md-on-tertiary-container:#31111D;
-  --md-surface:#FEF7FF;--md-surface-dim:#DED8E1;
-  --md-surface-container-lowest:#FFFFFF;--md-surface-container-low:#F7F2FA;
-  --md-surface-container:#F3EDF7;--md-surface-container-high:#ECE6F0;
-  --md-surface-container-highest:#E6E0E9;
-  --md-on-surface:#1D1B20;--md-on-surface-variant:#49454F;
-  --md-outline:#79747E;--md-outline-variant:#CAC4D0;
-  --md-error:#B3261E;--md-on-error:#FFFFFF;
-  --md-error-container:#F9DEDC;--md-on-error-container:#410E0B;
-  --receive:#1B6E3D;--receive-bg:#D4EDDA;--receive-surface:#E8F5E9;
-  --remove:#B3261E;--remove-bg:#F9DEDC;--remove-surface:#FCECEA;
-  --adjust:#7C5800;--adjust-bg:#FFEEBB;--adjust-surface:#FFF8E1;
-  --ok:#1B6E3D;--ok-bg:#D4EDDA;
-  --watch:#7C5800;--watch-bg:#FFEEBB;
-  --order:#924C00;--order-bg:#FFE0B2;
-  --out:#B3261E;--out-bg:#F9DEDC;
+  --md-primary:#00696E;--md-on-primary:#FFFFFF;
+  --md-primary-container:#C4EEF0;--md-on-primary-container:#003D40;
+  --md-secondary:#5C6360;--md-on-secondary:#FFFFFF;
+  --md-secondary-container:#E0E7E3;--md-on-secondary-container:#1A2120;
+  --md-tertiary:#5B5F6B;--md-on-tertiary:#FFFFFF;
+  --md-tertiary-container:#DFE3F0;--md-on-tertiary-container:#181C26;
+  --md-surface:#FAFAF5;--md-surface-dim:#DBD9D2;
+  --md-surface-container-lowest:#FFFFFF;--md-surface-container-low:#F5F3EC;
+  --md-surface-container:#EFEDE6;--md-surface-container-high:#E9E7E0;
+  --md-surface-container-highest:#E3E1DA;
+  --md-on-surface:#1B1C19;--md-on-surface-variant:#44483E;
+  --md-outline:#757870;--md-outline-variant:#C6C8BC;
+  --md-error:#BA1A1A;--md-on-error:#FFFFFF;
+  --md-error-container:#FFDAD6;--md-on-error-container:#410002;
+  --receive:#2D6B46;--receive-bg:#D0EADB;--receive-surface:#E6F3EC;
+  --remove:#BA1A1A;--remove-bg:#FFDAD6;--remove-surface:#FFF0EE;
+  --adjust:#6B5000;--adjust-bg:#FADFAD;--adjust-surface:#FFF4DE;
+  --ok:#2D6B46;--ok-bg:#D0EADB;
+  --watch:#6B5000;--watch-bg:#FADFAD;
+  --order:#8B5E00;--order-bg:#FFE1A8;
+  --out:#BA1A1A;--out-bg:#FFDAD6;
   --radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:28px;--radius-full:9999px;
   --font:'Google Sans','Google Sans Text',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   --font-body:'Google Sans Text','Google Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
@@ -143,7 +143,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .field label{font-size:12px;font-weight:600;color:var(--md-on-surface-variant);font-family:var(--font)}
 .field input,.field select,.field textarea{background:var(--md-surface-container-lowest);border:1.5px solid var(--md-outline-variant);border-radius:var(--radius-md);padding:12px 14px;font-size:15px;color:var(--md-on-surface);font-family:var(--font-body);width:100%;outline:none;transition:.2s;-webkit-appearance:none}
 .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2379747E' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--md-primary);box-shadow:0 0 0 3px rgba(101,85,143,.12)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--md-primary);box-shadow:0 0 0 3px rgba(0,105,110,.12)}
 .field textarea{resize:none;min-height:68px}
 
 /* QTY STEPPER */
@@ -175,7 +175,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .scan-input-row{display:flex;gap:8px}
 .scan-input-row input{flex:1;background:var(--md-surface-container-lowest);border:1.5px solid var(--md-outline-variant);border-radius:var(--radius-full);padding:14px 20px;font-size:15px;color:var(--md-on-surface);font-family:'Courier New',monospace;outline:none;transition:.2s}
 .scan-input-row input::placeholder{color:var(--md-outline)}
-.scan-input-row input:focus{border-color:var(--md-primary);box-shadow:0 0 0 3px rgba(101,85,143,.12)}
+.scan-input-row input:focus{border-color:var(--md-primary);box-shadow:0 0 0 3px rgba(0,105,110,.12)}
 .cam-btn{background:var(--md-surface-container-low);border:1.5px solid var(--md-outline-variant);border-radius:var(--radius-full);color:var(--md-on-surface-variant);padding:0 16px;cursor:pointer;display:grid;place-items:center;flex-shrink:0;transition:.2s}
 .cam-btn:hover{background:var(--md-surface-container-high);border-color:var(--md-primary);color:var(--md-primary)}
 .cam-btn:active{background:var(--md-surface-container-highest)}
