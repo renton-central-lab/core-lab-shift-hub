@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#EFEDE6">
+<title>Inventory Dashboard — Renton Core Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#00696E;--on-primary:#fff;
+  --primary-container:#C4EEF0;--on-primary-container:#003D40;
+  --secondary:#5C6360;--on-secondary:#fff;
+  --secondary-container:#E0E7E3;--on-secondary-container:#1A2120;
+  --surface:#FAFAF5;--surface-dim:#DBD9D2;
+  --surface-lowest:#FFFFFF;--surface-low:#F5F3EC;
+  --surface-container:#EFEDE6;--surface-high:#E9E7E0;
+  --surface-highest:#E3E1DA;
+  --on-surface:#1B1C19;--on-surface-variant:#44483E;
+  --outline:#757870;--outline-variant:#C6C8BC;
+  --error:#BA1A1A;--error-container:#FFDAD6;
+  --ok:#2D6B46;--ok-bg:#D0EADB;
+  --watch:#6B5000;--watch-bg:#FADFAD;
+  --order:#8B5E00;--order-bg:#FFE1A8;
+  --out:#BA1A1A;--out-bg:#FFDAD6;
+  --font:'Google Sans','Google Sans Text',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-body:'Google Sans Text','Google Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --radius:12px;--radius-lg:16px;--radius-xl:28px;--radius-full:9999px;
+  --shadow-1:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-2:0 2px 8px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+}
+html,body{height:100%;font-family:var(--font-body);background:var(--surface);color:var(--on-surface);font-size:14px;line-height:1.5}
+
+/* ── Layout ── */
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:240px;background:var(--surface-container);border-right:1px solid var(--outline-variant);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-hdr{padding:20px 20px 16px}
+.sidebar-hdr h1{font-family:var(--font);font-size:17px;font-weight:700;color:var(--on-surface)}
+.sidebar-hdr .sub{font-size:11px;color:var(--on-surface-variant);margin-top:2px;font-weight:500}
+.sidebar-nav{flex:1;padding:8px 12px;display:flex;flex-direction:column;gap:2px}
+.nav-btn{display:flex;align-items:center;gap:12px;padding:11px 16px;border:none;background:transparent;color:var(--on-surface-variant);font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;border-radius:var(--radius-full);transition:.15s;text-align:left;width:100%}
+.nav-btn:hover{background:var(--surface-high)}
+.nav-btn.active{background:var(--primary-container);color:var(--on-primary-container);font-weight:700}
+.nav-btn .material-icons-outlined{font-size:20px;width:24px}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--outline-variant);font-size:11px;color:var(--on-surface-variant)}
+.sidebar-footer .name{font-weight:700;color:var(--on-surface);font-size:12px;margin-bottom:2px}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top-bar{background:var(--surface-container);border-bottom:1px solid var(--outline-variant);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.top-bar h2{font-family:var(--font);font-size:20px;font-weight:700;color:var(--on-surface)}
+.top-bar .filters{display:flex;gap:8px;align-items:center}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* ── Mobile ── */
+@media(max-width:899px){
+  .sidebar{display:none}
+  .mobile-nav{display:flex!important}
+  .content{padding:16px}
+  .top-bar{padding:12px 16px}
+}
+@media(min-width:900px){.mobile-nav{display:none!important}}
+.mobile-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface-container);border-top:1px solid var(--outline-variant);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+.mob-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border:none;background:transparent;color:var(--on-surface-variant);font-size:10px;font-weight:600;font-family:var(--font);cursor:pointer}
+.mob-btn.active{color:var(--primary)}
+.mob-btn .material-icons-outlined{font-size:22px}
+@media(max-width:899px){.content{padding-bottom:calc(70px + env(safe-area-inset-bottom))}}
+
+/* ── Cards ── */
+.card{background:var(--surface-lowest);border:1px solid var(--outline-variant);border-radius:var(--radius-lg);padding:20px}
+.card-title{font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--on-surface-variant);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+
+/* ── Filter chips ── */
+.chip{display:inline-flex;align-items:center;padding:6px 16px;border-radius:var(--radius-full);font-size:12px;font-weight:600;font-family:var(--font);border:1.5px solid var(--outline-variant);background:var(--surface-lowest);color:var(--on-surface-variant);cursor:pointer;transition:.15s}
+.chip:hover{background:var(--surface-high)}
+.chip.active{background:var(--primary-container);border-color:var(--primary);color:var(--on-primary-container)}
+select.filter-select{padding:6px 32px 6px 14px;border-radius:var(--radius-full);font-size:12px;font-weight:600;font-family:var(--font);border:1.5px solid var(--outline-variant);background:var(--surface-lowest);color:var(--on-surface-variant);outline:none;cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23757870' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+
+/* ── Stock Grid ── */
+.stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.stock-card{background:var(--surface-lowest);border:1px solid var(--outline-variant);border-radius:var(--radius);padding:16px;transition:.15s;cursor:default;position:relative}
+.stock-card:hover{box-shadow:var(--shadow-1)}
+.stock-card .item-name{font-family:var(--font);font-size:14px;font-weight:700;color:var(--on-surface);margin-bottom:4px;line-height:1.3}
+.stock-card .instrument{font-size:11px;font-weight:600;color:var(--on-surface-variant);margin-bottom:10px}
+.stock-card .stock-row{display:flex;justify-content:space-between;align-items:flex-end}
+.stock-card .stock-num{font-family:var(--font);font-size:28px;font-weight:700;line-height:1}
+.stock-card .stock-label{font-size:10px;color:var(--on-surface-variant);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.stock-card .par-col{text-align:right}
+.stock-card .par-num{font-family:var(--font);font-size:16px;font-weight:700;color:var(--on-surface-variant)}
+.status-pill{position:absolute;top:12px;right:12px;padding:3px 10px;border-radius:var(--radius-full);font-size:10px;font-weight:700;letter-spacing:.04em}
+.s-ok{background:var(--ok-bg);color:var(--ok)}
+.s-watch{background:var(--watch-bg);color:var(--watch)}
+.s-order{background:var(--order-bg);color:var(--order)}
+.s-out{background:var(--out-bg);color:var(--out)}
+.stock-ok{color:var(--ok)}.stock-watch{color:var(--watch)}.stock-order{color:var(--order)}.stock-out{color:var(--out)}
+
+/* ── Summary Bar ── */
+.summary-bar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.summary-card{background:var(--surface-lowest);border:1px solid var(--outline-variant);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:140px}
+.summary-card .val{font-family:var(--font);font-size:28px;font-weight:700;line-height:1;margin-bottom:2px}
+.summary-card .lbl{font-size:11px;color:var(--on-surface-variant);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+
+/* ── Charts ── */
+.chart-wrap{background:var(--surface-lowest);border:1px solid var(--outline-variant);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.chart-wrap canvas{width:100%!important;max-height:320px}
+
+/* ── Tables ── */
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;padding:10px 12px;font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--on-surface-variant);border-bottom:2px solid var(--outline-variant);position:sticky;top:0;background:var(--surface-lowest);z-index:2}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--outline-variant);color:var(--on-surface);vertical-align:middle}
+.data-table tr:hover td{background:var(--surface-low)}
+.table-wrap{overflow-x:auto;background:var(--surface-lowest);border:1px solid var(--outline-variant);border-radius:var(--radius-lg);max-height:calc(100vh - 240px);overflow-y:auto}
+
+/* ── Edit controls ── */
+.edit-inline{display:none;align-items:center;gap:6px}
+.edit-inline.show{display:inline-flex}
+.edit-inline input{width:64px;padding:4px 8px;border:1.5px solid var(--outline-variant);border-radius:6px;font-size:13px;font-family:var(--font);text-align:center;outline:none}
+.edit-inline input:focus{border-color:var(--primary)}
+.edit-save{background:var(--primary);color:var(--on-primary);border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.admin-btn{background:var(--secondary-container);border:1px solid var(--outline-variant);color:var(--on-secondary-container);border-radius:var(--radius-full);padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);display:none}
+.admin-btn.show{display:inline-flex}
+
+/* ── Forecast ── */
+.forecast-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.forecast-card{background:var(--surface-lowest);border:1px solid var(--outline-variant);border-radius:var(--radius);padding:16px}
+.forecast-card .fc-name{font-family:var(--font);font-size:14px;font-weight:700;margin-bottom:8px}
+.forecast-card .fc-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;color:var(--on-surface-variant)}
+.forecast-card .fc-row .fc-val{font-weight:700;color:var(--on-surface)}
+.fc-alert{background:var(--out-bg);color:var(--out);padding:3px 10px;border-radius:var(--radius-full);font-size:10px;font-weight:700;display:inline-block;margin-top:6px}
+.fc-warn{background:var(--order-bg);color:var(--order);padding:3px 10px;border-radius:var(--radius-full);font-size:10px;font-weight:700;display:inline-block;margin-top:6px}
+.fc-good{background:var(--ok-bg);color:var(--ok);padding:3px 10px;border-radius:var(--radius-full);font-size:10px;font-weight:700;display:inline-block;margin-top:6px}
+
+/* ── Expiry table ── */
+.exp-urgent{color:var(--out);font-weight:700}
+.exp-soon{color:var(--order);font-weight:700}
+.exp-ok{color:var(--ok)}
+.waste-high{background:var(--out-bg);color:var(--out);padding:2px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:700}
+.waste-med{background:var(--order-bg);color:var(--order);padding:2px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:700}
+.waste-low{background:var(--ok-bg);color:var(--ok);padding:2px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:700}
+
+/* ── Search ── */
+.search-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.search-input{flex:1;min-width:200px;padding:8px 16px;border:1.5px solid var(--outline-variant);border-radius:var(--radius-full);font-size:13px;font-family:var(--font-body);color:var(--on-surface);outline:none;background:var(--surface-lowest)}
+.search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,105,110,.1)}
+.search-input::placeholder{color:var(--outline)}
+
+/* ── Tabs (views) ── */
+.view{display:none}.view.active{display:block}
+
+/* ── Loading ── */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(250,250,245,.85);backdrop-filter:blur(6px);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loading-overlay.show{display:flex}
+.spinner{width:40px;height:40px;border:3px solid var(--outline-variant);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:var(--font);font-size:14px;color:var(--on-surface-variant);font-weight:500}
+
+/* ── Auth ── */
+.auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:20px;padding:24px;text-align:center}
+.auth-logo{width:80px;height:80px;border-radius:var(--radius-xl);background:var(--primary);display:grid;place-items:center;box-shadow:var(--shadow-2)}
+
+/* ── Material Icons ── */
+.material-icons-outlined{font-family:'Material Icons Outlined';font-style:normal;font-weight:normal;font-size:24px;line-height:1;display:inline-block;-webkit-font-smoothing:antialiased}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--outline-variant);border-radius:3px}
+
+/* ── Print ── */
+@media print{.sidebar,.mobile-nav,.top-bar{display:none}.content{padding:0}.app{display:block}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading"><div class="spinner"></div><div class="loading-text" id="loading-text">Loading dashboard...</div></div>
+
+<!-- Auth Screen -->
+<div class="auth-screen" id="auth-screen" style="display:none">
+  <div class="auth-logo"><span class="material-icons-outlined" style="font-size:36px;color:#fff">analytics</span></div>
+  <div style="font-family:var(--font);font-size:22px;font-weight:700">Inventory Dashboard</div>
+  <div style="font-size:14px;color:var(--on-surface-variant);max-width:280px">Sign in with your UW Medicine account to access analytics.</div>
+  <button onclick="triggerLogin()" style="padding:12px 32px;border-radius:var(--radius-full);background:var(--primary);color:var(--on-primary);border:none;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer">
+    <span class="material-icons-outlined" style="font-size:18px;vertical-align:middle;margin-right:6px">login</span>Sign in with Microsoft
+  </button>
+</div>
+
+<!-- Main App -->
+<div class="app" id="app" style="display:none">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-hdr">
+      <h1>Inventory Dashboard</h1>
+      <div class="sub">Renton Core Lab</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" onclick="showView('stock')"><span class="material-icons-outlined">inventory_2</span>Stock Overview</button>
+      <button class="nav-btn" onclick="showView('trends')"><span class="material-icons-outlined">trending_up</span>Usage Trends</button>
+      <button class="nav-btn" onclick="showView('expiry')"><span class="material-icons-outlined">event_busy</span>Expiry &amp; Waste</button>
+      <button class="nav-btn" onclick="showView('forecast')"><span class="material-icons-outlined">auto_graph</span>Forecasting</button>
+      <button class="nav-btn" onclick="showView('log')"><span class="material-icons-outlined">receipt_long</span>Transaction Log</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="name" id="side-user"></div>
+      <div id="side-sp">Connecting...</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="top-bar">
+      <h2 id="view-title">Stock Overview</h2>
+      <div class="filters">
+        <select class="filter-select" id="filter-instrument" onchange="applyFilters()">
+          <option value="">All Instruments</option>
+          <option value="Roche">Roche</option>
+          <option value="XN">Sysmex XN</option>
+          <option value="Stago">Stago</option>
+          <option value="UN">UN</option>
+          <option value="DI-60">DI-60</option>
+          <option value="Lab Supplies">Lab Supplies</option>
+        </select>
+        <button class="admin-btn" id="admin-edit-btn" onclick="toggleAdminMode()">
+          <span class="material-icons-outlined" style="font-size:14px">edit</span>&nbsp;Edit Mode
+        </button>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+
+      <!-- STOCK OVERVIEW -->
+      <div class="view active" id="view-stock">
+        <div class="summary-bar" id="summary-bar"></div>
+        <div class="stock-grid" id="stock-grid"></div>
+      </div>
+
+      <!-- USAGE TRENDS -->
+      <div class="view" id="view-trends">
+        <div class="search-bar">
+          <select class="filter-select" id="trend-range" onchange="renderTrends()">
+            <option value="30">Last 30 Days</option>
+            <option value="60">Last 60 Days</option>
+            <option value="90">Last 90 Days</option>
+          </select>
+          <select class="filter-select" id="trend-item" onchange="renderTrends()">
+            <option value="">All Items</option>
+          </select>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-usage"></canvas></div>
+        <div class="chart-wrap"><canvas id="chart-actions"></canvas></div>
+      </div>
+
+      <!-- EXPIRY & WASTE -->
+      <div class="view" id="view-expiry">
+        <div class="summary-bar" id="expiry-summary"></div>
+        <div class="table-wrap"><table class="data-table" id="expiry-table"><thead><tr>
+          <th>Item</th><th>Instrument</th><th>Expiry</th><th>Days Left</th><th>Stock</th><th>Days Supply</th><th>Waste Risk</th>
+        </tr></thead><tbody id="expiry-tbody"></tbody></table></div>
+      </div>
+
+      <!-- FORECASTING -->
+      <div class="view" id="view-forecast">
+        <div class="search-bar">
+          <select class="filter-select" id="fc-instrument" onchange="renderForecast()">
+            <option value="">All Instruments</option>
+            <option value="Roche">Roche</option>
+            <option value="XN">Sysmex XN</option>
+            <option value="Stago">Stago</option>
+          </select>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-forecast"></canvas></div>
+        <div class="forecast-grid" id="forecast-grid"></div>
+      </div>
+
+      <!-- TRANSACTION LOG -->
+      <div class="view" id="view-log">
+        <div class="search-bar">
+          <input class="search-input" id="log-search" placeholder="Search by item, user, lot..." oninput="filterLog()">
+          <select class="filter-select" id="log-action" onchange="filterLog()">
+            <option value="">All Actions</option>
+            <option value="Receive">Receive</option>
+            <option value="Remove">Remove</option>
+            <option value="Adjust">Adjust</option>
+          </select>
+        </div>
+        <div class="table-wrap"><table class="data-table" id="log-table"><thead><tr>
+          <th>Time</th><th>Item</th><th>Action</th><th>Change</th><th>After</th><th>Lot</th><th>By</th><th>Notes</th>
+        </tr></thead><tbody id="log-tbody"></tbody></table></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mobile nav -->
+  <nav class="mobile-nav">
+    <button class="mob-btn active" onclick="showView('stock')"><span class="material-icons-outlined">inventory_2</span>Stock</button>
+    <button class="mob-btn" onclick="showView('trends')"><span class="material-icons-outlined">trending_up</span>Trends</button>
+    <button class="mob-btn" onclick="showView('expiry')"><span class="material-icons-outlined">event_busy</span>Expiry</button>
+    <button class="mob-btn" onclick="showView('forecast')"><span class="material-icons-outlined">auto_graph</span>Forecast</button>
+    <button class="mob-btn" onclick="showView('log')"><span class="material-icons-outlined">receipt_long</span>Log</button>
+  </nav>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+var MSAL_CONFIG={auth:{clientId:'24c43cdb-d15a-42ff-9883-cd8c19965a54',authority:'https://login.microsoftonline.com/f6b6dd5b-f02f-441a-99a0-162ac5060bd2',redirectUri:window.location.origin+window.location.pathname},cache:{cacheLocation:'localStorage',storeAuthStateInCookie:false}};
+var SP={siteUrl:'https://uwnetid.sharepoint.com/sites/og_uw_renton_central_laboratory_-_core_lab',lists:{inventory:'ReagentInventory',log:'InventoryLog',catalog:'ReagentCatalog'}};
+var SP_API=SP.siteUrl+'/_api/web/lists';
+var ADMIN_EMAIL='jesusem@uw.edu';
+var INV={Instrument:'field_1',ItemType:'field_2',Unit:'field_3',InStock:'field_4',MinPAR:'field_5',DailyUse:'field_6',ExpiryDate:'field_7',OpenLifeDays:'field_8',DateOpened:'field_9',LotNumber:'field_10',Notes:'field_11',CatalogID:'field_12',IsActive:'field_13'};
+var LOG={Action:'field_1',QuantityDelta:'field_2',QuantityAfter:'field_3',LotNumber:'field_4',ExpiryDate:'field_5',Timestamp:'field_6',ReasonNote:'field_7',ScannedBy:'ScannedBy'};
+function iv(row,k){return row[INV[k]||k];}
+
+var msalInstance=null,spToken=null,spTokenExpiry=0;
+var isAdmin=false,adminMode=false;
+var allInventory=[],allLogs=[],_listTypes={};
+
+// ============================================================
+// AUTH
+// ============================================================
+async function initAuth(){
+  showLoad('Signing in...');
+  try{
+    msalInstance=new msal.PublicClientApplication(MSAL_CONFIG);
+    var resp=null;
+    try{resp=await msalInstance.handleRedirectPromise();}catch(e){}
+    if(resp&&resp.account){msalInstance.setActiveAccount(resp.account);spToken=resp.accessToken;spTokenExpiry=resp.expiresOn?.getTime()||Date.now()+3600000;}
+    var accounts=msalInstance.getAllAccounts();
+    if(!accounts.length){hideLoad();document.getElementById('auth-screen').style.display='flex';return;}
+    msalInstance.setActiveAccount(accounts[0]);
+    var acct=accounts[0];
+    isAdmin=(acct.username||'').toLowerCase()===ADMIN_EMAIL.toLowerCase();
+    document.getElementById('side-user').textContent=acct.name||acct.username;
+    if(!spToken){try{var r=await msalInstance.acquireTokenSilent({scopes:['https://uwnetid.sharepoint.com/AllSites.Write'],account:acct});spToken=r.accessToken;spTokenExpiry=r.expiresOn?.getTime()||Date.now()+3600000;}catch(e){}}
+    if(isAdmin)document.getElementById('admin-edit-btn').classList.add('show');
+    document.getElementById('app').style.display='flex';
+    await loadAllData();
+    hideLoad();
+  }catch(e){hideLoad();console.error('Auth:',e);document.getElementById('auth-screen').style.display='flex';}
+}
+async function triggerLogin(){if(!msalInstance)msalInstance=new msal.PublicClientApplication(MSAL_CONFIG);await msalInstance.loginRedirect({scopes:['https://uwnetid.sharepoint.com/AllSites.Write','User.Read']});}
+async function getToken(){
+  if(spToken&&Date.now()<spTokenExpiry-60000)return spToken;
+  var acct=msalInstance?.getActiveAccount();if(!acct)throw new Error('Not signed in');
+  var r=await msalInstance.acquireTokenSilent({scopes:['https://uwnetid.sharepoint.com/AllSites.Write'],account:acct});
+  spToken=r.accessToken;spTokenExpiry=r.expiresOn?.getTime()||Date.now()+3600000;return spToken;
+}
+
+// ============================================================
+// SP API
+// ============================================================
+async function spFetch(listName,query){
+  var token=await getToken();
+  var url=SP_API+"/getbytitle('"+listName+"')/items"+(query||'');
+  var res=await fetch(url,{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});
+  if(!res.ok)throw new Error('SP '+res.status);
+  var d=await res.json();return d.d&&d.d.results?d.d.results:[];
+}
+async function spFetchAll(listName,select,filter){
+  var all=[],skip=0;
+  while(true){
+    var q='?$top=1000&$skip='+skip+'&$select='+select;
+    if(filter)q+='&$filter='+encodeURIComponent(filter);
+    var batch=await spFetch(listName,q);
+    all=all.concat(batch);
+    if(batch.length<1000)break;
+    skip+=1000;
+  }
+  return all;
+}
+async function getItemType(listName){if(_listTypes[listName])return _listTypes[listName];var token=await getToken();var r=await fetch(SP_API+"/getbytitle('"+listName+"')?$select=ListItemEntityTypeFullName",{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});var d=await r.json();_listTypes[listName]=d.d.ListItemEntityTypeFullName;return _listTypes[listName];}
+async function getDigest(){var token=await getToken();var r=await fetch(SP.siteUrl+'/_api/contextinfo',{method:'POST',headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose','Content-Length':'0'}});var d=await r.json();return d.d.GetContextWebInformation.FormDigestValue;}
+async function spPatch(listName,itemId,fields){
+  var digest=await getDigest(),meta=await getItemType(listName);fields.__metadata={type:meta};var token=await getToken();
+  await fetch(SP_API+"/getbytitle('"+listName+"')/items("+itemId+")",{method:'POST',headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':digest,'IF-MATCH':'*','X-HTTP-Method':'MERGE'},body:JSON.stringify(fields)});
+}
+
+// ============================================================
+// DATA LOADING
+// ============================================================
+async function loadAllData(){
+  showLoad('Loading inventory...');
+  var invSel='Id,Title,'+Object.values(INV).join(',');
+  allInventory=await spFetchAll(SP.lists.inventory,invSel);
+  showLoad('Loading transactions...');
+  var logSel='Id,Title,'+Object.values(LOG).filter(function(v,i,a){return a.indexOf(v)===i;}).join(',');
+  allLogs=await spFetchAll(SP.lists.log,logSel);
+  // Sort logs by timestamp descending
+  allLogs.sort(function(a,b){return(b[LOG.Timestamp]||'').localeCompare(a[LOG.Timestamp]||'');});
+  // Populate trend item dropdown
+  var sel=document.getElementById('trend-item');
+  var names=allInventory.map(function(r){return r.Title;}).filter(Boolean).sort();
+  names.forEach(function(n){var o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+  document.getElementById('side-sp').textContent='SharePoint connected';
+  renderAll();
+}
+
+// ============================================================
+// VIEWS
+// ============================================================
+var currentView='stock';
+var viewTitles={stock:'Stock Overview',trends:'Usage Trends',expiry:'Expiry & Waste Risk',forecast:'Forecasting',log:'Transaction Log'};
+
+function showView(id){
+  currentView=id;
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  document.getElementById('view-'+id).classList.add('active');
+  document.getElementById('view-title').textContent=viewTitles[id];
+  document.querySelectorAll('.nav-btn').forEach(function(b,i){b.classList.toggle('active',['stock','trends','expiry','forecast','log'][i]===id);});
+  document.querySelectorAll('.mob-btn').forEach(function(b,i){b.classList.toggle('active',['stock','trends','expiry','forecast','log'][i]===id);});
+  if(id==='trends')renderTrends();
+  if(id==='forecast')renderForecast();
+}
+
+function applyFilters(){renderAll();}
+
+function getFilteredInventory(){
+  var inst=document.getElementById('filter-instrument').value;
+  return allInventory.filter(function(r){
+    if(inst&&iv(r,'Instrument')!==inst)return false;
+    return true;
+  });
+}
+
+function renderAll(){
+  renderStockOverview();
+  renderExpiryTable();
+  renderLogTable();
+}
+
+// ============================================================
+// STOCK OVERVIEW
+// ============================================================
+function renderStockOverview(){
+  var items=getFilteredInventory();
+  var total=items.length,okCount=0,watchCount=0,orderCount=0,outCount=0;
+  items.forEach(function(r){
+    var stock=parseFloat(iv(r,'InStock'))||0;var par=parseFloat(iv(r,'MinPAR'))||0;
+    if(stock<=0)outCount++;else if(stock<par)orderCount++;else if(par>0&&stock<par*1.5)watchCount++;else okCount++;
+  });
+  document.getElementById('summary-bar').innerHTML=
+    sumCard(total,'Total Items','var(--on-surface)')+
+    sumCard(okCount,'In Stock','var(--ok)')+
+    sumCard(watchCount,'Watch','var(--watch)')+
+    sumCard(orderCount,'Order Now','var(--order)')+
+    sumCard(outCount,'Out of Stock','var(--out)');
+
+  var grid=document.getElementById('stock-grid');
+  grid.innerHTML=items.map(function(r){
+    var stock=parseFloat(iv(r,'InStock'))||0;var par=parseFloat(iv(r,'MinPAR'))||0;
+    var daily=parseFloat(iv(r,'DailyUse'))||0;
+    var status,sCls,numCls;
+    if(stock<=0){status='OUT';sCls='s-out';numCls='stock-out';}
+    else if(stock<par){status='ORDER';sCls='s-order';numCls='stock-order';}
+    else if(par>0&&stock<par*1.5){status='WATCH';sCls='s-watch';numCls='stock-watch';}
+    else{status='OK';sCls='s-ok';numCls='stock-ok';}
+    var days=daily>0?Math.round(stock/daily)+'d':'—';
+    return '<div class="stock-card" data-id="'+r.Id+'">'+
+      '<span class="status-pill '+sCls+'">'+status+'</span>'+
+      '<div class="item-name">'+esc(r.Title||'')+'</div>'+
+      '<div class="instrument">'+esc(iv(r,'Instrument')||'')+' · '+esc(iv(r,'Unit')||'')+(daily>0?' · '+days+' supply':'')+'</div>'+
+      '<div class="stock-row"><div><div class="stock-num '+numCls+'">'+stock+'</div><div class="stock-label">Stock</div></div>'+
+      '<div class="par-col"><div class="par-num">'+par+'</div><div class="stock-label">PAR</div></div></div>'+
+      (adminMode?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--outline-variant);display:flex;gap:6px;flex-wrap:wrap">'+
+        '<label style="font-size:11px;font-weight:600;color:var(--on-surface-variant)">PAR <input type="number" value="'+par+'" style="width:50px;padding:3px 6px;border:1px solid var(--outline-variant);border-radius:4px;font-size:12px" data-field="MinPAR"></label>'+
+        '<label style="font-size:11px;font-weight:600;color:var(--on-surface-variant)">Daily <input type="number" value="'+daily+'" step="0.1" style="width:50px;padding:3px 6px;border:1px solid var(--outline-variant);border-radius:4px;font-size:12px" data-field="DailyUse"></label>'+
+        '<button class="edit-save" onclick="saveCardEdit(this,'+r.Id+')">Save</button></div>':'')+
+      '</div>';
+  }).join('');
+}
+
+function sumCard(val,label,color){
+  return '<div class="summary-card"><div class="val" style="color:'+color+'">'+val+'</div><div class="lbl">'+label+'</div></div>';
+}
+
+async function saveCardEdit(btn,itemId){
+  var card=btn.closest('.stock-card');
+  var inputs=card.querySelectorAll('input[data-field]');
+  var fields={};
+  inputs.forEach(function(inp){fields[INV[inp.dataset.field]]=parseFloat(inp.value)||0;});
+  btn.textContent='...';
+  try{
+    await spPatch(SP.lists.inventory,itemId,fields);
+    var row=allInventory.find(function(r){return r.Id===itemId;});
+    if(row){inputs.forEach(function(inp){row[INV[inp.dataset.field]]=parseFloat(inp.value)||0;});}
+    btn.textContent='Saved';setTimeout(function(){renderStockOverview();},500);
+  }catch(e){btn.textContent='Error';console.error(e);}
+}
+
+// ============================================================
+// USAGE TRENDS
+// ============================================================
+var usageChart=null,actionsChart=null;
+function renderTrends(){
+  var days=parseInt(document.getElementById('trend-range').value)||30;
+  var itemFilter=document.getElementById('trend-item').value;
+  var instFilter=document.getElementById('filter-instrument').value;
+  var cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);
+  var cutoffStr=cutoff.toISOString();
+
+  var filtered=allLogs.filter(function(l){
+    if((l[LOG.Timestamp]||'')<cutoffStr)return false;
+    if(itemFilter&&(l.Title||'').indexOf(itemFilter)<0)return false;
+    return true;
+  });
+
+  // Daily usage (removes only)
+  var dailyMap={};
+  filtered.forEach(function(l){
+    var action=l[LOG.Action]||'';
+    if(action.toLowerCase()==='remove'||action.toLowerCase()==='removed'){
+      var day=(l[LOG.Timestamp]||'').slice(0,10);
+      dailyMap[day]=(dailyMap[day]||0)+Math.abs(parseFloat(l[LOG.QuantityDelta])||0);
+    }
+  });
+  var labels=Object.keys(dailyMap).sort();
+  var data=labels.map(function(d){return dailyMap[d];});
+
+  if(usageChart)usageChart.destroy();
+  usageChart=new Chart(document.getElementById('chart-usage'),{
+    type:'bar',
+    data:{labels:labels.map(function(d){return d.slice(5);}),datasets:[{label:'Units Consumed',data:data,backgroundColor:'rgba(0,105,110,.6)',borderRadius:4}]},
+    options:{responsive:true,plugins:{legend:{display:false},title:{display:true,text:'Daily Consumption (Removes)',font:{family:'Google Sans',weight:'bold'}}},scales:{y:{beginAtZero:true}}}
+  });
+
+  // Actions breakdown
+  var actionCounts={Receive:0,Remove:0,Adjust:0};
+  filtered.forEach(function(l){var a=(l[LOG.Action]||'').replace(/d$/,'');if(actionCounts.hasOwnProperty(a))actionCounts[a]++;});
+  if(actionsChart)actionsChart.destroy();
+  actionsChart=new Chart(document.getElementById('chart-actions'),{
+    type:'doughnut',
+    data:{labels:Object.keys(actionCounts),datasets:[{data:Object.values(actionCounts),backgroundColor:['#2D6B46','#BA1A1A','#6B5000'],borderWidth:0}]},
+    options:{responsive:true,plugins:{title:{display:true,text:'Actions Breakdown',font:{family:'Google Sans',weight:'bold'}},legend:{position:'bottom'}}}
+  });
+}
+
+// ============================================================
+// EXPIRY & WASTE RISK
+// ============================================================
+function renderExpiryTable(){
+  var items=getFilteredInventory();
+  var now=new Date();var expired=0,within30=0,within90=0;
+  var rows=items.filter(function(r){return iv(r,'ExpiryDate');}).map(function(r){
+    var exp=iv(r,'ExpiryDate')||'';if(exp.indexOf('T')>=0)exp=exp.split('T')[0];
+    var expDate=new Date(exp+'T00:00:00');
+    var daysLeft=Math.round((expDate-now)/(1000*60*60*24));
+    var stock=parseFloat(iv(r,'InStock'))||0;
+    var daily=parseFloat(iv(r,'DailyUse'))||0;
+    var daysSupply=daily>0?Math.round(stock/daily):null;
+    var openLife=parseFloat(iv(r,'OpenLifeDays'))||0;
+    var wasteRatio=daysSupply!==null&&openLife>0?daysSupply/openLife:null;
+    if(daysLeft<0)expired++;else if(daysLeft<=30)within30++;else if(daysLeft<=90)within90++;
+    return{title:r.Title,instrument:iv(r,'Instrument'),exp:exp,daysLeft:daysLeft,stock:stock,daysSupply:daysSupply,wasteRatio:wasteRatio};
+  }).sort(function(a,b){return a.daysLeft-b.daysLeft;});
+
+  document.getElementById('expiry-summary').innerHTML=
+    sumCard(expired,'Expired','var(--out)')+sumCard(within30,'<30 Days','var(--order)')+sumCard(within90,'<90 Days','var(--watch)')+sumCard(rows.length,'Have Expiry','var(--on-surface)');
+
+  document.getElementById('expiry-tbody').innerHTML=rows.map(function(r){
+    var dlCls=r.daysLeft<0?'exp-urgent':r.daysLeft<=30?'exp-soon':'exp-ok';
+    var wCls=r.wasteRatio===null?'':'waste-'+(r.wasteRatio>1.5?'high':r.wasteRatio>1?'med':'low');
+    var wText=r.wasteRatio===null?'—':r.wasteRatio>1.5?'HIGH':r.wasteRatio>1?'MEDIUM':'LOW';
+    return '<tr><td>'+esc(r.title)+'</td><td>'+esc(r.instrument||'')+'</td><td>'+r.exp+'</td>'+
+      '<td class="'+dlCls+'">'+r.daysLeft+'d</td><td>'+r.stock+'</td>'+
+      '<td>'+(r.daysSupply!==null?r.daysSupply+'d':'—')+'</td>'+
+      '<td><span class="'+wCls+'">'+wText+'</span></td></tr>';
+  }).join('');
+}
+
+// ============================================================
+// FORECASTING
+// ============================================================
+var forecastChart=null;
+function renderForecast(){
+  var instFilter=document.getElementById('fc-instrument').value;
+  var items=allInventory.filter(function(r){
+    if(instFilter&&iv(r,'Instrument')!==instFilter)return false;
+    var daily=parseFloat(iv(r,'DailyUse'))||0;
+    return daily>0&&(parseFloat(iv(r,'InStock'))||0)>0;
+  });
+
+  // Calculate forecast for each item
+  var forecasts=items.map(function(r){
+    var stock=parseFloat(iv(r,'InStock'))||0;
+    var daily=parseFloat(iv(r,'DailyUse'))||0;
+    var par=parseFloat(iv(r,'MinPAR'))||0;
+    var daysToZero=daily>0?Math.round(stock/daily):999;
+    var daysToPAR=daily>0&&stock>par?Math.round((stock-par)/daily):0;
+    var exp=iv(r,'ExpiryDate')||'';if(exp.indexOf('T')>=0)exp=exp.split('T')[0];
+    var expDays=exp?Math.round((new Date(exp+'T00:00:00')-new Date())/(1000*60*60*24)):null;
+    var alert=daysToZero<=7?'critical':daysToZero<=14?'warning':'good';
+    return{title:r.Title,instrument:iv(r,'Instrument'),stock:stock,daily:daily,par:par,daysToZero:daysToZero,daysToPAR:daysToPAR,expDays:expDays,alert:alert};
+  }).sort(function(a,b){return a.daysToZero-b.daysToZero;});
+
+  // Chart: top 15 items by days to zero
+  var chartData=forecasts.slice(0,15);
+  if(forecastChart)forecastChart.destroy();
+  forecastChart=new Chart(document.getElementById('chart-forecast'),{
+    type:'bar',
+    data:{
+      labels:chartData.map(function(f){return f.title.length>20?f.title.slice(0,18)+'...':f.title;}),
+      datasets:[
+        {label:'Days to Zero',data:chartData.map(function(f){return f.daysToZero;}),backgroundColor:chartData.map(function(f){return f.alert==='critical'?'rgba(186,26,26,.7)':f.alert==='warning'?'rgba(139,94,0,.6)':'rgba(0,105,110,.5)';}),borderRadius:4},
+        {label:'Days to PAR',data:chartData.map(function(f){return f.daysToPAR;}),backgroundColor:'rgba(0,105,110,.15)',borderRadius:4}
+      ]
+    },
+    options:{indexAxis:'y',responsive:true,plugins:{title:{display:true,text:'Days Until Stockout / Below PAR',font:{family:'Google Sans',weight:'bold'}},legend:{position:'bottom'}},scales:{x:{beginAtZero:true}}}
+  });
+
+  // Forecast cards
+  document.getElementById('forecast-grid').innerHTML=forecasts.map(function(f){
+    var alertCls=f.alert==='critical'?'fc-alert':f.alert==='warning'?'fc-warn':'fc-good';
+    var alertText=f.alert==='critical'?'REORDER NOW':f.alert==='warning'?'ORDER SOON':'ADEQUATE';
+    return '<div class="forecast-card"><div class="fc-name">'+esc(f.title)+'</div>'+
+      '<div class="fc-row"><span>Current Stock</span><span class="fc-val">'+f.stock+' '+esc(f.instrument||'')+'</span></div>'+
+      '<div class="fc-row"><span>Daily Burn Rate</span><span class="fc-val">'+f.daily+'/day</span></div>'+
+      '<div class="fc-row"><span>Days to Zero</span><span class="fc-val">'+f.daysToZero+'d</span></div>'+
+      '<div class="fc-row"><span>Days to PAR</span><span class="fc-val">'+f.daysToPAR+'d</span></div>'+
+      (f.expDays!==null?'<div class="fc-row"><span>Expires In</span><span class="fc-val">'+f.expDays+'d</span></div>':'')+
+      '<span class="'+alertCls+'">'+alertText+'</span></div>';
+  }).join('');
+}
+
+// ============================================================
+// TRANSACTION LOG
+// ============================================================
+function renderLogTable(){
+  renderLogRows(allLogs);
+}
+function renderLogRows(logs){
+  document.getElementById('log-tbody').innerHTML=logs.slice(0,500).map(function(l){
+    var ts=l[LOG.Timestamp]||'';var display=ts?new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    var delta=parseFloat(l[LOG.QuantityDelta])||0;
+    var deltaStr=(delta>=0?'+':'')+delta;
+    var actionColor=((l[LOG.Action]||'').toLowerCase().indexOf('receive')>=0)?'var(--ok)':((l[LOG.Action]||'').toLowerCase().indexOf('remove')>=0)?'var(--out)':'var(--watch)';
+    return '<tr><td style="white-space:nowrap">'+display+'</td><td>'+esc(l.Title||'')+'</td>'+
+      '<td style="color:'+actionColor+';font-weight:700">'+esc(l[LOG.Action]||'')+'</td>'+
+      '<td style="font-weight:700;color:'+actionColor+'">'+deltaStr+'</td>'+
+      '<td>'+(l[LOG.QuantityAfter]||'')+'</td>'+
+      '<td>'+esc(l[LOG.LotNumber]||'')+'</td>'+
+      '<td>'+esc(l[LOG.ScannedBy]||l.ScannedBy||'')+'</td>'+
+      '<td style="font-size:12px;color:var(--on-surface-variant)">'+esc(l[LOG.ReasonNote]||'')+'</td></tr>';
+  }).join('');
+}
+function filterLog(){
+  var q=(document.getElementById('log-search').value||'').toLowerCase();
+  var action=document.getElementById('log-action').value;
+  var filtered=allLogs.filter(function(l){
+    if(action&&(l[LOG.Action]||'').indexOf(action)<0)return false;
+    if(q){
+      var hay=((l.Title||'')+' '+(l[LOG.ScannedBy]||l.ScannedBy||'')+' '+(l[LOG.LotNumber]||'')+' '+(l[LOG.ReasonNote]||'')).toLowerCase();
+      if(hay.indexOf(q)<0)return false;
+    }
+    return true;
+  });
+  renderLogRows(filtered);
+}
+
+// ============================================================
+// ADMIN MODE
+// ============================================================
+function toggleAdminMode(){
+  if(!isAdmin)return;
+  adminMode=!adminMode;
+  var btn=document.getElementById('admin-edit-btn');
+  btn.innerHTML=adminMode?'<span class="material-icons-outlined" style="font-size:14px">close</span>&nbsp;Exit Edit':'<span class="material-icons-outlined" style="font-size:14px">edit</span>&nbsp;Edit Mode';
+  renderStockOverview();
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function showLoad(msg){document.getElementById('loading-text').textContent=msg||'Loading...';document.getElementById('loading').classList.add('show');}
+function hideLoad(){document.getElementById('loading').classList.remove('show');}
+
+window.addEventListener('load',initAuth);
+</script>
+</body>
+</html>
