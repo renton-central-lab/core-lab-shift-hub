@@ -91,9 +91,13 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   .action-form.show{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;align-items:start}
   .action-form.show .btn{grid-column:1/-1}
   .action-form.show>div:first-child:only-child{grid-column:1/-1}
-  /* Manual entry — full width 2-col, no max-width cap */
-  #screen-manual .body{max-width:none;padding:24px 28px}
-  #screen-manual .body>.card{max-width:none}
+  /* Manual entry — two cards side by side, no scroll on desktop */
+  #screen-manual .body{
+    display:grid;grid-template-columns:1fr 1fr;gap:20px;
+    max-width:none;padding:24px 28px;align-content:start;
+  }
+  #screen-manual .body>#manual-alert,
+  #screen-manual .body>div:last-child{grid-column:1/-1}
 }
 @media(max-width:767px){
   #desktop-nav{display:none!important}
@@ -518,6 +522,22 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   <div class="nav-item" onclick="resetManual();goScreen('screen-manual')"><span class="material-icons-outlined">edit</span>Manual Entry</div>
   <div class="nav-section" style="margin-top:12px">Quick Links</div>
   <div class="nav-item" onclick="window.open('inventory-dashboard.html','_blank')"><span class="material-icons-outlined">analytics</span>Dashboard</div>
+
+  <!-- Session Stats in left nav -->
+  <div class="nav-section" style="margin-top:16px">This Session</div>
+  <div style="padding:0 12px 8px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    <div class="stat-box"><div class="stat-val" id="stat-scans">0</div><div class="stat-lbl">Scanned</div></div>
+    <div class="stat-box"><div class="stat-val" id="stat-received">0</div><div class="stat-lbl">Received</div></div>
+    <div class="stat-box"><div class="stat-val" id="stat-removed">0</div><div class="stat-lbl">Removed</div></div>
+    <div class="stat-box"><div class="stat-val" id="stat-new">0</div><div class="stat-lbl">New Items</div></div>
+  </div>
+
+  <!-- Alerts in left nav -->
+  <div id="nav-alerts-section" style="display:none;padding:0 12px 8px">
+    <div class="nav-section" style="margin-top:4px;padding-left:0;color:var(--md-error)">Alerts</div>
+    <div id="nav-panel-alerts" class="alert-list"></div>
+  </div>
+
   <div class="nav-footer"><div class="nav-footer-name" id="nav-user-name"></div><div id="nav-sp-status">Connecting...</div><div style="margin-top:10px;font-size:8px;color:var(--md-outline-variant);letter-spacing:.02em;opacity:.5">&copy; 2026 Jesus Martinez. All rights reserved.</div></div>
 </nav>
 
@@ -541,31 +561,6 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
         <input type="text" class="panel-search" id="panel-search" id="panel-search-input" placeholder="Search items..." oninput="panelSearch(this.value)">
       </div>
       <div id="panel-search-results" class="panel-search-results"></div>
-    </div>
-  </div>
-
-  <!-- Alerts -->
-  <div class="panel-section" id="ps-alerts" style="display:none">
-    <div class="panel-title" onclick="togglePanelSection('ps-alerts')">
-      <span class="material-icons-outlined" style="font-size:16px;color:var(--out)">warning</span>Alerts
-      <span class="material-icons-outlined pt-chevron">expand_more</span>
-    </div>
-    <div class="panel-body" id="panel-alerts" class="alert-list"></div>
-  </div>
-
-  <!-- Session Stats -->
-  <div class="panel-section" id="ps-stats">
-    <div class="panel-title" onclick="togglePanelSection('ps-stats')">
-      <span class="material-icons-outlined" style="font-size:16px">assessment</span>This Session
-      <span class="material-icons-outlined pt-chevron">expand_more</span>
-    </div>
-    <div class="panel-body">
-      <div class="stat-grid">
-        <div class="stat-box"><div class="stat-val" id="stat-scans">0</div><div class="stat-lbl">Scanned</div></div>
-        <div class="stat-box"><div class="stat-val" id="stat-received">0</div><div class="stat-lbl">Received</div></div>
-        <div class="stat-box"><div class="stat-val" id="stat-removed">0</div><div class="stat-lbl">Removed</div></div>
-        <div class="stat-box"><div class="stat-val" id="stat-new">0</div><div class="stat-lbl">New Items</div></div>
-      </div>
     </div>
   </div>
 
@@ -696,10 +691,11 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
         <div class="field manual-full"><label>Notes <span style="color:var(--md-outline);font-weight:400">(optional)</span></label><textarea id="m-notes" placeholder="Any additional notes"></textarea></div>
       </div>
     </div>
-  </div>
-  <div class="footer">
-    <button class="btn btn-teal" onclick="submitManual(true)"><span class="material-icons-outlined" style="font-size:20px">add_circle</span>Add to Catalog &amp; Submit</button>
-    <button class="btn btn-ghost" onclick="submitManual(false)">Log only</button>
+    <!-- Submit buttons — full-span in desktop grid -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-teal" onclick="submitManual(true)"><span class="material-icons-outlined" style="font-size:20px">add_circle</span>Add to Catalog &amp; Submit</button>
+      <button class="btn btn-ghost" onclick="submitManual(false)">Log only</button>
+    </div>
   </div>
 </div>
 
@@ -1303,8 +1299,8 @@ async function loadTodayLog(){
 
 // Alerts
 function renderAlerts(){
-  var sec=document.getElementById('ps-alerts');
-  var list=document.getElementById('panel-alerts');
+  var sec=document.getElementById('nav-alerts-section');
+  var list=document.getElementById('nav-panel-alerts');
   if(!sec||!list)return;
   var alerts=[];
   allInvCache.forEach(function(r){
@@ -1339,11 +1335,11 @@ function renderSnapshot(){
 
 // ── Panel section collapse ──
 var PANEL_STORAGE_KEY='scanner-panel-state';
-function savePanelState(){var state={};['ps-search','ps-alerts','ps-stats','ps-recent','ps-log','ps-snapshot'].forEach(function(id){var el=document.getElementById(id);if(el)state[id]=el.classList.contains('collapsed');});try{localStorage.setItem(PANEL_STORAGE_KEY,JSON.stringify(state));}catch(e){}}
+function savePanelState(){var state={};['ps-search','ps-recent','ps-log','ps-snapshot'].forEach(function(id){var el=document.getElementById(id);if(el)state[id]=el.classList.contains('collapsed');});try{localStorage.setItem(PANEL_STORAGE_KEY,JSON.stringify(state));}catch(e){}}
 function loadPanelState(){try{var s=localStorage.getItem(PANEL_STORAGE_KEY);if(s){var state=JSON.parse(s);Object.keys(state).forEach(function(id){var el=document.getElementById(id);if(el&&state[id])el.classList.add('collapsed');});}}catch(e){}}
 function togglePanelSection(id){var el=document.getElementById(id);if(!el)return;el.classList.toggle('collapsed');savePanelState();}
 function toggleAllPanelSections(){
-  var ids=['ps-search','ps-stats','ps-recent','ps-log','ps-snapshot'];
+  var ids=['ps-search','ps-recent','ps-log','ps-snapshot'];
   var anyExpanded=ids.some(function(id){var el=document.getElementById(id);return el&&!el.classList.contains('collapsed');});
   ids.forEach(function(id){var el=document.getElementById(id);if(el){if(anyExpanded)el.classList.add('collapsed');else el.classList.remove('collapsed');}});
   var btn=document.getElementById('panel-collapse-btn');

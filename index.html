@@ -581,7 +581,6 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
       <p style="font-size:10px;color:var(--g500);margin-bottom:8px;">Data syncs from SharePoint every 60 seconds. Use the buttons below for manual operations.</p>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
         <button class="btn btn-p" onclick="manualSync()"><span class="mi mi-xs">sync</span> Force Sync Now</button>
-        <span style="font-size:10px;color:var(--g400);align-self:center;" id="lastSyncLabel">Last sync: --</span>
       </div>
       <h4 style="margin-top:12px;"><span class="mi mi-sm">backup</span> Backup &amp; Restore</h4>
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
@@ -591,7 +590,6 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
       <p style="font-size:10px;color:var(--g500);margin-bottom:8px;">Auto-backup runs once daily when you open the Shift Hub. Backups are stored as JSON in the SharePoint document library.</p>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
         <button class="btn btn-p" onclick="hubManualBackup()" id="hub-bk-btn"><span class="mi mi-xs">cloud_upload</span> Backup to SharePoint</button>
-        <button class="btn btn-s" onclick="exportSPBackup()"><span class="mi mi-xs">download</span> Download JSON</button>
       </div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--g200);">
         <p style="font-size:10px;font-weight:700;color:var(--g600);margin-bottom:6px;">Restore from Backup</p>
@@ -1182,12 +1180,6 @@ function goToNotifEntry(){const eid=pendingNE;closeNotifDetail();if(!eid)return;
 function markAllRead(e){e.stopPropagation();myN().forEach(n=>n.read=true);notifs[me.initials]=myN();saveAll();uBell();rBL();toast('All read');}
 
 // === AUTH ===
-function showLoginView(){$('authLogin').style.display='block';$('authReg').style.display='none';$('loginErr').style.display='none';$('loginIni').value='';$('loginPw').value='';$('loginIni').focus();}
-function showRegView(){$('authLogin').style.display='none';$('authReg').style.display='block';$('regErr').style.display='none';$('regName').value='';$('regIni').value='';$('regPw').value='';$('regName').focus();}
-function autoIni(){var n=$('regName').value.trim();var base=n.split(/\s+/).filter(Boolean).map(function(p){return p[0].toUpperCase();}).join('');if(!base){$('regIni').value='';return;}var candidate=base;if(users[candidate]){var num=2;while(users[candidate]){candidate=base+num;num++;}};$('regIni').value=candidate;}
-function doRegister(){var fn=$('regName').value.trim(),ini=$('regIni').value.trim().toUpperCase(),pw=$('regPw').value,err=$('regErr');if(!fn||!ini||!pw){err.textContent='All fields required.';err.style.display='block';return;}if(users[ini]){err.textContent='"'+ini+'" is taken. Try a different name or contact admin.';err.style.display='block';return;}users[ini]={fullName:fn,role:'MLS1',password:pw};me={initials:ini,fullName:fn,role:'MLS1'};sv(K.S,me);saveAll();$('authBg').style.display='none';refreshUI();toast('Account created as '+ini+'. Contact lead for role changes.');}
-function doLogin(){const ini=$('loginIni').value.trim().toUpperCase(),pw=$('loginPw').value,err=$('loginErr');if(!ini||!pw){err.textContent='Enter initials and password.';err.style.display='block';return;}const u=users[ini];if(!u){err.textContent='No account for "'+ini+'".';err.style.display='block';return;}if(u.password!==pw){err.textContent='Incorrect password.';err.style.display='block';return;}me={initials:ini,fullName:u.fullName,role:u.role};sv(K.S,me);$('authBg').style.display='none';refreshUI();toast('Signed in as '+u.fullName);}
-function doLogout(){if(!confirm('Sign out?'))return;me=null;localStorage.removeItem(K.S);$('authBg').style.display='flex';showLoginView();}
 async function initAuth(){
   try{
     $('authStatus').textContent='Initializing authentication...';
@@ -1256,30 +1248,18 @@ function saveProfile(){var nick=$('profNick').value.trim().slice(0,12);users[me.
 // === ADMIN ===
 function renderAdmin(){const l=$('adminList'),ua=Object.entries(users).sort((a,b)=>a[1].fullName.localeCompare(b[1].fullName));l.innerHTML=ua.map(([ini,u])=>{const isMe=me&&ini===me.initials;return'<div class="admin-row">'+avH(ini,26)+'<div class="admin-name">'+esc(u.fullName)+' <span style="font-size:9px;color:var(--g400);">('+ini+')</span>'+(u.isAdmin?' <span style="font-size:8px;background:var(--teal);color:var(--white);padding:1px 5px;border-radius:3px;">ADMIN</span>':'')+'</div><select style="font-size:10px;padding:3px 6px;" onchange="chgRole(\''+ini+'\',this.value)"'+(isMe?' disabled':'')+'><option value="MLS1"'+(u.role==='MLS1'?' selected':'')+'>MLS1</option><option value="MLS2"'+(u.role==='MLS2'?' selected':'')+'>MLS2</option><option value="MLS Lead"'+(u.role==='MLS Lead'?' selected':'')+'>MLS Lead</option><option value="Lab Manager"'+(u.role==='Lab Manager'?' selected':'')+'>Lab Manager</option></select></div>';}).join('');}
 function chgRole(i,r){users[i].role=r;spSaveUser(i,users[i]).catch(function(e){console.error(e);});addH('edit','Role change: '+users[i].fullName+' -> '+r,'');renderAdmin();toast(users[i].fullName+' is now '+r);}
-function backupData(){exportSPBackup();}
-function restoreData(ev){restoreSPBackup(ev);}
 
 async function manualSync(){
   toast('Syncing with SharePoint...');
   try{
     await loadAllData();
     lastSyncTime=new Date();uBD();
-    $('lastSyncLabel').textContent='Last sync: '+lastSyncTime.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'});
     renderAll();
     toast('Synced: '+entries.length+' entries, '+announcements.length+' announcements, '+hist.length+' audit records');
   }catch(e){
     console.error('Manual sync failed:',e);
     toast('Sync failed: '+e.message);
   }
-}
-
-function exportSPBackup(){
-  var d=buildHubBackup();
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
-  a.download='CLSH_Backup_'+d.date+'.json';
-  a.click();
-  toast('Backup downloaded');
 }
 
 function buildHubBackup(){
@@ -1945,7 +1925,6 @@ function uBD(){
     $('backupChip').title='SharePoint Connected\nAuto-refresh: every 60s';
   }
 }
-function checkRecovery(){return false;}
 
 function uClk(){$('clockChip').textContent=new Date().toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
 
