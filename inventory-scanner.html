@@ -71,8 +71,9 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   #desktop-nav.authed{display:flex}
   #desktop-panel{display:none!important}
   #desktop-panel.authed{display:flex!important}
-  #scanner-main{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;min-height:0}
-  .screen{width:100%;max-width:580px;height:auto;min-height:100%;overflow:visible}
+  #scanner-main{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:stretch;min-height:0}
+  .screen{width:100%;height:auto;min-height:100%;overflow:visible}
+  .screen .body,.screen .scan-bottom,.screen .auth-center,.screen .success-body{max-width:580px;margin:0 auto;width:100%}
   .body{padding:28px 32px}
   .scan-bottom{padding:0 32px 28px}
   .hdr{padding:16px 24px}
@@ -967,7 +968,11 @@ function panelSearch(q){
   if(!results)return;
   if(!q||q.length<2){results.className='panel-search-results';results.innerHTML='';return;}
   _psTimer=setTimeout(function(){
-    var matches=allInvCache.filter(function(r){return(r.Title||'').toLowerCase().indexOf(q.toLowerCase())>=0;}).slice(0,6);
+    var words=q.toLowerCase().split(/\s+/).filter(function(w){return w.length>0;});
+    var matches=allInvCache.filter(function(r){
+      var title=(r.Title||'').toLowerCase().replace(/[®™©]/g,'');
+      return words.every(function(w){return title.indexOf(w)>=0;});
+    }).slice(0,8);
     if(matches.length===0){results.innerHTML='<div class="recent-empty">No items found</div>';results.className='panel-search-results show';return;}
     results.innerHTML=matches.map(function(r){
       var stock=parseFloat(iv(r,'InStock'))||0;var par=parseFloat(iv(r,'MinPAR'))||0;
@@ -984,9 +989,14 @@ async function loadPanelData(){
   try{
     var invSel='Id,Title,'+Object.values(INV).join(',');
     allInvCache=await spFetchAll(SP.lists.inventory,invSel);
+    console.log('Panel loaded: '+allInvCache.length+' inventory items');
     renderAlerts();
     renderSnapshot();
-  }catch(e){console.warn('Panel data:',e);}
+  }catch(e){
+    console.warn('Panel data failed:',e);
+    var snap=document.getElementById('inv-snapshot');
+    if(snap)snap.innerHTML='<div style="font-size:11px;color:var(--md-outline)">Could not load</div>';
+  }
 }
 
 // Alerts
@@ -1028,7 +1038,7 @@ async function loadTodayLog(){
   try{
     var today=new Date().toISOString().slice(0,10);
     var logFields=Object.values(LOG).filter(function(v,i,a){return a.indexOf(v)===i;});
-    var logs=await spFetchAll(SP.lists.log,'Title,'+logFields.join(','),"field_6 ge '"+today+"T00:00:00'");
+    var logs=await spFetchAll(SP.lists.log,'Id,Title,'+logFields.join(','),"field_6 ge '"+today+"T00:00:00'");
     logs.sort(function(a,b){return(b[LOG.Timestamp]||'').localeCompare(a[LOG.Timestamp]||'');});
     var tl=document.getElementById('today-log');
     if(tl){
@@ -1048,7 +1058,11 @@ async function loadTodayLog(){
         '</div>';
       }).join('');}
     }
-  }catch(e){console.warn('Today log:',e);}
+  }catch(e){
+    console.warn('Today log:',e);
+    var tl=document.getElementById('today-log');
+    if(tl)tl.innerHTML='<div class="recent-empty">No transactions today</div>';
+  }
 }
 
 // SP fetch helper for panel
