@@ -367,13 +367,13 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 
   <!-- Recent Scans -->
   <div class="panel-section panel-section-grow">
-    <div class="panel-title"><span class="material-icons-outlined" style="font-size:16px">qr_code_scanner</span>Recent Scans</div>
+    <div class="panel-title"><span class="material-icons-outlined" style="font-size:16px">qr_code_scanner</span>Recent Scans <span style="font-size:10px;font-weight:400;color:var(--md-outline);margin-left:4px">this session</span></div>
     <div id="recent-scans" class="recent-list"><div class="recent-empty">Scan an item to see it here</div></div>
   </div>
 
   <!-- Today's Log -->
   <div class="panel-section panel-section-grow">
-    <div class="panel-title"><span class="material-icons-outlined" style="font-size:16px">receipt_long</span>Today's Transactions</div>
+    <div class="panel-title"><span class="material-icons-outlined" style="font-size:16px">receipt_long</span>Today's Transactions <span style="font-size:10px;font-weight:400;color:var(--md-outline);margin-left:4px">all users · live</span></div>
     <div id="today-log" class="recent-list"><div class="recent-empty">Loading...</div></div>
   </div>
 
@@ -525,7 +525,7 @@ async function initAuth(){
     var dn=document.getElementById('desktop-nav');if(dn)dn.classList.add('authed');
     var dp=document.getElementById('desktop-panel');if(dp)dp.classList.add('authed');
     hideLoad();goScreen('screen-scan');
-    testSP().then(function(){loadTodayLog();loadPanelData();}).catch(function(e){console.warn('SP test:',e);loadTodayLog();loadPanelData();});
+    testSP().then(function(){loadTodayLog();loadPanelData();setInterval(loadTodayLog,60000);}).catch(function(e){console.warn('SP test:',e);loadTodayLog();loadPanelData();setInterval(loadTodayLog,60000);});
   }catch(e){hideLoad();console.error('Auth error:',e);goScreen('screen-auth');}
 }
 async function triggerLogin(){if(!msalInstance)msalInstance=new msal.PublicClientApplication(MSAL_CONFIG);await msalInstance.loginRedirect({scopes:['https://uwnetid.sharepoint.com/AllSites.Write','User.Read']});}
@@ -1065,17 +1065,19 @@ async function loadTodayLog(){
   }
 }
 
-// SP fetch helper for panel
+// SP fetch helper for panel — uses __next token pagination (SP does not support $skip on list items)
 async function spFetchAll(ln,sel,filter){
-  var all=[],skip=0;
-  while(true){
-    var q='?$top=1000&$skip='+skip+'&$select='+sel;
-    if(filter)q+='&$filter='+encodeURIComponent(filter);
+  var all=[];
+  var url=SP_API+"/getbytitle('"+ln+"')/items?$top=1000&$select="+sel;
+  if(filter)url+='&$filter='+encodeURIComponent(filter);
+  while(url){
     var token=await getToken();
-    var res=await fetch(SP_API+"/getbytitle('"+ln+"')/items"+q,{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});
-    if(!res.ok)break;
-    var d=await res.json();var batch=d.d&&d.d.results?d.d.results:[];
-    all=all.concat(batch);if(batch.length<1000)break;skip+=1000;
+    var res=await fetch(url,{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});
+    if(!res.ok){var errText=await res.text();console.warn('spFetchAll error',res.status,errText);break;}
+    var d=await res.json();
+    var batch=d.d&&d.d.results?d.d.results:[];
+    all=all.concat(batch);
+    url=(d.d&&d.d.__next)||null;
   }
   return all;
 }
