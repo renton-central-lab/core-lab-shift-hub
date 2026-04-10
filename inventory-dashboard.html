@@ -217,9 +217,49 @@ input[type=number]{-moz-appearance:textfield}
         <button class="sub-btn" onclick="subFilter('type','Part')">Part</button>
       </div>
       <button class="nav-btn" onclick="showView('trends')"><span class="material-icons-outlined">trending_up</span>Usage Trends</button>
+      <div class="sub-nav" id="trends-subnav">
+        <div class="sub-nav-label">DEPARTMENTS</div>
+        <button class="sub-btn active" onclick="viewDeptFilter('')">All</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Chemistry')">Chemistry</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Hematology')">Hematology</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Coagulation')">Coagulation</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Urinalysis')">Urinalysis</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Laboratory Supplies')">Lab Supplies</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Office Supplies')">Office Supplies</button>
+      </div>
       <button class="nav-btn" onclick="showView('expiry')"><span class="material-icons-outlined">event_busy</span>Expiry &amp; Waste</button>
+      <div class="sub-nav" id="expiry-subnav">
+        <div class="sub-nav-label">DEPARTMENTS</div>
+        <button class="sub-btn active" onclick="viewDeptFilter('')">All</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Chemistry')">Chemistry</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Hematology')">Hematology</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Coagulation')">Coagulation</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Urinalysis')">Urinalysis</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Laboratory Supplies')">Lab Supplies</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Office Supplies')">Office Supplies</button>
+      </div>
       <button class="nav-btn" onclick="showView('forecast')"><span class="material-icons-outlined">auto_graph</span>Forecasting</button>
+      <div class="sub-nav" id="forecast-subnav">
+        <div class="sub-nav-label">DEPARTMENTS</div>
+        <button class="sub-btn active" onclick="viewDeptFilter('')">All</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Chemistry')">Chemistry</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Hematology')">Hematology</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Coagulation')">Coagulation</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Urinalysis')">Urinalysis</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Laboratory Supplies')">Lab Supplies</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Office Supplies')">Office Supplies</button>
+      </div>
       <button class="nav-btn" onclick="showView('log')"><span class="material-icons-outlined">receipt_long</span>Transaction Log</button>
+      <div class="sub-nav" id="log-subnav">
+        <div class="sub-nav-label">DEPARTMENTS</div>
+        <button class="sub-btn active" onclick="viewDeptFilter('')">All</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Chemistry')">Chemistry</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Hematology')">Hematology</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Coagulation')">Coagulation</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Urinalysis')">Urinalysis</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Laboratory Supplies')">Lab Supplies</button>
+        <button class="sub-btn" onclick="viewDeptFilter('Office Supplies')">Office Supplies</button>
+      </div>
       <button class="nav-btn" id="nav-backup" onclick="showView('backup')" style="display:none"><span class="material-icons-outlined">backup</span>Backup &amp; Restore</button>
     </nav>
     <div class="sidebar-footer"><div class="name" id="side-user"></div><div id="side-sp">Connecting...</div><div style="margin-top:10px;font-size:8px;color:var(--outline-variant);letter-spacing:.02em;opacity:.5">&copy; 2026 Jesus Martinez. All rights reserved.</div></div>
@@ -266,7 +306,6 @@ input[type=number]{-moz-appearance:textfield}
       </div>
       <div class="view" id="view-forecast">
         <div class="search-bar">
-          <select class="filter-select" id="fc-dept" onchange="renderForecast()"><option value="">All Departments</option><option value="Chemistry">Chemistry</option><option value="Hematology">Hematology</option><option value="Coagulation">Coagulation</option><option value="Urinalysis">Urinalysis</option></select>
           <select class="filter-select" id="fc-sort" onchange="renderForecast()"><option value="stockout">Sort: Stockout (Soonest)</option><option value="par">Sort: Below PAR (Soonest)</option><option value="risk">Sort: Highest Risk</option><option value="name">Sort: Name A-Z</option></select>
         </div>
         <div class="summary-bar" id="fc-summary"></div>
@@ -337,6 +376,7 @@ var msalInstance=null,spToken=null,spTokenExpiry=0,isAdmin=false,adminMode=false
 var allInventory=[],allLogs=[],_listTypes={};
 var stockPage=1,ITEMS_PER_PAGE=25,statusFilter=null,pendingEdits={};
 var subDept='',subType='',bulkSelected={};
+var viewDept='';
 var miniCharts={};
 
 // AUTH
@@ -356,7 +396,43 @@ async function loadAllData(){showLoad('Loading inventory...');allInventory=await
 
 // VIEWS
 var currentView='stock';var viewTitles={stock:'Stock Overview',trends:'Usage Trends',expiry:'Expiry & Waste Risk',forecast:'Forecasting',log:'Transaction Log',backup:'Backup & Restore'};
-function showView(id){currentView=id;document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});document.getElementById('view-'+id).classList.add('active');document.getElementById('view-title').textContent=viewTitles[id]||id;document.querySelectorAll('.nav-btn').forEach(function(b,i){b.classList.toggle('active',['stock','trends','expiry','forecast','log','backup'][i]===id);});document.querySelectorAll('.mob-btn').forEach(function(b,i){b.classList.toggle('active',['stock','trends','expiry','forecast','log'][i]===id);});var sn=document.getElementById('stock-subnav');if(sn)sn.className=id==='stock'?'sub-nav show':'sub-nav';if(id==='trends')renderTrends();if(id==='forecast')renderForecast();if(id==='backup')renderBackupView();}
+function showView(id){
+  currentView=id;
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  document.getElementById('view-'+id).classList.add('active');
+  document.getElementById('view-title').textContent=viewTitles[id]||id;
+  document.querySelectorAll('.nav-btn').forEach(function(b,i){b.classList.toggle('active',['stock','trends','expiry','forecast','log','backup'][i]===id);});
+  document.querySelectorAll('.mob-btn').forEach(function(b,i){b.classList.toggle('active',['stock','trends','expiry','forecast','log'][i]===id);});
+  // Show correct sub-nav
+  ['stock','trends','expiry','forecast','log'].forEach(function(v){
+    var sn=document.getElementById(v+'-subnav');
+    if(sn)sn.className=v===id?'sub-nav show':'sub-nav';
+  });
+  // Reset viewDept filter when switching sections (not stock — stock has its own subDept)
+  if(id!=='stock'){viewDept='';_syncViewDeptButtons(id);}
+  if(id==='trends')renderTrends();
+  if(id==='forecast')renderForecast();
+  if(id==='expiry')renderExpiry();
+  if(id==='log')renderLogTable();
+  if(id==='backup')renderBackupView();
+}
+function viewDeptFilter(dept){
+  viewDept=dept;
+  _syncViewDeptButtons(currentView);
+  if(currentView==='trends')renderTrends();
+  else if(currentView==='expiry')renderExpiry();
+  else if(currentView==='forecast')renderForecast();
+  else if(currentView==='log')renderLogTable();
+}
+function _syncViewDeptButtons(viewId){
+  var sn=document.getElementById(viewId+'-subnav');
+  if(!sn)return;
+  sn.querySelectorAll('.sub-btn').forEach(function(b){
+    var oc=b.getAttribute('onclick')||'';
+    var match=oc.match(/viewDeptFilter\('([^']*)'\)/);
+    if(match)b.classList.toggle('active',match[1]===viewDept);
+  });
+}
 function subFilter(kind,val){
   if(kind==='dept')subDept=val;
   else if(kind==='type')subType=val;
@@ -502,10 +578,13 @@ async function saveAllEdits(){var ids=Object.keys(pendingEdits);if(!ids.length)r
 
 // USAGE TRENDS
 var usageChart=null,actionsChart=null;
-function renderTrends(){var days=parseInt(document.getElementById('trend-range').value)||30,itemF=document.getElementById('trend-item').value;var cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);var cs=cutoff.toISOString();var fl=allLogs.filter(function(l){return(l[LOG.Timestamp]||'')>=cs&&(!itemF||(l.Title||'').indexOf(itemF)>=0);});var dm={};fl.forEach(function(l){var a=(l[LOG.Action]||'').toLowerCase();if(a==='remove'||a==='removed'){var d=(l[LOG.Timestamp]||'').slice(0,10);dm[d]=(dm[d]||0)+Math.abs(parseFloat(l[LOG.QuantityDelta])||0);}});var labels=Object.keys(dm).sort(),data=labels.map(function(d){return dm[d];});if(usageChart)usageChart.destroy();usageChart=new Chart(document.getElementById('chart-usage'),{type:'bar',data:{labels:labels.map(function(d){return d.slice(5);}),datasets:[{label:'Units Consumed',data:data,backgroundColor:'rgba(0,105,110,.6)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false},title:{display:true,text:'Daily Consumption',font:{family:'Google Sans',weight:'bold'}}},scales:{y:{beginAtZero:true}}}});var ac={Receive:0,Remove:0,Adjust:0};fl.forEach(function(l){var a=(l[LOG.Action]||'').replace(/d$/,'');if(ac.hasOwnProperty(a))ac[a]++;});if(actionsChart)actionsChart.destroy();actionsChart=new Chart(document.getElementById('chart-actions'),{type:'doughnut',data:{labels:Object.keys(ac),datasets:[{data:Object.values(ac),backgroundColor:['#2D6B46','#BA1A1A','#6B5000'],borderWidth:0}]},options:{responsive:true,plugins:{title:{display:true,text:'Actions Breakdown',font:{family:'Google Sans',weight:'bold'}},legend:{position:'bottom'}}}});}
+function renderTrends(){var days=parseInt(document.getElementById('trend-range').value)||30,itemF=document.getElementById('trend-item').value;var cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);var cs=cutoff.toISOString();
+  // Build dept->title set for viewDept filtering
+  var deptTitles=viewDept?new Set(allInventory.filter(function(r){return iv(r,'Instrument')===viewDept;}).map(function(r){return r.Title;})):null;
+  var fl=allLogs.filter(function(l){return(l[LOG.Timestamp]||'')>=cs&&(!itemF||(l.Title||'').indexOf(itemF)>=0)&&(!deptTitles||deptTitles.has(l.Title));});var dm={};fl.forEach(function(l){var a=(l[LOG.Action]||'').toLowerCase();if(a==='remove'||a==='removed'){var d=(l[LOG.Timestamp]||'').slice(0,10);dm[d]=(dm[d]||0)+Math.abs(parseFloat(l[LOG.QuantityDelta])||0);}});var labels=Object.keys(dm).sort(),data=labels.map(function(d){return dm[d];});if(usageChart)usageChart.destroy();usageChart=new Chart(document.getElementById('chart-usage'),{type:'bar',data:{labels:labels.map(function(d){return d.slice(5);}),datasets:[{label:'Units Consumed',data:data,backgroundColor:'rgba(0,105,110,.6)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false},title:{display:true,text:'Daily Consumption'+(viewDept?' — '+viewDept:''),font:{family:'Google Sans',weight:'bold'}}},scales:{y:{beginAtZero:true}}}});var ac={Receive:0,Remove:0,Adjust:0};fl.forEach(function(l){var a=(l[LOG.Action]||'').replace(/d$/,'');if(ac.hasOwnProperty(a))ac[a]++;});if(actionsChart)actionsChart.destroy();actionsChart=new Chart(document.getElementById('chart-actions'),{type:'doughnut',data:{labels:Object.keys(ac),datasets:[{data:Object.values(ac),backgroundColor:['#2D6B46','#BA1A1A','#6B5000'],borderWidth:0}]},options:{responsive:true,plugins:{title:{display:true,text:'Actions Breakdown'+(viewDept?' — '+viewDept:''),font:{family:'Google Sans',weight:'bold'}},legend:{position:'bottom'}}}});}
 
 // EXPIRY
-function renderExpiry(){var items=getFiltered(),now=new Date(),exp=0,w30=0,w90=0;var rows=items.filter(function(r){return iv(r,'ExpiryDate');}).map(function(r){var e=(iv(r,'ExpiryDate')||'').split('T')[0];var dl=Math.round((new Date(e+'T00:00:00')-now)/86400000);var s=parseFloat(iv(r,'InStock'))||0,d=parseFloat(iv(r,'DailyUse'))||0;var ds=d>0?Math.round(s/d):null,ol=parseFloat(iv(r,'OpenLifeDays'))||0;var wr=ds!==null&&ol>0?ds/ol:null;if(dl<0)exp++;else if(dl<=30)w30++;else if(dl<=90)w90++;return{t:r.Title,dept:iv(r,'Instrument'),exp:e,dl:dl,s:s,ds:ds,wr:wr};}).sort(function(a,b){return a.dl-b.dl;});document.getElementById('expiry-summary').innerHTML=sumCard(exp,'Expired','var(--out)',null)+sumCard(w30,'<30 Days','var(--order)',null)+sumCard(w90,'<90 Days','var(--watch)',null)+sumCard(rows.length,'Have Expiry','var(--on-surface)',null);document.getElementById('expiry-tbody').innerHTML=rows.map(function(r){var dc=r.dl<0?'exp-urgent':r.dl<=30?'exp-soon':'exp-ok';var wc=r.wr===null?'':'waste-'+(r.wr>1.5?'high':r.wr>1?'med':'low');var wt=r.wr===null?'—':r.wr>1.5?'HIGH':r.wr>1?'MEDIUM':'LOW';return'<tr><td>'+esc(r.t)+'</td><td>'+esc(r.dept||'')+'</td><td>'+r.exp+'</td><td class="'+dc+'">'+r.dl+'d</td><td>'+r.s+'</td><td>'+(r.ds!==null?r.ds+'d':'—')+'</td><td><span class="'+wc+'">'+wt+'</span></td></tr>';}).join('');}
+function renderExpiry(){var items=allInventory.filter(function(r){return !viewDept||iv(r,'Instrument')===viewDept;}),now=new Date(),exp=0,w30=0,w90=0;var rows=items.filter(function(r){return iv(r,'ExpiryDate');}).map(function(r){var e=(iv(r,'ExpiryDate')||'').split('T')[0];var dl=Math.round((new Date(e+'T00:00:00')-now)/86400000);var s=parseFloat(iv(r,'InStock'))||0,d=parseFloat(iv(r,'DailyUse'))||0;var ds=d>0?Math.round(s/d):null,ol=parseFloat(iv(r,'OpenLifeDays'))||0;var wr=ds!==null&&ol>0?ds/ol:null;if(dl<0)exp++;else if(dl<=30)w30++;else if(dl<=90)w90++;return{t:r.Title,dept:iv(r,'Instrument'),exp:e,dl:dl,s:s,ds:ds,wr:wr};}).sort(function(a,b){return a.dl-b.dl;});document.getElementById('expiry-summary').innerHTML=sumCard(exp,'Expired','var(--out)',null)+sumCard(w30,'<30 Days','var(--order)',null)+sumCard(w90,'<90 Days','var(--watch)',null)+sumCard(rows.length,'Have Expiry','var(--on-surface)',null);document.getElementById('expiry-tbody').innerHTML=rows.map(function(r){var dc=r.dl<0?'exp-urgent':r.dl<=30?'exp-soon':'exp-ok';var wc=r.wr===null?'':'waste-'+(r.wr>1.5?'high':r.wr>1?'med':'low');var wt=r.wr===null?'—':r.wr>1.5?'HIGH':r.wr>1?'MEDIUM':'LOW';return'<tr><td>'+esc(r.t)+'</td><td>'+esc(r.dept||'')+'</td><td>'+r.exp+'</td><td class="'+dc+'">'+r.dl+'d</td><td>'+r.s+'</td><td>'+(r.ds!==null?r.ds+'d':'—')+'</td><td><span class="'+wc+'">'+wt+'</span></td></tr>';}).join('');}
 
 // ═══════════════════════════════════════════════
 // FORECASTING (advanced)
@@ -544,7 +623,7 @@ function calcRollingBurnRate(itemTitle,windowDays){
 }
 
 function renderForecast(){
-  var deptF=document.getElementById('fc-dept').value;
+  var deptF=viewDept;
   var sortBy=document.getElementById('fc-sort').value;
   var items=allInventory.filter(function(r){
     if(deptF&&iv(r,'Instrument')!==deptF)return false;
@@ -683,9 +762,23 @@ function renderForecast(){
 }
 
 // TRANSACTION LOG
-function renderLogTable(){renderLogRows(allLogs);}
+function renderLogTable(){
+  var deptTitles=viewDept?new Set(allInventory.filter(function(r){return iv(r,'Instrument')===viewDept;}).map(function(r){return r.Title;})):null;
+  var filtered=allLogs.filter(function(l){return !deptTitles||deptTitles.has(l.Title);});
+  filterLogRows(filtered);
+}
+function filterLog(){
+  var q=(document.getElementById('log-search').value||'').toLowerCase(),a=document.getElementById('log-action').value;
+  var deptTitles=viewDept?new Set(allInventory.filter(function(r){return iv(r,'Instrument')===viewDept;}).map(function(r){return r.Title;})):null;
+  renderLogRows(allLogs.filter(function(l){
+    if(deptTitles&&!deptTitles.has(l.Title))return false;
+    if(a&&(l[LOG.Action]||'').indexOf(a)<0)return false;
+    if(q){var h=((l.Title||'')+' '+(l[LOG.ScannedBy]||l.ScannedBy||'')+' '+(l[LOG.LotNumber]||'')+' '+(l[LOG.ReasonNote]||'')).toLowerCase();if(h.indexOf(q)<0)return false;}
+    return true;
+  }));
+}
+function filterLogRows(logs){renderLogRows(logs);}
 function renderLogRows(logs){document.getElementById('log-tbody').innerHTML=logs.slice(0,500).map(function(l){var ts=l[LOG.Timestamp]||'';var disp=ts?new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';var d=parseFloat(l[LOG.QuantityDelta])||0;var ds=(d>=0?'+':'')+d;var ac=(l[LOG.Action]||'').toLowerCase();var c=ac.indexOf('receive')>=0?'var(--ok)':ac.indexOf('remove')>=0?'var(--out)':'var(--watch)';return'<tr><td style="white-space:nowrap">'+disp+'</td><td>'+esc(l.Title||'')+'</td><td style="color:'+c+';font-weight:700">'+esc(l[LOG.Action]||'')+'</td><td style="font-weight:700;color:'+c+'">'+ds+'</td><td>'+(l[LOG.QuantityAfter]||'')+'</td><td>'+esc(l[LOG.LotNumber]||'')+'</td><td>'+esc(l[LOG.ScannedBy]||l.ScannedBy||'')+'</td><td style="font-size:12px;color:var(--on-surface-variant)">'+esc(l[LOG.ReasonNote]||'')+'</td></tr>';}).join('');}
-function filterLog(){var q=(document.getElementById('log-search').value||'').toLowerCase(),a=document.getElementById('log-action').value;renderLogRows(allLogs.filter(function(l){if(a&&(l[LOG.Action]||'').indexOf(a)<0)return false;if(q){var h=((l.Title||'')+' '+(l[LOG.ScannedBy]||l.ScannedBy||'')+' '+(l[LOG.LotNumber]||'')+' '+(l[LOG.ReasonNote]||'')).toLowerCase();if(h.indexOf(q)<0)return false;}return true;}));}
 
 // ═══════════════════════════════════════════════
 // BACKUP & RESTORE
