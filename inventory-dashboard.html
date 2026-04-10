@@ -1,9 +1,24 @@
 <!DOCTYPE html>
+<!--
+  Core Lab Inventory Dashboard
+  Copyright (c) 2026 Jesus Martinez. All rights reserved.
+
+  This software is the original work of Jesus Martinez and is protected
+  by copyright law. Unauthorized reproduction, distribution, modification,
+  or use of this software, in whole or in part, without the express written
+  permission of the copyright holder is strictly prohibited.
+
+  Author:  Jesus Martinez (jesusem@uw.edu)
+  Created: 2026
+  Version: 1.0
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#EFEDE6">
+<meta name="author" content="Jesus Martinez">
+<meta name="copyright" content="Copyright (c) 2026 Jesus Martinez. All rights reserved.">
 <title>Inventory Dashboard — Renton Core Lab</title>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
@@ -51,13 +66,17 @@ select.filter-select{padding:6px 32px 6px 14px;border-radius:var(--radius-full);
 
 /* Stock grid with swipe pagination */
 .stock-pager{position:relative;overflow:hidden;touch-action:pan-y}
-.stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;transition:opacity .2s}
-.page-arrow{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:80px;border-radius:var(--radius);background:var(--surface-container);border:1.5px solid var(--outline-variant);color:var(--on-surface-variant);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;font-size:20px;box-shadow:var(--shadow-1);transition:.15s;opacity:.85}
-.page-arrow:hover{background:var(--primary-container);border-color:var(--primary);color:var(--primary);opacity:1}
-.page-arrow:disabled{opacity:.2;cursor:not-allowed;background:var(--surface-high)}
-.page-arrow.left{left:4px}.page-arrow.right{right:4px}
-.page-indicator{text-align:center;margin-top:14px;font-family:var(--font);font-size:12px;color:var(--on-surface-variant);font-weight:600}
-@media(max-width:899px){.page-arrow{display:none}.stock-grid{grid-template-columns:1fr}}
+.stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;transition:opacity .15s}
+.page-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.page-info{font-family:var(--font);font-size:13px;color:var(--on-surface-variant);font-weight:500}
+.page-nav{display:flex;align-items:center;gap:6px}
+.page-btn{width:34px;height:34px;border-radius:var(--radius-full);border:1.5px solid var(--outline-variant);background:var(--surface-lowest);color:var(--on-surface-variant);cursor:pointer;display:grid;place-items:center;transition:.15s;font-size:18px;font-weight:500;line-height:1}
+.page-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary);background:var(--primary-container)}
+.page-btn:disabled{opacity:.25;cursor:not-allowed}
+.page-input{width:44px;height:34px;text-align:center;border:1.5px solid var(--outline-variant);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--on-surface);background:var(--surface-lowest);outline:none}
+.page-input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(0,105,110,.1)}
+.page-of{font-family:var(--font);font-size:13px;color:var(--on-surface-variant);font-weight:500}
+@media(max-width:899px){.page-controls .page-nav{display:none}.page-info{font-size:12px;width:100%;text-align:center}.stock-grid{grid-template-columns:1fr}}
 
 /* Stock cards */
 .stock-card{background:var(--surface-lowest);border:1.5px solid var(--outline-variant);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden;transition:.15s}
@@ -145,7 +164,7 @@ select.filter-select{padding:6px 32px 6px 14px;border-radius:var(--radius-full);
       <button class="nav-btn" onclick="showView('forecast')"><span class="material-icons-outlined">auto_graph</span>Forecasting</button>
       <button class="nav-btn" onclick="showView('log')"><span class="material-icons-outlined">receipt_long</span>Transaction Log</button>
     </nav>
-    <div class="sidebar-footer"><div class="name" id="side-user"></div><div id="side-sp">Connecting...</div></div>
+    <div class="sidebar-footer"><div class="name" id="side-user"></div><div id="side-sp">Connecting...</div><div style="margin-top:8px;font-size:9px;color:var(--outline);line-height:1.4">&copy; 2026 Jesus Martinez<br>All rights reserved.</div></div>
   </aside>
   <div class="main">
     <div class="top-bar">
@@ -160,12 +179,18 @@ select.filter-select{padding:6px 32px 6px 14px;border-radius:var(--radius-full);
     <div class="content" id="content">
       <div class="view active" id="view-stock">
         <div class="summary-bar" id="summary-bar"></div>
-        <div class="stock-pager" id="stock-pager">
-          <button class="page-arrow left" id="page-left" onclick="goPage(-1)">&#8249;</button>
-          <div class="stock-grid" id="stock-grid"></div>
-          <button class="page-arrow right" id="page-right" onclick="goPage(1)">&#8250;</button>
+        <div class="page-controls" id="page-controls">
+          <span class="page-info" id="page-info"></span>
+          <div class="page-nav">
+            <button class="page-btn" id="page-left" onclick="goPage(-1)">&#8249;</button>
+            <input type="number" class="page-input" id="page-input" min="1" value="1" onchange="goToPage(this.value)">
+            <span class="page-of" id="page-of">of 1</span>
+            <button class="page-btn" id="page-right" onclick="goPage(1)">&#8250;</button>
+          </div>
         </div>
-        <div class="page-indicator" id="page-indicator"></div>
+        <div class="stock-pager" id="stock-pager">
+          <div class="stock-grid" id="stock-grid"></div>
+        </div>
         <div class="save-all-bar" id="save-all-bar"><button class="save-all-btn" id="save-all-btn" onclick="saveAllEdits()"><span class="material-icons-outlined" style="font-size:18px">save</span>Save All Changes</button></div>
       </div>
       <div class="view" id="view-trends">
@@ -260,7 +285,11 @@ function renderStock(){
     return'<div class="stock-card"><span class="status-pill '+s.st.cls+'">'+s.st.label+'</span><div class="item-name">'+esc(r.Title||'')+'</div><div class="dept">'+esc(dept)+'</div><div class="type-unit">'+esc(type)+(unit?' · '+esc(unit):'')+(days?' · '+days+' supply':'')+'</div><div class="stock-row"><div><div class="stock-num '+s.st.nc+'">'+s.stock+'</div><div class="stock-label">Stock</div></div><div class="par-col"><div class="par-num">'+s.par+'</div><div class="stock-label">PAR</div></div></div>'+editHTML+'</div>';
   }).join('');
   document.getElementById('page-left').disabled=stockPage<=1;document.getElementById('page-right').disabled=stockPage>=tp;
-  document.getElementById('page-indicator').textContent=tp>1?'Page '+stockPage+' of '+tp:'';
+  document.getElementById('page-input').value=stockPage;document.getElementById('page-input').max=tp;
+  document.getElementById('page-of').textContent='of '+tp;
+  var showing=Math.min(ITEMS_PER_PAGE,sorted.length-(stockPage-1)*ITEMS_PER_PAGE);
+  document.getElementById('page-info').textContent=sorted.length>0?'Showing '+showing+' of '+sorted.length+' items':'No items found';
+  document.getElementById('page-controls').style.display=sorted.length>ITEMS_PER_PAGE?'flex':'none';
   document.getElementById('save-all-bar').className=adminMode?'save-all-bar show':'save-all-bar';
 }
 function ef(l,t,v,f,id,full,opts,step){var c='edit-field'+(full?' full':''),da='data-field="'+f+'" data-item-id="'+id+'"'+(f==='Title'?' data-is-title="1"':'');if(t==='select'&&opts)return'<div class="'+c+'"><label>'+l+'</label><select '+da+' onchange="markEdited(this)">'+opts.map(function(o){return'<option'+(v===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div>';return'<div class="'+c+'"><label>'+l+'</label><input type="'+t+'" value="'+esc(String(v))+'"'+(step?' step="'+step+'"':'')+' '+da+' onchange="markEdited(this)"></div>';}
@@ -268,6 +297,7 @@ function markEdited(el){var id=el.dataset.itemId,f=el.dataset.field;if(!pendingE
 function sumCard(v,l,c,fk){return'<div class="summary-card'+(statusFilter===fk&&fk?' active-filter':'')+'" onclick="toggleStatusFilter('+(fk?"'"+fk+"'":"null")+')"><div class="val" style="color:'+c+'">'+v+'</div><div class="lbl">'+l+'</div></div>';}
 function toggleStatusFilter(k){statusFilter=statusFilter===k?null:k;stockPage=1;renderStock();}
 function goPage(d){stockPage+=d;renderStock();document.getElementById('content').scrollTo(0,0);}
+function goToPage(val){var p=parseInt(val)||1;stockPage=Math.max(1,p);renderStock();document.getElementById('content').scrollTo(0,0);}
 
 // SWIPE
 (function(){var pager=null,startX=0,startY=0,swiping=false;
