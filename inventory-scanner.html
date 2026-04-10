@@ -280,7 +280,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
         <div class="field"><label>Min PAR</label><div class="qty-row"><button onclick="stepF('e-par',-1)">&minus;</button><input type="number" id="e-par" min="0" step="0.5"><button onclick="stepF('e-par',1)">+</button></div></div>
         <div class="field"><label>Daily Use</label><div class="qty-row"><button onclick="stepF('e-daily',-0.1)">&minus;</button><input type="number" id="e-daily" min="0" step="0.1"><button onclick="stepF('e-daily',0.1)">+</button></div></div>
         <div class="field"><label>Open Life (days)</label><div class="qty-row"><button onclick="stepF('e-life',-1)">&minus;</button><input type="number" id="e-life" min="0" step="1"><button onclick="stepF('e-life',1)">+</button></div></div>
-        <div class="field"><label>Item Type</label><select id="e-type"><option value="Reagent">Reagent</option><option value="QC Material">QC Material</option><option value="Calibrator">Calibrator</option><option value="Supply">Supply</option><option value="Part">Part</option></select></div>
+        <div class="field"><label>Item Type</label><select id="e-type"><option value="Reagent">Reagent</option><option value="QC Material">QC Material</option><option value="Calibrator">Calibrator</option><option value="Control">Control</option><option value="Consumable">Consumable</option><option value="Supply">Supply</option><option value="Part">Part</option></select></div>
         <div class="field"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="e-active" style="width:auto;accent-color:var(--md-primary)">Item is Active</label></div>
         <div style="display:flex;gap:8px"><button class="btn btn-purple btn-sm" style="flex:1" onclick="saveEdits()"><span class="material-icons-outlined" style="font-size:16px">save</span> Save</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="cancelEdit()">Cancel</button></div>
       </div>
@@ -302,7 +302,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
     <div class="card">
       <div class="card-title">Catalog Details<span id="barcode-type-badge" class="badge badge-teal" style="display:none;font-size:10px"></span></div>
       <div class="field"><label>Item Name *</label><input type="text" id="m-name" placeholder="e.g. Cellpack DCL"></div>
-      <div class="field" style="margin-top:14px"><label>Instrument / Section *</label><select id="m-instrument"><option value="XN">Sysmex XN-Series</option><option value="Stago">Stago STA-R MAX</option><option value="UN">Sysmex UN Series</option><option value="DI-60">DI-60 / DM-96</option><option value="Roche">Roche Cobas</option><option value="Lab Supplies">Lab Supplies</option><option value="Office Supplies">Office Supplies</option></select></div>
+      <div class="field" style="margin-top:14px"><label>Department *</label><select id="m-instrument"><option value="Chemistry">Chemistry</option><option value="Hematology">Hematology</option><option value="Coagulation">Coagulation</option><option value="Urinalysis">Urinalysis</option><option value="Laboratory Supplies">Laboratory Supplies</option><option value="Office Supplies">Office Supplies</option></select></div>
       <div class="field" style="margin-top:14px"><label>Unit</label><select id="m-unit"><option value="L">L (liter)</option><option value="mL">mL</option><option value="vial">vial</option><option value="kit">kit</option><option value="btl">btl</option><option value="box">box</option><option value="pk">pk (pack)</option><option value="ea">ea (each)</option></select></div>
       <div class="field" style="margin-top:14px"><label>Catalog Number</label><input type="text" id="m-catnum" placeholder="e.g. XE-2021" style="font-family:'Courier New',monospace;font-size:13px"></div>
       <div class="field" style="margin-top:14px"><label>Barcode String</label><input type="text" id="m-barcode" style="font-family:'Courier New',monospace;font-size:13px"></div>
@@ -439,6 +439,14 @@ function parseGS1(raw){
   }
   // UPC-A / EAN-13
   else if(/^\d{12,13}$/.test(str)){r.barcodeType=str.length===12?'UPC-A':'EAN-13';r.catalogNumber=str;r.isUPC=true;}
+  // GTIN-14 standalone (14 digits, packaging indicator + UPC/EAN + check digit)
+  else if(/^\d{14}$/.test(str)&&str.slice(0,2)!=='01'){
+    r.barcodeType='GTIN-14';r.gtin=str;r.gtinRaw=str;
+    r.catalogNumber=str.replace(/^0+/,'')||str;
+    // Extract embedded UPC-12 (strip packaging indicator, keep 12 digits before check digit)
+    var innerUPC=str.slice(1,13);r.innerUPC=innerUPC;
+    r.isUPC=true;
+  }
   // Fallback: scan for embedded AI 01 anywhere in a long numeric string
   else if(/^\d{20,}$/.test(str)){
     var idx=str.indexOf('01');
@@ -493,19 +501,19 @@ function parseGS1(raw){
 }
 function applyAI(r,ai,val){if(ai==='01'){r.gtin=val;r.catalogNumber=val.replace(/^0+/,'')||val;r.gtinRaw=val;}else if(ai==='17'&&val.length===6){var yy=parseInt(val.slice(0,2)),yr=yy<50?2000+yy:1900+yy;var dd=val.slice(4,6)==='00'?'28':val.slice(4,6);r.expiry=yr+'-'+val.slice(2,4)+'-'+dd;}else if(ai==='10'){r.lot=val.trim();}else if(ai==='21'){r.serial=val.trim();}}
 function guessInst(p){
-  // UPC/EAN retail barcodes default to Lab Supplies
-  if(p.isUPC)return'Lab Supplies';
+  // UPC/EAN retail barcodes default to Laboratory Supplies
+  if(p.isUPC)return'Laboratory Supplies';
   var c=(p.catalogNumber||'').toUpperCase();var g=(p.gtin||p.gtinRaw||'').toUpperCase();var rm=(p.rocheMaterial||'');
-  // Sysmex XN-specific
-  if(c.startsWith('XE')||c.includes('CELLPACK')||c.includes('SULFO')||c.includes('LYSER')||c.includes('FLUORO')||c.includes('STOMATO')||c.includes('DILUENT')||c.includes('STROMATOL'))return'XN';
-  // Stago-specific
-  if(c.includes('STA-')||c.startsWith('PTT')||c.startsWith('FIB')||c.startsWith('006')||c.includes('NEOPTIMAL')||c.includes('CEPHASCREEN'))return'Stago';
-  // Sysmex UN-specific
-  if(c.startsWith('UN-')||c.startsWith('UA-'))return'UN';
-  // DI-60-specific
-  if(c.startsWith('DI-')||c.startsWith('DM-'))return'DI-60';
-  // Default to Roche for everything else
-  return'Roche';}
+  // Sysmex XN → Hematology
+  if(c.startsWith('XE')||c.includes('CELLPACK')||c.includes('SULFO')||c.includes('LYSER')||c.includes('FLUORO')||c.includes('STOMATO')||c.includes('DILUENT')||c.includes('STROMATOL'))return'Hematology';
+  // Stago → Coagulation
+  if(c.includes('STA-')||c.startsWith('PTT')||c.startsWith('FIB')||c.startsWith('006')||c.includes('NEOPTIMAL')||c.includes('CEPHASCREEN'))return'Coagulation';
+  // Sysmex UN → Urinalysis
+  if(c.startsWith('UN-')||c.startsWith('UA-'))return'Urinalysis';
+  // DI-60 → Hematology (morphology)
+  if(c.startsWith('DI-')||c.startsWith('DM-'))return'Hematology';
+  // Default to Chemistry (Roche cobas = chemistry)
+  return'Chemistry';}
 
 async function lookupBarcode(){
   var raw=document.getElementById('scan-input').value.trim();
@@ -525,6 +533,8 @@ async function lookupBarcode(){
     if(!catRow&&parsed.catalogNumber){var safeCat=parsed.catalogNumber.replace(/'/g,"''");data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safeCat+"'"));catRow=data.value?.[0]||null;}
     // 4. If GS1 has raw GTIN (with leading zeros), try that too
     if(!catRow&&parsed.gtinRaw&&parsed.gtinRaw!==parsed.catalogNumber){var safeGtin=parsed.gtinRaw.replace(/'/g,"''");data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safeGtin+"'"));catRow=data.value?.[0]||null;}
+    // 4b. If GTIN-14, try the inner UPC (digits 1-12)
+    if(!catRow&&parsed.innerUPC){var safeInner=parsed.innerUPC.replace(/'/g,"''");data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_6 eq '"+safeInner+"'"));catRow=data.value?.[0]||null;if(!catRow){data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safeInner+"'"));catRow=data.value?.[0]||null;}}
     // 5. If GS1 AI 24 parsed a REF/additional ID (Roche), try that
     if(!catRow&&parsed.refNumber){var safeRef=parsed.refNumber.replace(/'/g,"''");data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safeRef+"'"));catRow=data.value?.[0]||null;}
     if(!catRow&&parsed.additionalId&&parsed.additionalId!==parsed.refNumber){var safeAid=parsed.additionalId.replace(/'/g,"''");data=await spFetch(SP.lists.catalog,'?$top=1&$select='+catSel+'&$filter='+encodeURIComponent("field_7 eq '"+safeAid+"'"));catRow=data.value?.[0]||null;}
@@ -608,14 +618,73 @@ async function saveEdits(){
   try{var pd=cf({MinPAR:par,DailyUse:daily,OpenLifeDays:life,ItemType:type,IsActive:active},INV);await spPatch(SP.lists.inventory,currentItem.Id,pd);currentItem[INV.MinPAR]=par;currentItem[INV.DailyUse]=daily;currentItem[INV.OpenLifeDays]=life;currentItem[INV.ItemType]=type;currentItem[INV.IsActive]=active;cancelEdit();renderItem();hideLoad();showToast('Saved',false);}catch(e){hideLoad();showToast('Save failed: '+(e.message||'').slice(0,40),true);}
 }
 
-function fillManualFromBarcode(parsed,raw){setVal('m-barcode',raw);if(parsed.expiry)setVal('m-expiry',parsed.expiry);if(parsed.lot)setVal('m-lot',parsed.lot);if(parsed.catalogNumber)setVal('m-catnum',parsed.catalogNumber);setVal('m-instrument',guessInst(parsed));var tb=document.getElementById('barcode-type-badge');if(tb){tb.textContent=parsed.barcodeType+(parsed.isGS1?' · GS1':'');tb.style.display='inline-flex';}var al=document.getElementById('manual-alert');if(al){var flds=[];if(parsed.expiry)flds.push('expiry');if(parsed.lot)flds.push('lot');if(parsed.catalogNumber)flds.push('catalog #');al.innerHTML=flds.length?'Barcode not in catalog. Auto-filled: <strong>'+flds.join(', ')+'</strong>. Enter item name to add it.':'Barcode not in catalog. Enter details to add it.';}}
-function resetManual(){lastRaw='';lastParsedGS1=null;['m-name','m-lot','m-expiry','m-notes','m-barcode','m-catnum'].forEach(function(id){setVal(id,'');});setVal('m-qty','1');setVal('m-instrument','XN');setVal('m-unit','L');var tb=document.getElementById('barcode-type-badge');if(tb)tb.style.display='none';var al=document.getElementById('manual-alert');if(al)al.textContent='Enter item details below.';}
+function fillManualFromBarcode(parsed,raw){
+  setVal('m-barcode',raw);
+  if(parsed.expiry)setVal('m-expiry',parsed.expiry);
+  if(parsed.lot)setVal('m-lot',parsed.lot);
+  if(parsed.catalogNumber)setVal('m-catnum',parsed.catalogNumber);
+  setVal('m-instrument',guessInst(parsed));
+  var tb=document.getElementById('barcode-type-badge');
+  if(tb){tb.textContent=parsed.barcodeType+(parsed.isGS1?' · GS1':'');tb.style.display='inline-flex';}
+  var al=document.getElementById('manual-alert');
+  if(al){var flds=[];if(parsed.expiry)flds.push('expiry');if(parsed.lot)flds.push('lot');if(parsed.catalogNumber)flds.push('catalog #');al.innerHTML=flds.length?'Barcode not in catalog. Auto-filled: <strong>'+flds.join(', ')+'</strong>. Enter item name to add it.':'Barcode not in catalog. Enter details to add it.';}
+  // Auto-lookup product info via UPCitemdb for UPC/EAN/GTIN barcodes
+  var lookupCode=parsed.innerUPC||parsed.catalogNumber||parsed.gtinRaw||'';
+  if(lookupCode&&/^\d{8,14}$/.test(lookupCode)){
+    upcLookup(lookupCode).then(function(info){
+      if(info){
+        if(info.title&&!getVal('m-name'))setVal('m-name',info.title);
+        if(info.brand){var cur=getVal('m-notes');setVal('m-notes',(cur?cur+' · ':'')+info.brand);}
+        if(al&&info.title)al.innerHTML='Barcode not in catalog. Product identified: <strong>'+esc(info.title)+'</strong>. Confirm and add.';
+      }
+    }).catch(function(){});
+  }
+}
+async function upcLookup(code){
+  // Try multiple UPC lookup services in order
+  var result=null;
+  // 1. UPCitemdb (free, 100/day, no key)
+  result=await tryUPCitemdb(code);if(result)return result;
+  // 2. go-upc.com
+  result=await tryGoUPC(code);if(result)return result;
+  // 3. barcodelookup.com
+  result=await tryBarcodeLookup(code);if(result)return result;
+  return null;
+}
+async function tryUPCitemdb(code){
+  try{
+    var resp=await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc='+encodeURIComponent(code),{headers:{'Accept':'application/json'}});
+    if(!resp.ok)return null;
+    var data=await resp.json();
+    if(data.items&&data.items.length>0){var i=data.items[0];return{title:i.title||'',brand:i.brand||'',source:'UPCitemdb'};}
+  }catch(e){console.warn('UPCitemdb failed:',e);}
+  return null;
+}
+async function tryGoUPC(code){
+  try{
+    var resp=await fetch('https://go-upc.com/api/v1/code/'+encodeURIComponent(code),{headers:{'Accept':'application/json'}});
+    if(!resp.ok)return null;
+    var data=await resp.json();
+    if(data.product&&data.product.name){return{title:data.product.name||'',brand:data.product.brand||'',source:'go-upc'};}
+  }catch(e){console.warn('go-upc failed:',e);}
+  return null;
+}
+async function tryBarcodeLookup(code){
+  try{
+    var resp=await fetch('https://www.barcodelookup.com/restapi?barcode='+encodeURIComponent(code),{headers:{'Accept':'application/json'}});
+    if(!resp.ok)return null;
+    var data=await resp.json();
+    if(data.products&&data.products.length>0){var p=data.products[0];return{title:p.title||p.product_name||'',brand:p.brand||'',source:'barcodelookup'};}
+  }catch(e){console.warn('barcodelookup failed:',e);}
+  return null;
+}
+function resetManual(){lastRaw='';lastParsedGS1=null;['m-name','m-lot','m-expiry','m-notes','m-barcode','m-catnum'].forEach(function(id){setVal(id,'');});setVal('m-qty','1');setVal('m-instrument','Chemistry');setVal('m-unit','L');var tb=document.getElementById('barcode-type-badge');if(tb)tb.style.display='none';var al=document.getElementById('manual-alert');if(al)al.textContent='Enter item details below.';}
 async function submitManual(addToCatalog){
   var name=getVal('m-name').trim();if(!name){showToast('Item name is required',true);return;}
   var inst=getVal('m-instrument'),unit=getVal('m-unit');var qty=parseFloat(getVal('m-qty'))||0;var lot=getVal('m-lot').trim(),expiry=getVal('m-expiry');var notes=getVal('m-notes').trim(),barcode=getVal('m-barcode').trim();var catnum=getVal('m-catnum').trim();var parsed=lastParsedGS1||(barcode?parseGS1(barcode):null);var today=new Date().toISOString().slice(0,10);var catalogID='MAN-'+Date.now();
   showLoad('Saving...');
   try{
-    if(addToCatalog&&barcode){var cd=cf({CatalogID:catalogID,BarcodeString:barcode,CatalogNumber:catnum||barcode,Instrument:inst,Unit:unit,Manufacturer:'Other',BarcodeType:parsed?parsed.barcodeType:'Unknown',GS1ParsesExpiry:parsed&&parsed.expiry?'Yes':'No',GS1ParsesLot:parsed&&parsed.lot?'Yes':'No',Notes:notes||'Added via scanner — '+today},CAT);cd.Title=name;await spPost(SP.lists.catalog,cd);var id=cf({Instrument:inst,ItemType:'Reagent',Unit:unit,InStock:qty,MinPAR:1,DailyUse:0,CatalogID:catalogID,IsActive:'Yes'},INV);id.Title=name;await spPost(SP.lists.inventory,id);}
+    if(addToCatalog&&barcode){var cd=cf({CatalogID:catalogID,BarcodeString:barcode,CatalogNumber:catnum||barcode,Instrument:inst,Unit:unit,Manufacturer:'Other',BarcodeType:parsed?parsed.barcodeType:'Unknown',GS1ParsesExpiry:parsed&&parsed.expiry?'Yes':'No',GS1ParsesLot:parsed&&parsed.lot?'Yes':'No',Notes:notes||'Added via scanner — '+today},CAT);cd.Title=name;await spPost(SP.lists.catalog,cd);var autoType=(inst==='Laboratory Supplies'||inst==='Office Supplies')?'Supply':'Reagent';var id=cf({Instrument:inst,ItemType:autoType,Unit:unit,InStock:qty,MinPAR:1,DailyUse:0,CatalogID:catalogID,IsActive:'Yes'},INV);id.Title=name;await spPost(SP.lists.inventory,id);}
     var acct=msalInstance?.getActiveAccount();var scannedBy=acct?(acct.name||acct.username||''):'';var ld=cf({Action:'Received',QuantityDelta:qty,QuantityAfter:qty,LotNumber:lot||'',ExpiryDate:expiry||'',Timestamp:new Date().toISOString(),ReasonNote:notes||'',ScannedBy:scannedBy},LOG);ld.Title=name+' — Received — '+today;await spPost(SP.lists.log,ld);
     lastEntry={item:name,action:'Received',delta:'+'+qty,newStock:qty,lot:lot||'—',scannedBy,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})};lastRaw='';lastParsedGS1=null;hideLoad();showSuccess();
   }catch(e){hideLoad();showToast('Failed: '+(e.message||'').slice(0,50),true);}
@@ -630,26 +699,43 @@ function stopCamera(){if(camStream){camStream.getTracks().forEach(t=>t.stop());c
 async function handleCamFile(input){var file=input.files[0];if(!file)return;if('BarcodeDetector'in window){try{var bm=await createImageBitmap(file);var d=new BarcodeDetector({formats:['code_128','code_39','data_matrix','ean_13','ean_8','qr_code','upc_a','upc_e']});var bc=await d.detect(bm);if(bc&&bc.length>0){document.getElementById('scan-input').value=bc[0].rawValue;showToast('Barcode detected');lookupBarcode();input.value='';return;}}catch(e){console.warn('Img decode:',e);}}showToast('Could not read barcode — type manually',true);input.value='';}
 
 function goScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');s.style.display='';});
   var el=document.getElementById(id);
-  if(el)el.classList.add('active');
-  else{console.warn('goScreen: missing',id);return;}
-  // Force scroll reset on all scrollable containers
+  if(!el){console.warn('goScreen: missing',id);return;}
+  el.classList.add('active');el.style.display='flex';
   window.scrollTo({top:0,left:0,behavior:'instant'});
-  document.body.scrollTop=0;
-  document.documentElement.scrollTop=0;
-  // Also scroll the screen element itself
-  el.scrollTop=0;
+  document.body.scrollTop=0;document.documentElement.scrollTop=0;el.scrollTop=0;
 }
 function goScan(){
-  document.getElementById('scan-input').value='';
-  currentItem=null;currentTab=null;
-  goScreen('screen-scan');
-  // Double-check visibility after a tick
-  setTimeout(function(){
+  // Reset all state
+  currentItem=null;currentTab=null;lastRaw='';lastParsedGS1=null;
+  // Clear scan input
+  var si2=document.getElementById('scan-input');if(si2)si2.value='';
+  // Clear item screen fields
+  setEl('item-name','');setEl('item-instrument','');setEl('item-unit','');setEl('item-type','');
+  setEl('item-stock','0');setEl('item-par','');setEl('m-days','');setEl('m-daily','');setEl('m-life','');
+  var oe=document.getElementById('m-order');if(oe){oe.textContent='';oe.style.background='transparent';}
+  var we=document.getElementById('m-waste');if(we){we.textContent='';we.style.background='transparent';}
+  // Clear action forms
+  ['q-receive','q-remove','q-adjust'].forEach(function(id){setVal(id,id==='q-adjust'?'0':'1');});
+  setVal('lot-receive','');setVal('exp-receive','');setVal('reason-remove','');setVal('reason-adjust','');
+  // Clear manual entry form
+  resetManual();
+  // Clear success log
+  var sl=document.getElementById('success-log');if(sl)sl.innerHTML='';
+  // Hide edit section
+  var es=document.getElementById('edit-section');if(es)es.classList.remove('show');
+  // Force all screens hidden, then show scan
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');s.style.display='none';});
+  var scanScreen=document.getElementById('screen-scan');
+  if(scanScreen){scanScreen.classList.add('active');scanScreen.style.display='flex';}
+  // Force scroll to top
+  window.scrollTo(0,0);document.body.scrollTop=0;document.documentElement.scrollTop=0;
+  // Focus input after paint
+  requestAnimationFrame(function(){
     window.scrollTo(0,0);
-    document.getElementById('scan-input').focus();
-  },50);
+    if(si2)si2.focus();
+  });
 }
 function stepQ(id,d){var el=document.getElementById(id);if(el)el.value=Math.max(0,Math.round(((parseFloat(el.value)||0)+d)*100)/100);}
 function stepF(id,d){var el=document.getElementById(id);if(el)el.value=Math.max(0,Math.round(((parseFloat(el.value)||0)+d)*100)/100);}
