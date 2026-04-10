@@ -558,7 +558,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   <!-- Alerts — collapsible, hidden until alerts exist -->
   <div class="nav-collapsible" id="nav-alerts-col" style="display:none;border-top:1px solid var(--md-outline-variant)">
     <div class="nav-collapsible-hdr" onclick="toggleNavSection('nav-alerts-col')">
-      <span class="nav-collapsible-title" style="color:var(--md-error)"><span class="material-icons-outlined" style="font-size:14px;color:var(--md-error)">warning</span>Alerts</span>
+      <span class="nav-collapsible-title" style="color:var(--md-error)"><span class="material-icons-outlined" style="font-size:14px;color:var(--md-error)">warning</span>Alerts <span class="nav-alert-count" style="background:var(--md-error);color:#fff;border-radius:999px;font-size:8px;padding:1px 5px;font-weight:700;letter-spacing:.02em"></span></span>
       <span class="material-icons-outlined nav-collapsible-chevron">expand_more</span>
     </div>
     <div class="nav-collapsible-body">
@@ -1341,9 +1341,12 @@ function renderAlerts(){
   });
   if(alerts.length===0){sec.style.display='none';return;}
   sec.style.display='block';
-  list.innerHTML=alerts.slice(0,10).map(function(a){
+  var shown=Math.min(alerts.length,5);
+  var countBadge=sec.querySelector('.nav-alert-count');
+  if(countBadge)countBadge.textContent=alerts.length;
+  list.innerHTML=alerts.slice(0,shown).map(function(a){
     return'<div class="alert-item '+a.type+'"><span class="material-icons-outlined">'+a.icon+'</span><span class="a-text">'+a.text+'</span></div>';
-  }).join('');
+  }).join('')+(alerts.length>shown?'<div style="font-size:9px;color:var(--md-outline);padding:4px 2px">+'+( alerts.length-shown)+' more — see Dashboard</div>':'');
 }
 
 // Inventory snapshot
