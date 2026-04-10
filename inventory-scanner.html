@@ -984,61 +984,59 @@ function panelSearch(q){
   },200);
 }
 
+// Paginated SP list fetch using the same spFetch that powers the main scanner
+async function spFetchAll(listName,sel,filter){
+  var all=[];
+  var pageSize=500;
+  var skip=0;
+  // SP supports $skip up to a point; use it conservatively with small pages
+  // to avoid URL length issues with large $select strings
+  var selShort=sel;// use as-is
+  while(true){
+    var q='?$top='+pageSize+'&$skiptoken=Paged%3DTRUE%26p_ID%3D'+skip+'&$select='+selShort;
+    if(filter)q+='&$filter='+encodeURIComponent(filter);
+    try{
+      var data=await spFetch(listName,q);
+      var batch=data.value||[];
+      all=all.concat(batch);
+      if(batch.length<pageSize)break;
+      skip+=pageSize;
+    }catch(e){
+      console.warn('spFetchAll page error (skip='+skip+'):',e.message);
+      // Try once more with just skip=0 if this is the first page failing
+      if(skip===0)throw e;
+      break;
+    }
+  }
+  return all;
+}
+
 // Load inventory for panel features
 async function loadPanelData(){
   try{
-    var invSel='Id,Title,'+Object.values(INV).join(',');
-    allInvCache=await spFetchAll(SP.lists.inventory,invSel);
+    // Use minimal select to keep URL short — only fields needed for snapshot/alerts
+    var invSel='Id,Title,field_4,field_5,field_7';// InStock, MinPAR, ExpiryDate
+    var data=await spFetch(SP.lists.inventory,'?$top=500&$select='+invSel);
+    allInvCache=data.value||[];
     console.log('Panel loaded: '+allInvCache.length+' inventory items');
     renderAlerts();
     renderSnapshot();
+    renderPanel();
   }catch(e){
-    console.warn('Panel data failed:',e);
+    console.warn('Panel data failed:',e.message);
     var snap=document.getElementById('inv-snapshot');
-    if(snap)snap.innerHTML='<div style="font-size:11px;color:var(--md-outline)">Could not load</div>';
+    if(snap)snap.innerHTML='<div style="font-size:11px;color:var(--md-error)">'+esc(e.message.slice(0,60))+'</div>';
   }
 }
 
-// Alerts
-function renderAlerts(){
-  var sec=document.getElementById('alerts-section');
-  var list=document.getElementById('panel-alerts');
-  if(!sec||!list)return;
-  var alerts=[];
-  allInvCache.forEach(function(r){
-    var stock=parseFloat(iv(r,'InStock'))||0;var par=parseFloat(iv(r,'MinPAR'))||0;
-    var exp=(iv(r,'ExpiryDate')||'').split('T')[0];
-    if(stock<=0&&par>0)alerts.push({type:'a-out',icon:'error',text:esc(r.Title)+' is out of stock'});
-    else if(stock<par&&par>0)alerts.push({type:'a-order',icon:'warning',text:esc(r.Title)+' below PAR ('+stock+'/'+par+')'});
-    if(exp){var dl=Math.round((new Date(exp+'T00:00:00')-new Date())/86400000);if(dl>=0&&dl<=14)alerts.push({type:'a-expiry',icon:'schedule',text:esc(r.Title)+' expires in '+dl+'d'});}
-  });
-  if(alerts.length===0){sec.style.display='none';return;}
-  sec.style.display='block';
-  list.innerHTML=alerts.slice(0,8).map(function(a){
-    return'<div class="alert-item '+a.type+'"><span class="material-icons-outlined">'+a.icon+'</span><span class="a-text">'+a.text+'</span></div>';
-  }).join('');
-}
-
-// Inventory snapshot
-function renderSnapshot(){
-  var el=document.getElementById('inv-snapshot');if(!el)return;
-  var ok=0,watch=0,order=0,out=0;
-  allInvCache.forEach(function(r){
-    var s=parseFloat(iv(r,'InStock'))||0,p=parseFloat(iv(r,'MinPAR'))||0;
-    if(s<=0)out++;else if(s<p)order++;else if(p>0&&s<p*1.5)watch++;else ok++;
-  });
-  el.innerHTML='<div class="snap-box snap-ok"><div class="snap-val">'+ok+'</div><div class="snap-lbl">In Stock</div></div>'+
-    '<div class="snap-box snap-watch"><div class="snap-val">'+watch+'</div><div class="snap-lbl">Watch</div></div>'+
-    '<div class="snap-box snap-order"><div class="snap-val">'+order+'</div><div class="snap-lbl">Order</div></div>'+
-    '<div class="snap-box snap-out"><div class="snap-val">'+out+'</div><div class="snap-lbl">Out</div></div>';
-}
-
-// Today's log - rich format
+// Today's log
 async function loadTodayLog(){
   try{
     var today=new Date().toISOString().slice(0,10);
-    var logFields=Object.values(LOG).filter(function(v,i,a){return a.indexOf(v)===i;});
-    var logs=await spFetchAll(SP.lists.log,'Id,Title,'+logFields.join(','),"field_6 ge '"+today+"T00:00:00'");
+    // Minimal select — only fields needed for display
+    var logSel='Id,Title,field_1,field_2,field_6,ScannedBy';// Action,Delta,Timestamp,ScannedBy
+    var data=await spFetch(SP.lists.log,'?$top=100&$select='+logSel+'&$filter='+encodeURIComponent("field_6 ge '"+today+"T00:00:00'"));
+    var logs=data.value||[];
     logs.sort(function(a,b){return(b[LOG.Timestamp]||'').localeCompare(a[LOG.Timestamp]||'');});
     var tl=document.getElementById('today-log');
     if(tl){
@@ -1059,30 +1057,45 @@ async function loadTodayLog(){
       }).join('');}
     }
   }catch(e){
-    console.warn('Today log:',e);
+    console.warn('Today log failed:',e.message);
     var tl=document.getElementById('today-log');
     if(tl)tl.innerHTML='<div class="recent-empty">No transactions today</div>';
   }
 }
 
-// SP fetch helper for panel — uses _req (same auth path as scanner) with __next token pagination
-async function spFetchAll(ln,sel,filter){
-  var all=[];
-  var url=SP_API+"/getbytitle('"+ln+"')/items?$top=1000&$select="+sel;
-  if(filter)url+='&$filter='+encodeURIComponent(filter);
-  while(url){
-    try{
-      var res=await _req(url);
-      var d=await res.json();
-      var batch=d.d&&d.d.results?d.d.results:[];
-      all=all.concat(batch);
-      url=(d.d&&d.d.__next)||null;
-    }catch(e){
-      console.warn('spFetchAll error:',e.message);
-      throw e;
-    }
-  }
-  return all;
+// Alerts
+function renderAlerts(){
+  var sec=document.getElementById('alerts-section');
+  var list=document.getElementById('panel-alerts');
+  if(!sec||!list)return;
+  var alerts=[];
+  allInvCache.forEach(function(r){
+    var stock=parseFloat(r.field_4)||0;
+    var par=parseFloat(r.field_5)||0;
+    var exp=(r.field_7||'').split('T')[0];
+    if(stock<=0&&par>0)alerts.push({type:'a-out',icon:'error',text:esc(r.Title)+' is out of stock'});
+    else if(stock<par&&par>0)alerts.push({type:'a-order',icon:'warning',text:esc(r.Title)+' below PAR ('+stock+'/'+par+')'});
+    if(exp){var dl=Math.round((new Date(exp+'T00:00:00')-new Date())/86400000);if(dl>=0&&dl<=14)alerts.push({type:'a-expiry',icon:'schedule',text:esc(r.Title)+' expires in '+dl+'d'});}
+  });
+  if(alerts.length===0){sec.style.display='none';return;}
+  sec.style.display='block';
+  list.innerHTML=alerts.slice(0,8).map(function(a){
+    return'<div class="alert-item '+a.type+'"><span class="material-icons-outlined">'+a.icon+'</span><span class="a-text">'+a.text+'</span></div>';
+  }).join('');
+}
+
+// Inventory snapshot
+function renderSnapshot(){
+  var el=document.getElementById('inv-snapshot');if(!el)return;
+  var ok=0,watch=0,order=0,out=0;
+  allInvCache.forEach(function(r){
+    var s=parseFloat(r.field_4)||0,p=parseFloat(r.field_5)||0;
+    if(s<=0)out++;else if(s<p)order++;else if(p>0&&s<p*1.5)watch++;else ok++;
+  });
+  el.innerHTML='<div class="snap-box snap-ok"><div class="snap-val">'+ok+'</div><div class="snap-lbl">In Stock</div></div>'+
+    '<div class="snap-box snap-watch"><div class="snap-val">'+watch+'</div><div class="snap-lbl">Watch</div></div>'+
+    '<div class="snap-box snap-order"><div class="snap-val">'+order+'</div><div class="snap-lbl">Order</div></div>'+
+    '<div class="snap-box snap-out"><div class="snap-val">'+out+'</div><div class="snap-lbl">Out</div></div>';
 }
 
 window.addEventListener('load',function(){
