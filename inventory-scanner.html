@@ -170,7 +170,10 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .stat-lbl{font-size:10px;color:var(--md-on-surface-variant);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-top:2px}
 
 /* Today's Log */
-.log-item{font-size:12px;padding:7px 0;border-bottom:1px solid var(--md-outline-variant);display:flex;align-items:center;gap:8px}
+.log-item{font-size:12px;padding:7px 6px;border-bottom:1px solid var(--md-outline-variant);display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:var(--radius-sm);transition:background var(--dur-micro) var(--me-standard);}
+.log-item:hover{background:var(--md-surface-container-low);}
+.log-item:active{background:var(--md-surface-container-high);}
+.log-item:last-child{border-bottom:none;}
 .log-item:last-child{border-bottom:none}
 .log-item .li-icon{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
 .li-icon-receive{background:var(--receive-surface);color:var(--receive)}
@@ -420,7 +423,9 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .loading-text{font-family:var(--font);font-size:14px;color:var(--md-on-surface-variant);font-weight:500}
 
 /* ── Recent scan cards — slide in ── */
-.recent-item{background:var(--md-surface-container-lowest);border:1px solid var(--md-outline-variant);border-radius:var(--radius-sm);padding:10px 12px;animation:slideInCard var(--dur-med) var(--me-decelerate) both;}
+.recent-item{background:var(--md-surface-container-lowest);border:1px solid var(--md-outline-variant);border-radius:var(--radius-sm);padding:10px 12px;animation:slideInCard var(--dur-med) var(--me-decelerate) both;cursor:pointer;transition:background var(--dur-micro) var(--me-standard),box-shadow var(--dur-short) var(--me-spring);}
+.recent-item:hover{background:var(--md-surface-container-low);box-shadow:var(--shadow-1);}
+.recent-item:active{background:var(--md-surface-container-high);}
 @keyframes slideInCard{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:translateX(0);}}
 
 /* ── Stat boxes — count up feel ── */
@@ -1194,7 +1199,8 @@ function renderPanel(){
         var acl=s.action.toLowerCase();
         var badgeCls=acl.indexOf('receive')>=0?'ri-badge-receive':acl.indexOf('remove')>=0?'ri-badge-remove':acl.indexOf('new')>=0?'ri-badge-new':'ri-badge-adjust';
         var t=s.time.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-        return'<div class="recent-item">'+
+        var safeName=s.name.replace(/'/g,"''");
+        return'<div class="recent-item" onclick="lookupByTitle(\''+safeName+'\')" title="Open item details" style="cursor:pointer">'+
           '<div class="ri-top"><div class="ri-name">'+esc(s.name)+'</div><div class="ri-time">'+t+'</div></div>'+
           '<div class="ri-details">'+
             '<div class="ri-detail"><span class="material-icons-outlined" style="font-size:12px">swap_vert</span>'+(s.delta>=0?'+':'')+s.delta+'</div>'+
@@ -1328,7 +1334,8 @@ async function loadTodayLog(){
           var d=parseFloat(l[LOG.QuantityDelta])||0;
           var qtyColor=d>=0?'var(--receive)':'var(--remove)';
           var by=l[LOG.ScannedBy]||l.ScannedBy||'';
-          return'<div class="log-item">'+
+          var safeTitle=(l.Title||'').replace(/'/g,"''");
+          return'<div class="log-item" onclick="lookupByTitle(\''+safeTitle+'\')" title="Open item details" style="cursor:pointer">'+
             '<div class="li-icon '+iconCls+'"><span class="material-icons-outlined">'+icon+'</span></div>'+
             '<div class="li-body"><div class="li-name">'+esc(l.Title||'')+'</div><div class="li-sub">'+t+(by?' · '+esc(by):'')+'</div></div>'+
             '<div class="li-qty" style="color:'+qtyColor+'">'+(d>=0?'+':'')+d+'</div>'+
