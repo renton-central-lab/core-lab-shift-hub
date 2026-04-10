@@ -1173,7 +1173,24 @@ function myN(){return me?(notifs[me.initials]||[]):[];}
 function uBell(){const c=myN().filter(n=>!n.read).length;const b=$('bellBadge');if(c>0){b.classList.add('show');b.textContent=c;}else b.classList.remove('show');}
 function toggleBell(e){e.stopPropagation();$('bellDrop').classList.toggle('show');rBL();}
 document.addEventListener('click',e=>{if(!e.target.closest('#bellBtn'))$('bellDrop').classList.remove('show');});
-function rBL(){const l=$('bellList'),ns=myN();if(!ns.length){l.innerHTML='<div class="bell-empty"><span class="mi" style="font-size:28px;display:block;margin-bottom:6px;">notifications_none</span>No notifications</div>';return;}l.innerHTML=ns.slice(0,30).map(n=>{const ts=new Date(n.timestamp).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});return'<div class="bell-item '+(n.read?'':'unread')+'" onclick="openND(\''+n.id+'\')"><div class="bi-icon '+n.type+'"><span class="mi mi-sm">'+(n.type==='escalation'?'warning':'push_pin')+'</span></div><div class="bi-body"><div class="bi-title">'+esc(n.title)+'</div><div class="bi-desc">'+esc(n.desc)+'</div><div class="bi-time">'+ts+'</div></div></div>';}).join('');}
+function rBL(){
+  const l=$('bellList'),ns=myN();
+  if(!ns.length){l.innerHTML='<div class="bell-empty"><span class="mi" style="font-size:28px;display:block;margin-bottom:6px;">notifications_none</span>No notifications</div>';return;}
+  // Unread first, then by timestamp desc
+  const sorted=[...ns].sort((a,b)=>{if(!a.read&&b.read)return -1;if(a.read&&!b.read)return 1;return new Date(b.timestamp)-new Date(a.timestamp);});
+  const unread=sorted.filter(n=>!n.read).length;
+  const shown=Math.min(sorted.length,10);
+  // Update header count
+  const hdr=$('bellDrop').querySelector('.bell-drop-hdr h4');
+  if(hdr)hdr.textContent='Notifications'+(unread>0?' · '+unread+' unread':'');
+  l.innerHTML=sorted.slice(0,shown).map(n=>{
+    const ts=new Date(n.timestamp).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    return'<div class="bell-item '+(n.read?'':'unread')+'" onclick="openND(\''+n.id+'\')">'
+      +'<div class="bi-icon '+n.type+'"><span class="mi mi-sm">'+(n.type==='escalation'?'warning':'push_pin')+'</span></div>'
+      +'<div class="bi-body"><div class="bi-title">'+esc(n.title)+'</div><div class="bi-desc">'+esc(n.desc)+'</div><div class="bi-time">'+ts+'</div></div>'
+      +'</div>';
+  }).join('')+(sorted.length>shown?'<div style="padding:8px 14px;font-size:9px;color:var(--g400);text-align:center;border-top:1px solid var(--g100)">+'+(sorted.length-shown)+' older — mark all read to clear</div>':'');
+}
 function openND(nid){const ns=myN(),n=ns.find(x=>x.id===nid);if(!n)return;n.read=true;notifs[me.initials]=ns;saveAll();uBell();rBL();$('bellDrop').classList.remove('show');$('ndHeader').className='nd-header '+n.type;$('ndIco').innerHTML='<span class="mi">'+(n.type==='escalation'?'warning':'push_pin')+'</span>';$('ndType').textContent=n.type==='escalation'?'ESCALATION':'FOLLOW-UP';$('ndTitle').textContent=n.title;$('ndMeta').textContent=new Date(n.timestamp).toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});$('ndDesc').textContent=n.desc;pendingNE=n.entryId||null;$('ndGoBtn').style.display=pendingNE?'inline-flex':'none';$('ndBg').classList.add('open');}
 function closeNotifDetail(){$('ndBg').classList.remove('open');pendingNE=null;}
 function goToNotifEntry(){const eid=pendingNE;closeNotifDetail();if(!eid)return;const e=entries.find(x=>x.id===eid);if(!e){toast('Entry not found');return;}switchPage('log');const d=new Date(e.date+'T00:00:00');if(d.getMonth()!==curMonth){curMonth=d.getMonth();rMT();}if(e.status==='Resolved')secOpen.res=true;if(e.status==='Escalated')secOpen.esc=true;highlightId=eid;renderLog();setTimeout(()=>{const row=document.querySelector('tr[data-eid="'+eid+'"]');if(row){row.scrollIntoView({behavior:'smooth',block:'center'});row.classList.add('row-hl');setTimeout(()=>{row.classList.remove('row-hl');highlightId=null;},4000);}},200);}
