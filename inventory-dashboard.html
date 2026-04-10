@@ -218,6 +218,7 @@ select.filter-select{padding:6px 32px 6px 14px;border-radius:var(--radius-full);
           <option value="UN">UN</option>
           <option value="DI-60">DI-60</option>
           <option value="Lab Supplies">Lab Supplies</option>
+          <option value="Office Supplies">Office Supplies</option>
         </select>
         <button class="admin-btn" id="admin-edit-btn" onclick="toggleAdminMode()">
           <span class="material-icons-outlined" style="font-size:14px">edit</span>&nbsp;Edit Mode
@@ -265,6 +266,10 @@ select.filter-select{padding:6px 32px 6px 14px;border-radius:var(--radius-full);
             <option value="Roche">Roche</option>
             <option value="XN">Sysmex XN</option>
             <option value="Stago">Stago</option>
+            <option value="UN">UN</option>
+            <option value="DI-60">DI-60</option>
+            <option value="Lab Supplies">Lab Supplies</option>
+            <option value="Office Supplies">Office Supplies</option>
           </select>
         </div>
         <div class="chart-wrap"><canvas id="chart-forecast"></canvas></div>
@@ -450,23 +455,51 @@ function renderStockOverview(){
   grid.innerHTML=items.map(function(r){
     var stock=parseFloat(iv(r,'InStock'))||0;var par=parseFloat(iv(r,'MinPAR'))||0;
     var daily=parseFloat(iv(r,'DailyUse'))||0;
+    var openLife=parseFloat(iv(r,'OpenLifeDays'))||0;
+    var expiry=iv(r,'ExpiryDate')||'';if(expiry.indexOf('T')>=0)expiry=expiry.split('T')[0];
+    var lot=iv(r,'LotNumber')||'';
+    var itemType=iv(r,'ItemType')||'';
+    var instrument=iv(r,'Instrument')||'';
+    var unit=iv(r,'Unit')||'';
+    var isActive=iv(r,'IsActive');
+    var activeStr=(isActive==='No'||isActive===false||isActive==='FALSE')?'No':'Yes';
+    var notes=iv(r,'Notes')||'';
     var status,sCls,numCls;
     if(stock<=0){status='OUT';sCls='s-out';numCls='stock-out';}
     else if(stock<par){status='ORDER';sCls='s-order';numCls='stock-order';}
     else if(par>0&&stock<par*1.5){status='WATCH';sCls='s-watch';numCls='stock-watch';}
     else{status='OK';sCls='s-ok';numCls='stock-ok';}
     var days=daily>0?Math.round(stock/daily)+'d':'—';
+    var editHTML='';
+    if(adminMode){
+      var iStyle='width:100%;padding:5px 8px;border:1.5px solid var(--outline-variant);border-radius:6px;font-size:12px;font-family:var(--font-body);outline:none';
+      var lStyle='font-size:11px;font-weight:600;color:var(--on-surface-variant);display:flex;flex-direction:column;gap:3px';
+      editHTML='<div style="margin-top:12px;padding-top:12px;border-top:1.5px solid var(--outline-variant);display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+        '<label style="'+lStyle+'">Name <input type="text" value="'+esc(r.Title||'')+'" style="'+iStyle+'" data-field="Title" data-is-title="1"></label>'+
+        '<label style="'+lStyle+'">Instrument <select style="'+iStyle+'" data-field="Instrument">'+
+          ['Roche','XN','Stago','UN','DI-60','Lab Supplies','Office Supplies'].map(function(o){return'<option value="'+o+'"'+(instrument===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></label>'+
+        '<label style="'+lStyle+'">Item Type <select style="'+iStyle+'" data-field="ItemType">'+
+          ['Reagent','QC Material','Calibrator','Supply','Part','Consumable'].map(function(o){return'<option value="'+o+'"'+(itemType===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></label>'+
+        '<label style="'+lStyle+'">Unit <select style="'+iStyle+'" data-field="Unit">'+
+          ['L','mL','vial','kit','btl','box','pk','ea'].map(function(o){return'<option value="'+o+'"'+(unit===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></label>'+
+        '<label style="'+lStyle+'">Stock <input type="number" value="'+stock+'" step="0.1" style="'+iStyle+'" data-field="InStock"></label>'+
+        '<label style="'+lStyle+'">Min PAR <input type="number" value="'+par+'" step="0.5" style="'+iStyle+'" data-field="MinPAR"></label>'+
+        '<label style="'+lStyle+'">Daily Use <input type="number" value="'+daily+'" step="0.1" style="'+iStyle+'" data-field="DailyUse"></label>'+
+        '<label style="'+lStyle+'">Open Life (days) <input type="number" value="'+openLife+'" style="'+iStyle+'" data-field="OpenLifeDays"></label>'+
+        '<label style="'+lStyle+'">Lot Number <input type="text" value="'+esc(lot)+'" style="'+iStyle+'" data-field="LotNumber"></label>'+
+        '<label style="'+lStyle+'">Expiry Date <input type="date" value="'+expiry+'" style="'+iStyle+'" data-field="ExpiryDate"></label>'+
+        '<label style="'+lStyle+'">Active <select style="'+iStyle+'" data-field="IsActive"><option value="Yes"'+(activeStr==='Yes'?' selected':'')+'>Yes</option><option value="No"'+(activeStr==='No'?' selected':'')+'>No</option></select></label>'+
+        '<label style="'+lStyle+';grid-column:1/-1">Notes <input type="text" value="'+esc(notes)+'" style="'+iStyle+'" data-field="Notes"></label>'+
+        '<div style="grid-column:1/-1;display:flex;gap:6px;margin-top:4px"><button class="edit-save" style="flex:1" onclick="saveCardEdit(this,'+r.Id+')">Save Changes</button></div>'+
+      '</div>';
+    }
     return '<div class="stock-card" data-id="'+r.Id+'">'+
       '<span class="status-pill '+sCls+'">'+status+'</span>'+
       '<div class="item-name">'+esc(r.Title||'')+'</div>'+
-      '<div class="instrument">'+esc(iv(r,'Instrument')||'')+' · '+esc(iv(r,'Unit')||'')+(daily>0?' · '+days+' supply':'')+'</div>'+
+      '<div class="instrument">'+esc(instrument)+' · '+esc(unit)+(daily>0?' · '+days+' supply':'')+'</div>'+
       '<div class="stock-row"><div><div class="stock-num '+numCls+'">'+stock+'</div><div class="stock-label">Stock</div></div>'+
       '<div class="par-col"><div class="par-num">'+par+'</div><div class="stock-label">PAR</div></div></div>'+
-      (adminMode?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--outline-variant);display:flex;gap:6px;flex-wrap:wrap">'+
-        '<label style="font-size:11px;font-weight:600;color:var(--on-surface-variant)">PAR <input type="number" value="'+par+'" style="width:50px;padding:3px 6px;border:1px solid var(--outline-variant);border-radius:4px;font-size:12px" data-field="MinPAR"></label>'+
-        '<label style="font-size:11px;font-weight:600;color:var(--on-surface-variant)">Daily <input type="number" value="'+daily+'" step="0.1" style="width:50px;padding:3px 6px;border:1px solid var(--outline-variant);border-radius:4px;font-size:12px" data-field="DailyUse"></label>'+
-        '<button class="edit-save" onclick="saveCardEdit(this,'+r.Id+')">Save</button></div>':'')+
-      '</div>';
+      editHTML+'</div>';
   }).join('');
 }
 
@@ -476,16 +509,36 @@ function sumCard(val,label,color){
 
 async function saveCardEdit(btn,itemId){
   var card=btn.closest('.stock-card');
-  var inputs=card.querySelectorAll('input[data-field]');
+  var controls=card.querySelectorAll('[data-field]');
   var fields={};
-  inputs.forEach(function(inp){fields[INV[inp.dataset.field]]=parseFloat(inp.value)||0;});
-  btn.textContent='...';
+  controls.forEach(function(el){
+    var fieldName=el.dataset.field;
+    var val=el.value;
+    // Title is a top-level SP field, not in INV map
+    if(el.dataset.isTitle){
+      fields.Title=val;
+    } else {
+      var spField=INV[fieldName]||fieldName;
+      // Numeric fields
+      if(el.type==='number'){fields[spField]=parseFloat(val)||0;}
+      else{fields[spField]=val;}
+    }
+  });
+  btn.textContent='Saving...';btn.disabled=true;
   try{
     await spPatch(SP.lists.inventory,itemId,fields);
+    // Update local cache
     var row=allInventory.find(function(r){return r.Id===itemId;});
-    if(row){inputs.forEach(function(inp){row[INV[inp.dataset.field]]=parseFloat(inp.value)||0;});}
-    btn.textContent='Saved';setTimeout(function(){renderStockOverview();},500);
-  }catch(e){btn.textContent='Error';console.error(e);}
+    if(row){
+      controls.forEach(function(el){
+        var fieldName=el.dataset.field;
+        if(el.dataset.isTitle){row.Title=el.value;}
+        else{var spField=INV[fieldName]||fieldName;row[spField]=el.type==='number'?parseFloat(el.value)||0:el.value;}
+      });
+    }
+    btn.textContent='Saved';btn.style.background='var(--ok)';
+    setTimeout(function(){renderStockOverview();},600);
+  }catch(e){btn.textContent='Error';btn.style.background='var(--error)';console.error(e);btn.disabled=false;}
 }
 
 // ============================================================
