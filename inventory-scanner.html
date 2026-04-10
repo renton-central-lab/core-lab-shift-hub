@@ -299,7 +299,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 
 /* ── Buttons — expressive press & hover ── */
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--radius-full);font-size:15px;font-weight:700;font-family:var(--font);border:none;cursor:pointer;transition:transform var(--dur-micro) var(--me-accelerate),box-shadow var(--dur-short) var(--me-standard),background var(--dur-short) var(--me-standard);-webkit-tap-highlight-color:transparent;width:100%}
-.btn:hover{box-shadow:var(--shadow-2);transform:translateY(-1px)}
+.btn:hover{box-shadow:var(--shadow-2)}
 .btn:active{transform:scale(.96) translateY(0);box-shadow:none;transition:transform var(--dur-micro) var(--me-accelerate),box-shadow var(--dur-micro) var(--me-accelerate)}
 .btn-purple{background:var(--md-primary);color:var(--md-on-primary)}
 .btn-teal{background:var(--receive);color:#fff}
@@ -363,13 +363,13 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .panel-search-results.show{grid-template-rows:1fr;}
 .psr-item{padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;
   transition:background var(--dur-micro) var(--me-standard),transform var(--dur-micro) var(--me-standard);}
-.psr-item:hover{background:var(--md-surface-container-high);transform:translateX(2px);}
+.psr-item:hover{background:var(--md-surface-container-high);}
 .psr-item:active{transform:scale(.98);}
 
 /* ── Nav item hover ── */
 .nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;font-size:14px;font-weight:500;color:var(--md-on-surface-variant);cursor:pointer;border-radius:0 var(--radius-full) var(--radius-full) 0;margin-right:12px;
   transition:background var(--dur-short) var(--me-standard),color var(--dur-short) var(--me-standard),transform var(--dur-short) var(--me-standard);}
-.nav-item:hover{background:var(--md-surface-container-high);color:var(--md-on-surface);transform:translateX(2px);}
+.nav-item:hover{background:var(--md-surface-container-high);color:var(--md-on-surface);}
 .nav-item.active{background:var(--md-secondary-container);color:var(--md-on-secondary-container);font-weight:700;transform:translateX(0);}
 .nav-item .material-icons-outlined{font-size:20px;transition:transform var(--dur-short) var(--me-spring);}
 .nav-item:hover .material-icons-outlined{transform:scale(1.1);}
@@ -409,7 +409,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 /* ── Stat boxes — count up feel ── */
 .stat-box{background:var(--md-surface-container-lowest);border:1px solid var(--md-outline-variant);border-radius:var(--radius-sm);padding:10px;text-align:center;
   transition:transform var(--dur-short) var(--me-spring),box-shadow var(--dur-short) var(--me-standard);}
-.stat-box:hover{transform:translateY(-2px);box-shadow:var(--shadow-1);}
+.stat-box:hover{box-shadow:0 4px 12px rgba(0,105,110,.12);}
 
 /* ── Alert items — stagger in ── */
 .alert-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:var(--radius-sm);font-size:12px;line-height:1.4;
@@ -432,13 +432,65 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .scan-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px 20px}
 .scan-area .scan-icon-box{animation:scanEnter var(--dur-long) var(--me-spring) both,scanPulse 3s var(--me-standard) var(--dur-long) infinite;}
 
-/* ── Item card entrance ── */
-.card{background:var(--md-surface-container-lowest);border:1px solid var(--md-outline-variant);border-radius:var(--radius-lg);padding:18px;animation:fadeUp var(--dur-med) var(--me-decelerate) calc(var(--card-i,0)*60ms) both;}
+/* ── Item card — shadow lift only (no translateY — clips border) ── */
+.card{background:var(--md-surface-container-lowest);border:1px solid var(--md-outline-variant);border-radius:var(--radius-lg);padding:18px;
+  transition:box-shadow var(--dur-short) var(--me-spring);
+  animation:fadeUp var(--dur-med) var(--me-decelerate) calc(var(--card-i,0)*60ms) both;}
 
 .material-icons-outlined{font-family:'Material Icons Outlined';font-style:normal;font-weight:normal;font-size:24px;line-height:1;display:inline-block;-webkit-font-smoothing:antialiased}
 .footer{padding:16px 20px;display:flex;flex-direction:column;gap:10px;flex-shrink:0}
 .divider{display:flex;align-items:center;gap:12px;color:var(--md-outline);font-size:12px;font-weight:500}
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--md-outline-variant)}
+
+/* ── Restored missing CSS ── */
+.scan-hint{font-size:14px;color:var(--md-on-surface-variant);text-align:center;line-height:1.6;font-weight:500}
+.scan-bottom{padding:0 20px 24px;display:flex;flex-direction:column;gap:10px}
+.scan-input-row{display:flex;gap:8px;align-items:center}
+.camera-view{display:none;border-radius:var(--radius-lg);overflow:hidden;position:relative;background:#000;margin:0 20px 10px;box-shadow:var(--shadow-2)}
+.camera-view video{width:100%;max-height:200px;object-fit:cover;display:block}
+.cam-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.cam-frame{width:65%;height:45%;border:2px solid var(--md-primary);border-radius:var(--radius-md);box-shadow:0 0 0 2000px rgba(0,0,0,.45)}
+.cam-close{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:var(--radius-full);padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.success-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px 20px;text-align:center}
+.log-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--md-outline-variant)}
+.log-row:last-child{border-bottom:none}
+.log-row .lbl{color:var(--md-on-surface-variant);font-weight:500}
+.log-row .val{font-weight:700;text-align:right;max-width:60%;color:var(--md-on-surface)}
+.auth-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px 20px;text-align:center}
+.auth-logo{width:88px;height:88px;border-radius:var(--radius-xl);background:var(--md-primary);display:grid;place-items:center;box-shadow:var(--shadow-2);margin-bottom:8px}
+
+/* ── Fix: scan screen buttons must not shift layout ── */
+#screen-scan .btn:hover,.scan-bottom .btn:hover{transform:none;box-shadow:var(--shadow-1)}
+
+/* ── Manual entry: 2-column grid on desktop ── */
+@media(min-width:768px){
+  .manual-two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+  .manual-two-col .field{margin-top:0!important}
+  .manual-full{grid-column:1/-1}
+}
+
+/* ── Panel collapse: always display:grid for smooth animation ── */
+.panel-section .panel-body{
+  display:grid;
+  grid-template-rows:1fr;
+  overflow:hidden;
+  opacity:1;
+  transition:grid-template-rows var(--dur-long) var(--me-emphasized),
+             opacity var(--dur-med) var(--me-emphasized);
+}
+.panel-section .panel-body>*{min-height:0;}
+.panel-section.collapsed .panel-body{
+  grid-template-rows:0fr;
+  opacity:0;
+  transition:grid-template-rows var(--dur-med) var(--me-accelerate),
+             opacity var(--dur-short) var(--me-accelerate);
+}
+.panel-title .pt-chevron{
+  margin-left:auto;font-size:18px;color:var(--md-outline);
+  transition:transform var(--dur-med) var(--me-emphasized),color var(--dur-short) var(--me-standard);
+}
+.panel-section.collapsed .pt-chevron{transform:rotate(-90deg);}
+.panel-section.collapsed .panel-title{margin-bottom:0;}
 </style>
 </head>
 <body>
@@ -614,18 +666,22 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
     <div style="background:var(--adjust-surface);border:1px solid rgba(124,88,0,.2);border-radius:var(--radius-lg);padding:14px 16px;font-size:13px;color:var(--adjust);line-height:1.5;font-weight:600" id="manual-alert">Barcode not in catalog. Enter details to add it.</div>
     <div class="card">
       <div class="card-title">Catalog Details<span id="barcode-type-badge" class="badge badge-teal" style="display:none;font-size:10px"></span></div>
-      <div class="field"><label>Item Name *</label><input type="text" id="m-name" placeholder="e.g. Cellpack DCL"></div>
-      <div class="field" style="margin-top:14px"><label>Department *</label><select id="m-instrument"><option value="Chemistry">Chemistry</option><option value="Hematology">Hematology</option><option value="Coagulation">Coagulation</option><option value="Urinalysis">Urinalysis</option><option value="Laboratory Supplies">Laboratory Supplies</option><option value="Office Supplies">Office Supplies</option></select></div>
-      <div class="field" style="margin-top:14px"><label>Unit</label><select id="m-unit"><option value="L">L (liter)</option><option value="mL">mL</option><option value="vial">vial</option><option value="kit">kit</option><option value="btl">btl</option><option value="box">box</option><option value="pk">pk (pack)</option><option value="ea">ea (each)</option></select></div>
-      <div class="field" style="margin-top:14px"><label>Catalog Number</label><input type="text" id="m-catnum" placeholder="e.g. XE-2021" style="font-family:'Courier New',monospace;font-size:13px"></div>
-      <div class="field" style="margin-top:14px"><label>Barcode String</label><input type="text" id="m-barcode" style="font-family:'Courier New',monospace;font-size:13px"></div>
+      <div class="manual-two-col">
+        <div class="field manual-full"><label>Item Name *</label><input type="text" id="m-name" placeholder="e.g. Cellpack DCL"></div>
+        <div class="field"><label>Department *</label><select id="m-instrument"><option value="Chemistry">Chemistry</option><option value="Hematology">Hematology</option><option value="Coagulation">Coagulation</option><option value="Urinalysis">Urinalysis</option><option value="Laboratory Supplies">Laboratory Supplies</option><option value="Office Supplies">Office Supplies</option></select></div>
+        <div class="field"><label>Unit</label><select id="m-unit"><option value="L">L (liter)</option><option value="mL">mL</option><option value="vial">vial</option><option value="kit">kit</option><option value="btl">btl</option><option value="box">box</option><option value="pk">pk (pack)</option><option value="ea">ea (each)</option></select></div>
+        <div class="field"><label>Catalog Number</label><input type="text" id="m-catnum" placeholder="e.g. XE-2021" style="font-family:'Courier New',monospace;font-size:13px"></div>
+        <div class="field"><label>Barcode String</label><input type="text" id="m-barcode" style="font-family:'Courier New',monospace;font-size:13px"></div>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">Initial Stock Entry</div>
-      <div class="field"><label>Quantity</label><div class="qty-row"><button onclick="stepQ('m-qty',-1)">&minus;</button><input type="number" id="m-qty" value="1" min="0" step="0.1"><button onclick="stepQ('m-qty',1)">+</button></div></div>
-      <div class="field" style="margin-top:14px"><label>Lot Number <span style="color:var(--md-outline);font-weight:400">(optional)</span></label><input type="text" id="m-lot" placeholder="e.g. LOT-2026-001"></div>
-      <div class="field" style="margin-top:14px"><label>Expiry Date <span style="color:var(--md-outline);font-weight:400">(optional)</span></label><input type="date" id="m-expiry"></div>
-      <div class="field" style="margin-top:14px"><label>Notes <span style="color:var(--md-outline);font-weight:400">(optional)</span></label><textarea id="m-notes" placeholder="Any additional notes"></textarea></div>
+      <div class="manual-two-col">
+        <div class="field"><label>Quantity</label><div class="qty-row"><button onclick="stepQ('m-qty',-1)">&minus;</button><input type="number" id="m-qty" value="1" min="0" step="0.1"><button onclick="stepQ('m-qty',1)">+</button></div></div>
+        <div class="field"><label>Lot Number <span style="color:var(--md-outline);font-weight:400">(optional)</span></label><input type="text" id="m-lot" placeholder="e.g. LOT-2026-001"></div>
+        <div class="field"><label>Expiry Date <span style="color:var(--md-outline);font-weight:400">(optional)</span></label><input type="date" id="m-expiry"></div>
+        <div class="field manual-full"><label>Notes <span style="color:var(--md-outline);font-weight:400">(optional)</span></label><textarea id="m-notes" placeholder="Any additional notes"></textarea></div>
+      </div>
     </div>
   </div>
   <div class="footer">
