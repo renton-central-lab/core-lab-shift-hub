@@ -67,8 +67,10 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 
 @media(min-width:768px){
   body{display:flex;flex-direction:row}
-  #desktop-nav{display:flex}
-  #desktop-panel{display:flex!important}
+  #desktop-nav{display:none}
+  #desktop-nav.authed{display:flex}
+  #desktop-panel{display:none!important}
+  #desktop-panel.authed{display:flex!important}
   #scanner-main{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center}
   .screen{width:100%;max-width:580px}
   .body{padding:28px 32px}
@@ -80,7 +82,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   #screen-item .footer{grid-column:1/-1}
 }
 @media(max-width:767px){
-  #desktop-nav{display:none}
+  #desktop-nav{display:none!important}
   #desktop-panel{display:none!important}
   #scanner-main{display:contents}
   html,body{overflow:auto}
@@ -518,6 +520,9 @@ async function initAuth(){
     setEl('sp-user',acct.name||'');
     setEl('nav-user-name',acct.name||acct.username||'');
     if(!spToken){try{var r=await msalInstance.acquireTokenSilent({scopes:['https://uwnetid.sharepoint.com/AllSites.Write'],account:acct});spToken=r.accessToken;spTokenExpiry=r.expiresOn?.getTime()||Date.now()+3600000;}catch(e){console.warn('Silent token failed:',e.message);}}
+    // Show desktop chrome after successful auth
+    var dn=document.getElementById('desktop-nav');if(dn)dn.classList.add('authed');
+    var dp=document.getElementById('desktop-panel');if(dp)dp.classList.add('authed');
     hideLoad();goScreen('screen-scan');
     testSP().catch(e=>console.warn('SP test:',e));
   }catch(e){hideLoad();console.error('Auth error:',e);goScreen('screen-auth');}

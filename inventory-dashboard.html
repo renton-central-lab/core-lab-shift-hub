@@ -539,6 +539,18 @@ var BACKUP_LIB='Shared Documents';
 var BACKUP_FOLDER='_inventory_backups';
 var lastBackupInfo=null;
 
+async function resolveLibName(){
+  // SharePoint Team Sites use 'Shared Documents' internally even when UI shows 'Documents'
+  // Try 'Shared Documents' first, then fall back to 'Documents'
+  var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+  var token=await getToken();
+  var r1=await fetch(SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+siteRelUrl+"/Shared Documents')",{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});
+  if(r1.ok){BACKUP_LIB='Shared Documents';return;}
+  var r2=await fetch(SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+siteRelUrl+"/Documents')",{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});
+  if(r2.ok){BACKUP_LIB='Documents';return;}
+  console.warn('Could not find document library');
+}
+
 function buildBackupData(){
   var now=new Date();
   return{
@@ -573,16 +585,20 @@ async function uploadBackupToSP(data){
   var token=await getToken();
   var json=JSON.stringify(data);
   var fileName='inventory-backup-'+data.date+'.json';
+  var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+  var folderRelUrl=siteRelUrl+'/'+BACKUP_LIB+'/'+BACKUP_FOLDER;
   // Ensure folder exists
-  try{await fetch(SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+BACKUP_LIB+"/"+BACKUP_FOLDER+"')",{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});}
-  catch(e){
+  var folderCheck=await fetch(SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')",{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});
+  if(!folderCheck.ok){
     var dg=await getDigest();
-    await fetch(SP.siteUrl+"/_api/web/folders",{method:'POST',headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':dg},body:JSON.stringify({__metadata:{type:'SP.Folder'},ServerRelativeUrl:BACKUP_LIB+'/'+BACKUP_FOLDER})});
+    var createResp=await fetch(SP.siteUrl+"/_api/web/folders",{method:'POST',headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':dg},body:JSON.stringify({__metadata:{type:'SP.Folder'},ServerRelativeUrl:folderRelUrl})});
+    if(!createResp.ok){var errText=await createResp.text();console.error('Folder create failed:',errText);throw new Error('Cannot create backup folder: '+createResp.status);}
   }
   // Upload file
-  var dg=await getDigest();
-  var url=SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+BACKUP_LIB+"/"+BACKUP_FOLDER+"')/Files/add(url='"+fileName+"',overwrite=true)";
-  await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose','X-RequestDigest':dg},body:json});
+  var dg2=await getDigest();
+  var uploadUrl=SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files/add(url='"+fileName+"',overwrite=true)";
+  var uploadResp=await fetch(uploadUrl,{method:'POST',headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose','X-RequestDigest':dg2},body:json});
+  if(!uploadResp.ok){var errText=await uploadResp.text();console.error('Upload failed:',errText);throw new Error('Upload failed: '+uploadResp.status);}
   return fileName;
 }
 
@@ -680,7 +696,9 @@ async function restoreFromBackup(){
 async function loadBackupHistory(){
   try{
     var token=await getToken();
-    var resp=await fetch(SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+BACKUP_LIB+"/"+BACKUP_FOLDER+"')/Files?$select=Name,Length,TimeCreated&$orderby=TimeCreated desc&$top=20",{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});
+    var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+    var folderRelUrl=siteRelUrl+'/'+BACKUP_LIB+'/'+BACKUP_FOLDER;
+    var resp=await fetch(SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files?$select=Name,Length,TimeCreated&$orderby=TimeCreated desc&$top=20",{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});
     if(!resp.ok)return;
     var d=await resp.json();var files=d.d&&d.d.results?d.d.results:[];
     var tbody=document.getElementById('bk-history');
@@ -701,7 +719,9 @@ async function loadBackupHistory(){
 async function downloadSPBackup(fileName){
   try{
     var token=await getToken();
-    var resp=await fetch(SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+BACKUP_LIB+"/"+BACKUP_FOLDER+"')/Files('"+fileName+"')/$value",{headers:{'Authorization':'Bearer '+token}});
+    var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+    var folderRelUrl=siteRelUrl+'/'+BACKUP_LIB+'/'+BACKUP_FOLDER;
+    var resp=await fetch(SP.siteUrl+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files('"+fileName+"')/$value",{headers:{'Authorization':'Bearer '+token}});
     var blob=await resp.blob();
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
@@ -719,8 +739,8 @@ function showLoad(m){document.getElementById('loading-text').textContent=m||'Loa
 function hideLoad(){document.getElementById('loading').classList.remove('show');}
 window.addEventListener('load',function(){
   initAuth();
-  // Auto-backup after data loads
-  setTimeout(function(){if(spToken&&isAdmin)autoBackupCheck();},4000);
+  // Resolve doc library name then auto-backup
+  setTimeout(async function(){if(spToken&&isAdmin){await resolveLibName();autoBackupCheck();}},4000);
 });
 </script>
 </body>

@@ -348,6 +348,10 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
 .month-tabs{display:flex;gap:2px;margin-bottom:4px;overflow-x:auto;padding-bottom:3px;}
 .m-tab{padding:6px 14px;border-radius:var(--rl) var(--rl) 0 0;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--g200);border-bottom:none;background:var(--g100);color:var(--g500);white-space:nowrap;transition:all .15s;}
 .m-tab:hover{background:var(--g200);}.m-tab.active{background:var(--white);color:var(--teal);border-color:var(--teal);}
+.dept-tabs{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto;padding-bottom:3px;flex-wrap:wrap;}
+.dept-tab{padding:8px 16px;border-radius:var(--rl);font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--g200);background:var(--white);color:var(--g500);white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:5px;user-select:none;}
+.dept-tab:hover{background:var(--g100);border-color:var(--g300);color:var(--navy);}
+.dept-tab.active{background:var(--teal-bg);color:var(--teal);border-color:var(--teal);font-weight:700;}
 
 /* Export */
 .exp-wrap{position:relative;}
@@ -459,9 +463,17 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   <!-- SHIFT LOG -->
   <div class="page" id="pageLog">
     <div id="escZone"></div>
-    <div class="month-tabs" id="monthTabs"></div>
+    <div class="dept-tabs" id="deptTabs">
+      <div class="dept-tab active" onclick="setDept('')">All</div>
+      <div class="dept-tab" onclick="setDept('Hematology')"><span class="mi mi-xs">bloodtype</span>Hematology</div>
+      <div class="dept-tab" onclick="setDept('Coagulation')"><span class="mi mi-xs">water_drop</span>Coagulation</div>
+      <div class="dept-tab" onclick="setDept('Chemistry')"><span class="mi mi-xs">science</span>Chemistry</div>
+      <div class="dept-tab" onclick="setDept('Urinalysis')"><span class="mi mi-xs">labs</span>Urinalysis</div>
+      <div class="dept-tab" onclick="setDept('General')"><span class="mi mi-xs">forum</span>General</div>
+    </div>
     <div class="controls">
       <input type="text" class="search-field" id="searchBox" placeholder="Search...">
+      <div class="ctrl-group"><label>Month</label><select id="fMonth" onchange="setMonthFromDropdown(this.value)"></select></div>
       <div class="ctrl-group"><label>Shift</label><select id="fShift"><option value="">All</option><option>Day</option><option>Evening</option><option>Night</option></select></div>
       <div class="ctrl-group"><label>Category</label><select id="fCat"><option value="">All</option><option>Instrument Issue/Downtime</option><option>QC Flag/Failure</option><option>Staffing Note</option><option>Pending/Follow-Up</option><option>General Announcement</option></select></div>
       <div class="ctrl-group"><label>Priority</label><select id="fPri"><option value="">All</option><option>High</option><option>Medium</option><option>Low</option></select></div>
@@ -529,6 +541,7 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   <div class="form-item"><label>Date *</label><input type="date" id="eDate"></div>
   <div class="form-item"><label>Time *</label><input type="time" id="eTime"></div>
   <div class="form-item"><label>Shift *</label><select id="eShift"><option value="">Select...</option><option>Day</option><option>Evening</option><option>Night</option></select></div>
+  <div class="form-item"><label>Department *</label><select id="eDept"><option value="">Select...</option><option>Hematology</option><option>Coagulation</option><option>Chemistry</option><option>Urinalysis</option><option>General</option></select></div>
   <div class="form-item"><label>Reported By *</label><input type="text" id="eReporter"></div>
   <div class="form-item"><label>Category *</label><select id="eCat"><option value="">Select...</option><option>Instrument Issue/Downtime</option><option>QC Flag/Failure</option><option>Staffing Note</option><option>Pending/Follow-Up</option><option>General Announcement</option></select></div>
   <div class="form-item"><label>Priority *</label><select id="ePri"><option value="">Select...</option><option>High</option><option>Medium</option><option>Low</option></select></div>
@@ -817,7 +830,7 @@ async function getListItemType(listName) {
 
 function entryToSP(e) {
   var fm=_fieldMaps['ShiftEntries']||{};
-  return spSet(fm,[['Title',e.id],['Date',e.date||null],['Time',e.time||''],['Shift',e.shift||''],['ReportedBy',e.reportedBy||''],['AuthorInitials',e.authorInitials||''],['Category',e.category||''],['Priority',e.priority||''],['Description',e.description||''],['Action',e.action||''],['Status',e.status||'Open'],['FollowUp',e.followUp||'No'],['FollowUpAssign',e.followUpAssign||''],['ResolvedBy',e.resolvedBy||''],['ResDate',e.resDate||null],['Notes',e.notes||''],['AttachmentsJSON',JSON.stringify(e.attachments||[])],['LastModified0',e.lastModified||new Date().toISOString()]]);
+  return spSet(fm,[['Title',e.id],['Date',e.date||null],['Time',e.time||''],['Shift',e.shift||''],['Department',e.department||'General'],['ReportedBy',e.reportedBy||''],['AuthorInitials',e.authorInitials||''],['Category',e.category||''],['Priority',e.priority||''],['Description',e.description||''],['Action',e.action||''],['Status',e.status||'Open'],['FollowUp',e.followUp||'No'],['FollowUpAssign',e.followUpAssign||''],['ResolvedBy',e.resolvedBy||''],['ResDate',e.resDate||null],['Notes',e.notes||''],['AttachmentsJSON',JSON.stringify(e.attachments||[])],['LastModified0',e.lastModified||new Date().toISOString()]]);
 }
 
 function spToEntry(item,fm) {
@@ -825,7 +838,7 @@ function spToEntry(item,fm) {
   var g=function(n){return spVal(item,n,fm);};
   var dt=g('Date')||'';if(dt&&dt.indexOf('T')>-1)dt=dt.split('T')[0];
   var rd=g('ResDate')||'';if(rd&&rd.indexOf('T')>-1)rd=rd.split('T')[0];
-  return {id:item.Title,_spId:item.Id,date:dt,time:g('Time')||'',shift:g('Shift')||'',reportedBy:g('ReportedBy')||'',authorInitials:g('AuthorInitials')||'',category:g('Category')||'',priority:g('Priority')||'',description:g('Description')||'',action:g('Action')||'',status:g('Status')||'Open',followUp:g('FollowUp')||'No',followUpAssign:g('FollowUpAssign')||'',resolvedBy:g('ResolvedBy')||'',resDate:rd,notes:g('Notes')||'',attachments:tryParse(g('AttachmentsJSON'),[]),lastModified:g('LastModified0')||''};
+  return {id:item.Title,_spId:item.Id,date:dt,time:g('Time')||'',shift:g('Shift')||'',department:g('Department')||'General',reportedBy:g('ReportedBy')||'',authorInitials:g('AuthorInitials')||'',category:g('Category')||'',priority:g('Priority')||'',description:g('Description')||'',action:g('Action')||'',status:g('Status')||'Open',followUp:g('FollowUp')||'No',followUpAssign:g('FollowUpAssign')||'',resolvedBy:g('ResolvedBy')||'',resDate:rd,notes:g('Notes')||'',attachments:tryParse(g('AttachmentsJSON'),[]),lastModified:g('LastModified0')||''};
 }
 
 function annToSP(a) {
@@ -1136,19 +1149,33 @@ function buildHubBackup(){
 var HUB_BK_LIB='Shared Documents';
 var HUB_BK_FOLDER='_shifthub_backups';
 
+async function resolveHubLibName(){
+  var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+  var r1=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+siteRelUrl+"/Shared Documents')");
+  if(r1.ok){HUB_BK_LIB='Shared Documents';return;}
+  var r2=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+siteRelUrl+"/Documents')");
+  if(r2.ok){HUB_BK_LIB='Documents';return;}
+  console.warn('Could not find document library');
+}
+
 async function uploadHubBackupToSP(data){
   var token=await getToken();
   var json=JSON.stringify(data);
   var fileName='shifthub-backup-'+data.date+'.json';
-  // Ensure folder exists (ignore errors if it already does)
-  try{
+  var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+  var folderRelUrl=siteRelUrl+'/'+HUB_BK_LIB+'/'+HUB_BK_FOLDER;
+  // Ensure folder exists
+  var folderCheck=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')");
+  if(!folderCheck.ok){
     var dg=await getDigestValue();
-    await fetch(SP_SITE+"/_api/web/folders",{method:'POST',headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':dg},body:JSON.stringify({__metadata:{type:'SP.Folder'},ServerRelativeUrl:HUB_BK_LIB+'/'+HUB_BK_FOLDER})});
-  }catch(e){}
+    var createResp=await spFetch(SP_SITE+"/_api/web/folders",{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':dg},body:JSON.stringify({__metadata:{type:'SP.Folder'},ServerRelativeUrl:folderRelUrl})});
+    if(!createResp.ok){var errText=await createResp.text();console.error('Folder create failed:',errText);throw new Error('Cannot create backup folder: '+createResp.status);}
+  }
   // Upload file
-  var dg=await getDigestValue();
-  var url=SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+HUB_BK_LIB+"/"+HUB_BK_FOLDER+"')/Files/add(url='"+fileName+"',overwrite=true)";
-  await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose','X-RequestDigest':dg},body:json});
+  var dg2=await getDigestValue();
+  var uploadUrl=SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files/add(url='"+fileName+"',overwrite=true)";
+  var uploadResp=await spFetch(uploadUrl,{method:'POST',headers:{'X-RequestDigest':dg2},body:json});
+  if(!uploadResp.ok){var errText=await uploadResp.text();console.error('Upload failed:',errText);throw new Error('Upload failed: '+uploadResp.status);}
   return fileName;
 }
 
@@ -1265,7 +1292,9 @@ async function hubRestoreBackup(){
 async function loadHubBackupHistory(){
   try{
     var token=await getToken();
-    var resp=await fetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+HUB_BK_LIB+"/"+HUB_BK_FOLDER+"')/Files?$select=Name,Length,TimeCreated&$orderby=TimeCreated desc&$top=15",{headers:{'Authorization':'Bearer '+token,'Accept':'application/json;odata=verbose'}});
+    var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+    var folderRelUrl=siteRelUrl+'/'+HUB_BK_LIB+'/'+HUB_BK_FOLDER;
+    var resp=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files?$select=Name,Length,TimeCreated&$orderby=TimeCreated desc&$top=15");
     if(!resp.ok){$('hub-bk-history').textContent='No backups yet';return;}
     var d=await resp.json();var files=d.d&&d.d.results?d.d.results:[];
     var el=$('hub-bk-history');
@@ -1282,8 +1311,9 @@ async function loadHubBackupHistory(){
 
 async function downloadHubBackup(fileName){
   try{
-    var token=await getToken();
-    var resp=await fetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+HUB_BK_LIB+"/"+HUB_BK_FOLDER+"')/Files('"+fileName+"')/$value",{headers:{'Authorization':'Bearer '+token}});
+    var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+    var folderRelUrl=siteRelUrl+'/'+HUB_BK_LIB+'/'+HUB_BK_FOLDER;
+    var resp=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files('"+fileName+"')/$value");
     var blob=await resp.blob();
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
@@ -1313,9 +1343,22 @@ function rAP(){$('attachPreview').innerHTML=attachments.map((src,i)=>'<div class
 function rmAtt(i){attachments.splice(i,1);rAP();}
 function viewImage(src){$('imgViewerImg').src=src;$('imgViewer').classList.add('show');}
 
-// === MONTHS ===
-function rMT(){$('monthTabs').innerHTML=MONTHS.map((m,i)=>'<div class="m-tab '+(i===curMonth?'active':'')+'" onclick="setM('+i+')">'+m.slice(0,3)+'</div>').join('');}
+// === MONTHS & DEPARTMENTS ===
+var curDept='';
+function rMT(){
+  var sel=$('fMonth');
+  if(sel){sel.innerHTML=MONTHS.map(function(m,i){return'<option value="'+i+'"'+(i===curMonth?' selected':'')+'>'+m.slice(0,3)+'</option>';}).join('');}
+}
 function setM(i){curMonth=i;rMT();renderLog();}
+function setMonthFromDropdown(v){curMonth=parseInt(v);renderLog();}
+function setDept(d){
+  curDept=d;
+  document.querySelectorAll('.dept-tab').forEach(function(t,i){
+    var vals=['','Hematology','Coagulation','Chemistry','Urinalysis','General'];
+    t.classList.toggle('active',vals[i]===d);
+  });
+  renderLog();
+}
 
 // === FILTER ===
 function gME(){
@@ -1334,7 +1377,7 @@ function gME(){
     return false;
   });
 }
-function gF(){let d=gME();const q=$('searchBox').value.toLowerCase(),sh=$('fShift').value,ca=$('fCat').value,pr=$('fPri').value;if(q)d=d.filter(e=>Object.values(e).some(v=>String(v).toLowerCase().includes(q)));if(sh)d=d.filter(e=>e.shift===sh);if(ca)d=d.filter(e=>e.category===ca);if(pr)d=d.filter(e=>e.priority===pr);d.sort((a,b)=>{let va=a[sortKey]||'',vb=b[sortKey]||'';if(sortKey==='date'){va+=a.time||'';vb+=b.time||'';}return sortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);});return d;}
+function gF(){let d=gME();const q=$('searchBox').value.toLowerCase(),sh=$('fShift').value,ca=$('fCat').value,pr=$('fPri').value;if(curDept)d=d.filter(e=>(e.department||'General')===curDept);if(q)d=d.filter(e=>Object.values(e).some(v=>String(v).toLowerCase().includes(q)));if(sh)d=d.filter(e=>e.shift===sh);if(ca)d=d.filter(e=>e.category===ca);if(pr)d=d.filter(e=>e.priority===pr);d.sort((a,b)=>{let va=a[sortKey]||'',vb=b[sortKey]||'';if(sortKey==='date'){va+=a.time||'';vb+=b.time||'';}return sortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);});return d;}
 function doSort(k){if(sortKey===k)sortAsc=!sortAsc;else{sortKey=k;sortAsc=false;}renderLog();}
 
 // === ANNOUNCEMENTS ===
@@ -1374,9 +1417,9 @@ function rSec(zId,cls,lbl,ico,es,ok,exH){var z=$(zId);if(!es.length){z.innerHTML
 function renderLog(){var all=gME(),esc_=all.filter(e=>e.status==='Escalated'),res=all.filter(e=>e.status==='Resolved'),active=gF().filter(e=>e.status!=='Resolved'&&e.status!=='Escalated');rSec('escZone','sec-esc','ESCALATED','warning',esc_,'esc','<span class="esc-sub">Leadership reviewing</span>');if(!active.length&&all.filter(e=>e.status!=='Resolved'&&e.status!=='Escalated').length===0){$('activeZone').innerHTML='<div class="section sec-active"><div class="sec-hdr"><h3><span class="mi mi-sm">assignment</span> Active Entries <span class="cnt">0</span></h3></div><div class="sec-body"><div class="empty"><span class="mi">assignment</span><h3>No entries for '+MONTHS[curMonth]+'</h3></div></div></div>';}else rSec('activeZone','sec-active','Active Entries','assignment',active,'active','');rSec('resZone','sec-res','Resolved','check_circle',res,'res','');uBell();}
 
 // === ENTRY MODAL ===
-function openEntryModal(id){editId=id||null;attachments=[];$('entryModalTitle').textContent=id?'Edit Entry':'New Entry';$('entrySaveBtn').textContent=id?'Update':'Save';var rb=$('eReporter');if(id){var e=entries.find(x=>x.id===id);if(!e)return;$('eDate').value=e.date;$('eTime').value=e.time;$('eShift').value=e.shift;rb.value=e.reportedBy||ln(e.authorInitials);rb.readOnly=!isLead();rb.style.background=isLead()?'var(--white)':'var(--g100)';$('eCat').value=e.category;$('ePri').value=e.priority;$('eDesc').value=e.description;$('eAction').value=e.action||'';$('eStatus').value=e.status;$('eFollowUp').value=e.followUp||'No';$('eNotes').value=e.notes||'';attachments=(e.attachments||[]).slice();onFollowUpChange();if(e.followUpAssign)setTimeout(()=>{$('eFUAssign').value=e.followUpAssign;},0);onStatusChange();if(e.resolvedBy)setTimeout(()=>{$('eResBy').value=e.resolvedBy;},0);$('eResDate').value=e.resDate||'';}else{var now=new Date();$('eDate').value=now.toISOString().split('T')[0];$('eTime').value=now.toTimeString().slice(0,5);var hr=now.getHours();$('eShift').value=hr<15?'Day':hr<23?'Evening':'Night';rb.value=me?me.fullName:'';rb.readOnly=!isLead();rb.style.background=isLead()?'var(--white)':'var(--g100)';$('eCat').value='';$('ePri').value='';$('eDesc').value='';$('eAction').value='';$('eStatus').value='Open';$('eFollowUp').value='No';$('eNotes').value='';$('eResDate').value='';onStatusChange();onFollowUpChange();}rAP();$('entryModalBg').classList.add('open');}
+function openEntryModal(id){editId=id||null;attachments=[];$('entryModalTitle').textContent=id?'Edit Entry':'New Entry';$('entrySaveBtn').textContent=id?'Update':'Save';var rb=$('eReporter');if(id){var e=entries.find(x=>x.id===id);if(!e)return;$('eDate').value=e.date;$('eTime').value=e.time;$('eShift').value=e.shift;$('eDept').value=e.department||'General';rb.value=e.reportedBy||ln(e.authorInitials);rb.readOnly=!isLead();rb.style.background=isLead()?'var(--white)':'var(--g100)';$('eCat').value=e.category;$('ePri').value=e.priority;$('eDesc').value=e.description;$('eAction').value=e.action||'';$('eStatus').value=e.status;$('eFollowUp').value=e.followUp||'No';$('eNotes').value=e.notes||'';attachments=(e.attachments||[]).slice();onFollowUpChange();if(e.followUpAssign)setTimeout(()=>{$('eFUAssign').value=e.followUpAssign;},0);onStatusChange();if(e.resolvedBy)setTimeout(()=>{$('eResBy').value=e.resolvedBy;},0);$('eResDate').value=e.resDate||'';}else{var now=new Date();$('eDate').value=now.toISOString().split('T')[0];$('eTime').value=now.toTimeString().slice(0,5);var hr=now.getHours();$('eShift').value=hr<15?'Day':hr<23?'Evening':'Night';$('eDept').value=curDept||'';rb.value=me?me.fullName:'';rb.readOnly=!isLead();rb.style.background=isLead()?'var(--white)':'var(--g100)';$('eCat').value='';$('ePri').value='';$('eDesc').value='';$('eAction').value='';$('eStatus').value='Open';$('eFollowUp').value='No';$('eNotes').value='';$('eResDate').value='';onStatusChange();onFollowUpChange();}rAP();$('entryModalBg').classList.add('open');}
 function closeEntryModal(){$('entryModalBg').classList.remove('open');editId=null;attachments=[];}
-function saveEntry(){var dt=$('eDate').value,tm=$('eTime').value,sh=$('eShift').value,cat=$('eCat').value,pri=$('ePri').value,desc=$('eDesc').value.trim(),rep=$('eReporter').value.trim();if(!dt||!tm||!sh||!cat||!pri||!desc){toast('Fill required fields');return;}var st=$('eStatus').value,rb=$('eResBy').value,rd=$('eResDate').value,fu=$('eFollowUp').value,fua=fu==='Yes'?$('eFUAssign').value:'';if(rb&&rd&&st!=='Resolved')st='Resolved';var ai=me.initials;if(editId){var o=entries.find(x=>x.id===editId);if(o){if(isLead()&&rep!==o.reportedBy){var ni=li(rep);ai=ni||o.authorInitials;}else ai=o.authorInitials;}}var en={id:editId||gid(),date:dt,time:tm,shift:sh,reportedBy:rep,authorInitials:editId?ai:me.initials,category:cat,priority:pri,description:desc,action:$('eAction').value.trim(),status:st,followUp:fu,followUpAssign:fua,resolvedBy:rb,resDate:rd,notes:$('eNotes').value.trim(),attachments:attachments.slice(),lastModified:new Date().toISOString()};if(editId){var idx=entries.findIndex(e=>e.id===editId);if(idx!==-1){var old=entries[idx],ch=[];if(old.status!==en.status)ch.push('St:'+old.status+'->'+en.status);if(old.priority!==en.priority)ch.push('Pri:'+old.priority+'->'+en.priority);entries[idx]=en;addH('edit','Edited: '+cat,'('+ch.join(', ')+')'||'Minor');toast('Updated');}}else{entries.push(en);addH('add','New: '+cat+' - "'+desc.slice(0,35)+'..."','Pri:'+pri);toast('Added');var d=new Date(dt+'T00:00:00');if(d.getMonth()!==curMonth){curMonth=d.getMonth();rMT();}}if(en.status==='Escalated')nLeads('escalation','Escalation: '+cat,desc.slice(0,70)+' ('+rep+')',en.id);if(en.followUp==='Yes'&&en.followUpAssign){if(en.followUpAssign!==me.initials)pNot(en.followUpAssign,'followup','Follow-up assigned',cat+': '+desc.slice(0,70),en.id);nLeads('followup','F/U: '+ln(en.followUpAssign),cat+': '+desc.slice(0,50),en.id);}spSaveEntry(en).then(function(){renderAll();}).catch(function(e){toast('Save failed');console.error(e);});closeEntryModal();renderAll();}
+function saveEntry(){var dt=$('eDate').value,tm=$('eTime').value,sh=$('eShift').value,dept=$('eDept').value,cat=$('eCat').value,pri=$('ePri').value,desc=$('eDesc').value.trim(),rep=$('eReporter').value.trim();if(!dt||!tm||!sh||!dept||!cat||!pri||!desc){toast('Fill required fields');return;}var st=$('eStatus').value,rb=$('eResBy').value,rd=$('eResDate').value,fu=$('eFollowUp').value,fua=fu==='Yes'?$('eFUAssign').value:'';if(rb&&rd&&st!=='Resolved')st='Resolved';var ai=me.initials;if(editId){var o=entries.find(x=>x.id===editId);if(o){if(isLead()&&rep!==o.reportedBy){var ni=li(rep);ai=ni||o.authorInitials;}else ai=o.authorInitials;}}var en={id:editId||gid(),date:dt,time:tm,shift:sh,department:dept,reportedBy:rep,authorInitials:editId?ai:me.initials,category:cat,priority:pri,description:desc,action:$('eAction').value.trim(),status:st,followUp:fu,followUpAssign:fua,resolvedBy:rb,resDate:rd,notes:$('eNotes').value.trim(),attachments:attachments.slice(),lastModified:new Date().toISOString()};if(editId){var idx=entries.findIndex(e=>e.id===editId);if(idx!==-1){var old=entries[idx],ch=[];if(old.status!==en.status)ch.push('St:'+old.status+'->'+en.status);if(old.priority!==en.priority)ch.push('Pri:'+old.priority+'->'+en.priority);entries[idx]=en;addH('edit','Edited: '+cat,'('+ch.join(', ')+')'||'Minor');toast('Updated');}}else{entries.push(en);addH('add','New: '+cat+' - "'+desc.slice(0,35)+'..."','Pri:'+pri);toast('Added');var d=new Date(dt+'T00:00:00');if(d.getMonth()!==curMonth){curMonth=d.getMonth();rMT();}}if(en.status==='Escalated')nLeads('escalation','Escalation: '+cat,desc.slice(0,70)+' ('+rep+')',en.id);if(en.followUp==='Yes'&&en.followUpAssign){if(en.followUpAssign!==me.initials)pNot(en.followUpAssign,'followup','Follow-up assigned',cat+': '+desc.slice(0,70),en.id);nLeads('followup','F/U: '+ln(en.followUpAssign),cat+': '+desc.slice(0,50),en.id);}spSaveEntry(en).then(function(){renderAll();}).catch(function(e){toast('Save failed');console.error(e);});closeEntryModal();renderAll();}
 function editEntry(id){var e=entries.find(x=>x.id===id);if(!e)return;if(!canEdit(e)){toast('Cannot edit');return;}openEntryModal(id);}
 function deleteEntry(id){var e=entries.find(x=>x.id===id);if(!e)return;if(!canDel(e)){toast('Cannot delete');return;}if(!confirm('Delete?\n'+e.category+': '+e.description.slice(0,50)))return;entries=entries.filter(x=>x.id!==id);addH('delete','Deleted: '+e.category,'');spDeleteEntry(id).catch(function(e){console.error(e);});renderAll();toast('Deleted');}
 
@@ -1536,7 +1579,7 @@ var lastSyncTime=null;
 function runAutoBackup(){
   // Run auto-backup after data is loaded (admin only)
   if(!me||!me.isAdmin)return;
-  setTimeout(function(){hubAutoBackup();loadHubBackupHistory();},3000);
+  setTimeout(async function(){await resolveHubLibName();hubAutoBackup();loadHubBackupHistory();},3000);
 }
 function uBD(){
   if(lastSyncTime){
@@ -1557,7 +1600,7 @@ function startApp(){
   initAuth();rMT();uClk();setInterval(uClk,60000);
 runAutoBackup();setInterval(runAutoBackup,BK_MINS*60000);setInterval(uBD,30000);
 setInterval(async function(){try{await loadAllData();lastSyncTime=new Date();uBD();renderAll();}catch(e){}},60000);
-['searchBox','fShift','fCat','fPri'].forEach(id=>{$(id).addEventListener(id==='searchBox'?'input':'change',renderLog);});
+['searchBox','fShift','fCat','fPri','fMonth'].forEach(id=>{$(id).addEventListener(id==='searchBox'?'input':'change',renderLog);});
 }
 startApp();
 
