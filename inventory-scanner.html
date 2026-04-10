@@ -71,16 +71,29 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   #desktop-nav.authed{display:flex}
   #desktop-panel{display:none!important}
   #desktop-panel.authed{display:flex!important}
-  #scanner-main{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:stretch;min-height:0}
+  #scanner-main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;align-items:stretch;min-height:0;min-width:0}
   .screen{width:100%;height:auto;min-height:100%;overflow:visible}
+  /* Default body centering for simple screens */
   .screen .body,.screen .scan-bottom,.screen .auth-center,.screen .success-body{max-width:580px;margin:0 auto;width:100%}
   .body{padding:28px 32px}
   .scan-bottom{padding:0 32px 28px}
   .hdr{padding:16px 24px}
   .status-bar{padding:8px 24px}
   .footer{padding:16px 32px}
-  #screen-item .body{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-content:start}
-  #screen-item .footer{grid-column:1/-1}
+  /* Item details — full width 2-col, no max-width cap */
+  #screen-item .body{
+    display:grid;grid-template-columns:1fr 1fr;gap:20px;
+    align-content:start;max-width:none;padding:24px 28px
+  }
+  #screen-item .footer{grid-column:1/-1;max-width:none;margin:0;padding:0 28px 24px}
+  #screen-item .item-card{align-self:stretch}
+  /* Action forms — 2-col on desktop */
+  .action-form.show{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;align-items:start}
+  .action-form.show .btn{grid-column:1/-1}
+  .action-form.show>div:first-child:only-child{grid-column:1/-1}
+  /* Manual entry — full width 2-col, no max-width cap */
+  #screen-manual .body{max-width:none;padding:24px 28px}
+  #screen-manual .body>.card{max-width:none}
 }
 @media(max-width:767px){
   #desktop-nav{display:none!important}
@@ -94,13 +107,13 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 
 /* Desktop Activity Panel */
 #desktop-panel{
-  display:none;width:340px;background:var(--md-surface-container);
+  display:none;width:300px;background:var(--md-surface-container);
   border-left:1px solid var(--md-outline-variant);flex-direction:column;
-  overflow-y:auto;flex-shrink:0;order:2;
+  overflow-y:auto;overflow-x:hidden;flex-shrink:0;order:2;
 }
 .panel-hdr{padding:16px 18px;font-family:var(--font);font-size:14px;font-weight:700;color:var(--md-on-surface);display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--md-outline-variant);background:var(--md-surface-container-low)}
 /* Collapsible panel sections */
-.panel-section{padding:14px 18px;border-bottom:1px solid var(--md-outline-variant)}
+.panel-section{padding:12px 14px;border-bottom:1px solid var(--md-outline-variant)}
 .panel-section.collapsed .panel-body{display:none}
 .panel-title{font-family:var(--font);font-size:11px;font-weight:700;color:var(--md-on-surface-variant);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
 .panel-title:hover{color:var(--md-on-surface)}
@@ -650,7 +663,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
         <div style="display:flex;gap:8px"><button class="btn btn-purple btn-sm" style="flex:1" onclick="saveEdits()"><span class="material-icons-outlined" style="font-size:16px">save</span> Save</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="cancelEdit()">Cancel</button></div>
       </div>
     </div>
-    <div class="card">
+    <div class="card" style="grid-column:1/-1">
       <div class="card-title">Update Stock</div>
       <div class="action-tabs"><button class="action-tab" id="tab-receive" onclick="selectTab('receive')"><span class="material-icons-outlined">add_circle</span>Receive</button><button class="action-tab" id="tab-remove" onclick="selectTab('remove')"><span class="material-icons-outlined">remove_circle</span>Remove</button><button class="action-tab" id="tab-adjust" onclick="selectTab('adjust')"><span class="material-icons-outlined">tune</span>Adjust</button></div>
       <div class="action-form" id="form-receive"><div class="field"><label>Quantity to Add</label><div class="qty-row"><button onclick="stepQ('q-receive',-1)">&minus;</button><input type="number" id="q-receive" value="1" min="0" step="0.1"><button onclick="stepQ('q-receive',1)">+</button></div></div><div class="field"><label>Lot Number <span style="color:var(--md-outline);font-weight:400">(optional)</span></label><input type="text" id="lot-receive" placeholder="e.g. LOT-2026-001"></div><div class="field"><label>Expiry Date <span style="color:var(--md-outline);font-weight:400">(optional)</span></label><input type="date" id="exp-receive"></div><button class="btn btn-receive" onclick="submitAction('receive')"><span class="material-icons-outlined" style="font-size:20px">check_circle</span>Confirm Receive</button></div>
