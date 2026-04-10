@@ -184,6 +184,34 @@ select.filter-select{padding:6px 32px 6px 14px;border-radius:var(--radius-full);
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--outline-variant);border-radius:3px}
 input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 input[type=number]{-moz-appearance:textfield}
+
+/* Date range picker */
+.date-range-btn{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border:1.5px solid var(--outline-variant);border-radius:var(--radius-full);font-size:13px;font-weight:600;font-family:var(--font);background:var(--surface-lowest);color:var(--on-surface);cursor:pointer;transition:.15s;white-space:nowrap}
+.date-range-btn:hover,.date-range-btn.active{border-color:var(--primary);background:var(--primary-container);color:var(--on-primary-container)}
+.date-range-btn .material-icons-outlined{font-size:16px}
+.drp-overlay{display:none;position:fixed;inset:0;z-index:200}
+.drp-overlay.open{display:block}
+.drp-popup{position:absolute;background:var(--surface-lowest);border:1.5px solid var(--outline-variant);border-radius:var(--radius-lg);box-shadow:var(--shadow-3);z-index:201;padding:16px;width:300px;font-family:var(--font)}
+.drp-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--outline-variant)}
+.drp-preset{padding:4px 12px;border-radius:var(--radius-full);border:1.5px solid var(--outline-variant);background:transparent;font-size:11px;font-weight:600;font-family:var(--font);color:var(--on-surface-variant);cursor:pointer;transition:.12s}
+.drp-preset:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-container)}
+.drp-preset.sel{border-color:var(--primary);background:var(--primary-container);color:var(--on-primary-container)}
+.drp-row{display:flex;gap:10px;margin-bottom:10px}
+.drp-field{flex:1;display:flex;flex-direction:column;gap:3px}
+.drp-field label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--on-surface-variant)}
+.drp-field input[type=date]{padding:7px 10px;border:1.5px solid var(--outline-variant);border-radius:8px;font-size:12px;font-family:var(--font-body);color:var(--on-surface);background:var(--surface-lowest);outline:none;width:100%}
+.drp-field input[type=date]:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(0,105,110,.1)}
+.drp-apply{width:100%;padding:9px;border-radius:var(--radius-full);background:var(--primary);color:var(--on-primary);border:none;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer}
+.item-search-wrap{position:relative;flex:1;min-width:180px}
+.item-search-input{width:100%;padding:7px 16px 7px 36px;border:1.5px solid var(--outline-variant);border-radius:var(--radius-full);font-size:13px;font-family:var(--font-body);color:var(--on-surface);outline:none;background:var(--surface-lowest)}
+.item-search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,105,110,.1)}
+.item-search-input::placeholder{color:var(--outline)}
+.item-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--outline);pointer-events:none;font-size:16px;font-family:'Material Icons Outlined'}
+.isr-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface-lowest);border:1.5px solid var(--outline-variant);border-radius:var(--radius-lg);box-shadow:var(--shadow-2);z-index:100;max-height:200px;overflow-y:auto}
+.isr-dropdown.open{display:block}
+.isr-item{padding:8px 14px;font-size:13px;cursor:pointer;transition:.1s;font-family:var(--font-body)}
+.isr-item:hover{background:var(--surface-low)}
+.isr-item.sel{color:var(--primary);font-weight:700;background:var(--primary-container)}
 </style>
 </head>
 <body>
@@ -250,16 +278,6 @@ input[type=number]{-moz-appearance:textfield}
         <button class="sub-btn" onclick="viewDeptFilter('Office Supplies')">Office Supplies</button>
       </div>
       <button class="nav-btn" onclick="showView('log')"><span class="material-icons-outlined">receipt_long</span>Transaction Log</button>
-      <div class="sub-nav" id="log-subnav">
-        <div class="sub-nav-label">DEPARTMENTS</div>
-        <button class="sub-btn active" onclick="viewDeptFilter('')">All</button>
-        <button class="sub-btn" onclick="viewDeptFilter('Chemistry')">Chemistry</button>
-        <button class="sub-btn" onclick="viewDeptFilter('Hematology')">Hematology</button>
-        <button class="sub-btn" onclick="viewDeptFilter('Coagulation')">Coagulation</button>
-        <button class="sub-btn" onclick="viewDeptFilter('Urinalysis')">Urinalysis</button>
-        <button class="sub-btn" onclick="viewDeptFilter('Laboratory Supplies')">Lab Supplies</button>
-        <button class="sub-btn" onclick="viewDeptFilter('Office Supplies')">Office Supplies</button>
-      </div>
       <button class="nav-btn" id="nav-backup" onclick="showView('backup')" style="display:none"><span class="material-icons-outlined">backup</span>Backup &amp; Restore</button>
     </nav>
     <div class="sidebar-footer"><div class="name" id="side-user"></div><div id="side-sp">Connecting...</div><div style="margin-top:10px;font-size:8px;color:var(--outline-variant);letter-spacing:.02em;opacity:.5">&copy; 2026 Jesus Martinez. All rights reserved.</div></div>
@@ -293,9 +311,36 @@ input[type=number]{-moz-appearance:textfield}
         <div class="save-all-bar" id="save-all-bar"><button class="save-all-btn" id="save-all-btn" onclick="saveAllEdits()"><span class="material-icons-outlined" style="font-size:18px">save</span>Save All Changes</button></div>
       </div>
       <div class="view" id="view-trends">
-        <div class="search-bar">
-          <select class="filter-select" id="trend-range" onchange="renderTrends()"><option value="30">Last 30 Days</option><option value="60">Last 60 Days</option><option value="90">Last 90 Days</option></select>
-          <select class="filter-select" id="trend-item" onchange="renderTrends()"><option value="">All Items</option></select>
+        <div class="search-bar" style="align-items:center">
+          <button class="date-range-btn" id="trend-drp-btn" onclick="toggleDRP()">
+            <span class="material-icons-outlined">date_range</span>
+            <span id="trend-drp-label">Last 30 Days</span>
+            <span class="material-icons-outlined" style="font-size:14px;margin-left:2px">expand_more</span>
+          </button>
+          <div class="item-search-wrap">
+            <span class="item-search-icon">search</span>
+            <input class="item-search-input" id="trend-item-search" placeholder="Filter by item..." autocomplete="off" oninput="onTrendItemSearch(this.value)" onfocus="showItemDropdown()" onblur="setTimeout(hideItemDropdown,150)">
+            <div class="isr-dropdown" id="trend-item-dropdown"></div>
+          </div>
+        </div>
+        <!-- Date range popup -->
+        <div class="drp-overlay" id="drp-overlay" onclick="closeDRP()"></div>
+        <div class="drp-popup" id="drp-popup" style="display:none">
+          <div class="drp-presets">
+            <button class="drp-preset sel" onclick="drpPreset(7,'Last 7 Days',this)">7 Days</button>
+            <button class="drp-preset" onclick="drpPreset(14,'Last 14 Days',this)">14 Days</button>
+            <button class="drp-preset" onclick="drpPreset(30,'Last 30 Days',this)">30 Days</button>
+            <button class="drp-preset" onclick="drpPreset(60,'Last 60 Days',this)">60 Days</button>
+            <button class="drp-preset" onclick="drpPreset(90,'Last 90 Days',this)">90 Days</button>
+            <button class="drp-preset" onclick="drpPreset(180,'Last 180 Days',this)">180 Days</button>
+            <button class="drp-preset" onclick="drpPreset(365,'Last Year',this)">1 Year</button>
+            <button class="drp-preset" onclick="drpPreset(0,'Custom',this)">Custom</button>
+          </div>
+          <div class="drp-row">
+            <div class="drp-field"><label>From</label><input type="date" id="drp-from"></div>
+            <div class="drp-field"><label>To</label><input type="date" id="drp-to"></div>
+          </div>
+          <button class="drp-apply" onclick="applyDRP()">Apply</button>
         </div>
         <div class="chart-wrap"><canvas id="chart-usage"></canvas></div>
         <div class="chart-wrap"><canvas id="chart-actions"></canvas></div>
@@ -392,7 +437,7 @@ async function getDigest(){var t=await getToken();var r=await fetch(SP.siteUrl+'
 async function spPatch(ln,id,f){var dg=await getDigest(),mt=await getItemType(ln);f.__metadata={type:mt};var t=await getToken();await fetch(SP_API+"/getbytitle('"+ln+"')/items("+id+")",{method:'POST',headers:{'Authorization':'Bearer '+t,'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':dg,'IF-MATCH':'*','X-HTTP-Method':'MERGE'},body:JSON.stringify(f)});}
 
 // DATA
-async function loadAllData(){showLoad('Loading inventory...');allInventory=await spFetchAll(SP.lists.inventory,'Id,Title,'+Object.values(INV).join(','));showLoad('Loading transactions...');var lf=Object.values(LOG).filter(function(v,i,a){return a.indexOf(v)===i;});allLogs=await spFetchAll(SP.lists.log,'Id,Title,'+lf.join(','));allLogs.sort(function(a,b){return(b[LOG.Timestamp]||'').localeCompare(a[LOG.Timestamp]||'');});var sel=document.getElementById('trend-item');allInventory.map(function(r){return r.Title;}).filter(Boolean).sort().forEach(function(n){var o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});document.getElementById('side-sp').textContent='SharePoint connected';renderAll();}
+async function loadAllData(){showLoad('Loading inventory...');allInventory=await spFetchAll(SP.lists.inventory,'Id,Title,'+Object.values(INV).join(','));showLoad('Loading transactions...');var lf=Object.values(LOG).filter(function(v,i,a){return a.indexOf(v)===i;});allLogs=await spFetchAll(SP.lists.log,'Id,Title,'+lf.join(','));allLogs.sort(function(a,b){return(b[LOG.Timestamp]||'').localeCompare(a[LOG.Timestamp]||'');});document.getElementById('side-sp').textContent='SharePoint connected';renderAll();}
 
 // VIEWS
 var currentView='stock';var viewTitles={stock:'Stock Overview',trends:'Usage Trends',expiry:'Expiry & Waste Risk',forecast:'Forecasting',log:'Transaction Log',backup:'Backup & Restore'};
@@ -403,12 +448,12 @@ function showView(id){
   document.getElementById('view-title').textContent=viewTitles[id]||id;
   document.querySelectorAll('.nav-btn').forEach(function(b,i){b.classList.toggle('active',['stock','trends','expiry','forecast','log','backup'][i]===id);});
   document.querySelectorAll('.mob-btn').forEach(function(b,i){b.classList.toggle('active',['stock','trends','expiry','forecast','log'][i]===id);});
-  // Show correct sub-nav
-  ['stock','trends','expiry','forecast','log'].forEach(function(v){
+  // Show correct sub-nav (log has no sub-nav)
+  ['stock','trends','expiry','forecast'].forEach(function(v){
     var sn=document.getElementById(v+'-subnav');
     if(sn)sn.className=v===id?'sub-nav show':'sub-nav';
   });
-  // Reset viewDept filter when switching sections (not stock — stock has its own subDept)
+  // Reset viewDept filter when switching sections
   if(id!=='stock'){viewDept='';_syncViewDeptButtons(id);}
   if(id==='trends')renderTrends();
   if(id==='forecast')renderForecast();
@@ -422,7 +467,6 @@ function viewDeptFilter(dept){
   if(currentView==='trends')renderTrends();
   else if(currentView==='expiry')renderExpiry();
   else if(currentView==='forecast')renderForecast();
-  else if(currentView==='log')renderLogTable();
 }
 function _syncViewDeptButtons(viewId){
   var sn=document.getElementById(viewId+'-subnav');
@@ -576,12 +620,92 @@ pager.addEventListener('touchend',function(e){if(!swiping)return;swiping=false;v
 // SAVE ALL
 async function saveAllEdits(){var ids=Object.keys(pendingEdits);if(!ids.length)return;var btn=document.getElementById('save-all-btn');btn.disabled=true;btn.innerHTML='Saving '+ids.length+'...';var errs=0;for(var i=0;i<ids.length;i++){var itemId=parseInt(ids[i]),edits=pendingEdits[ids[i]],fields={};for(var fn in edits){var e=edits[fn];if(e.isTitle)fields.Title=e.value;else fields[INV[fn]||fn]=e.type==='number'?parseFloat(e.value)||0:e.value;}try{await spPatch(SP.lists.inventory,itemId,fields);var row=allInventory.find(function(r){return r.Id===itemId;});if(row){for(var fn in edits){var e=edits[fn];if(e.isTitle)row.Title=e.value;else row[INV[fn]||fn]=e.type==='number'?parseFloat(e.value)||0:e.value;}}}catch(err){errs++;}}pendingEdits={};btn.disabled=false;btn.innerHTML=errs?errs+' error(s)':'All Saved';btn.style.background=errs?'var(--error)':'var(--ok)';setTimeout(function(){btn.innerHTML='<span class="material-icons-outlined" style="font-size:18px">save</span>Save All Changes';btn.style.background='';renderStock();},1500);}
 
-// USAGE TRENDS
+// USAGE TRENDS — date range picker state
 var usageChart=null,actionsChart=null;
-function renderTrends(){var days=parseInt(document.getElementById('trend-range').value)||30,itemF=document.getElementById('trend-item').value;var cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);var cs=cutoff.toISOString();
-  // Build dept->title set for viewDept filtering
+var trendFrom=null,trendTo=null,trendItem='',trendDays=30;
+(function(){var d=new Date();trendTo=d.toISOString().slice(0,10);var f=new Date(d);f.setDate(f.getDate()-30);trendFrom=f.toISOString().slice(0,10);})();
+
+function toggleDRP(){
+  var popup=document.getElementById('drp-popup');
+  var overlay=document.getElementById('drp-overlay');
+  var btn=document.getElementById('trend-drp-btn');
+  var isOpen=popup.style.display!=='none';
+  if(isOpen){closeDRP();return;}
+  // Position popup below button
+  var r=btn.getBoundingClientRect();
+  popup.style.top=(r.bottom+window.scrollY+6)+'px';
+  popup.style.left=r.left+'px';
+  popup.style.display='block';
+  overlay.classList.add('open');
+  btn.classList.add('active');
+  document.getElementById('drp-from').value=trendFrom;
+  document.getElementById('drp-to').value=trendTo;
+}
+function closeDRP(){
+  document.getElementById('drp-popup').style.display='none';
+  document.getElementById('drp-overlay').classList.remove('open');
+  document.getElementById('trend-drp-btn').classList.remove('active');
+}
+function drpPreset(days,label,el){
+  document.querySelectorAll('.drp-preset').forEach(function(b){b.classList.remove('sel');});
+  el.classList.add('sel');
+  if(days>0){
+    trendDays=days;var d=new Date();trendTo=d.toISOString().slice(0,10);var f=new Date(d);f.setDate(f.getDate()-days);trendFrom=f.toISOString().slice(0,10);
+    document.getElementById('drp-from').value=trendFrom;
+    document.getElementById('drp-to').value=trendTo;
+    document.getElementById('trend-drp-label').textContent=label;
+    closeDRP();renderTrends();
+  }
+  // Custom — just let user edit the fields
+}
+function applyDRP(){
+  trendFrom=document.getElementById('drp-from').value;
+  trendTo=document.getElementById('drp-to').value;
+  if(!trendFrom||!trendTo){closeDRP();return;}
+  var d1=new Date(trendFrom),d2=new Date(trendTo);
+  var diff=Math.round((d2-d1)/86400000);
+  document.getElementById('trend-drp-label').textContent=trendFrom+' → '+trendTo;
+  closeDRP();renderTrends();
+}
+function onTrendItemSearch(q){
+  trendItem=q;
+  var dd=document.getElementById('trend-item-dropdown');
+  if(!q){dd.innerHTML='';dd.classList.remove('open');renderTrends();return;}
+  var matches=allInventory.map(function(r){return r.Title;}).filter(function(t){return t&&t.toLowerCase().indexOf(q.toLowerCase())>=0;}).slice(0,12);
+  dd.innerHTML=matches.map(function(t){return'<div class="isr-item'+(t===trendItem?' sel':'')+'" onmousedown="selectTrendItem(\''+esc(t)+'\')">'+esc(t)+'</div>';}).join('');
+  dd.classList.toggle('open',matches.length>0);
+  renderTrends();
+}
+function selectTrendItem(t){
+  trendItem=t;
+  document.getElementById('trend-item-search').value=t;
+  document.getElementById('trend-item-dropdown').classList.remove('open');
+  renderTrends();
+}
+function showItemDropdown(){
+  var q=document.getElementById('trend-item-search').value;
+  if(q)onTrendItemSearch(q);
+}
+function hideItemDropdown(){document.getElementById('trend-item-dropdown').classList.remove('open');}
+
+function renderTrends(){
+  var fromStr=trendFrom,toStr=trendTo;
   var deptTitles=viewDept?new Set(allInventory.filter(function(r){return iv(r,'Instrument')===viewDept;}).map(function(r){return r.Title;})):null;
-  var fl=allLogs.filter(function(l){return(l[LOG.Timestamp]||'')>=cs&&(!itemF||(l.Title||'').indexOf(itemF)>=0)&&(!deptTitles||deptTitles.has(l.Title));});var dm={};fl.forEach(function(l){var a=(l[LOG.Action]||'').toLowerCase();if(a==='remove'||a==='removed'){var d=(l[LOG.Timestamp]||'').slice(0,10);dm[d]=(dm[d]||0)+Math.abs(parseFloat(l[LOG.QuantityDelta])||0);}});var labels=Object.keys(dm).sort(),data=labels.map(function(d){return dm[d];});if(usageChart)usageChart.destroy();usageChart=new Chart(document.getElementById('chart-usage'),{type:'bar',data:{labels:labels.map(function(d){return d.slice(5);}),datasets:[{label:'Units Consumed',data:data,backgroundColor:'rgba(0,105,110,.6)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false},title:{display:true,text:'Daily Consumption'+(viewDept?' — '+viewDept:''),font:{family:'Google Sans',weight:'bold'}}},scales:{y:{beginAtZero:true}}}});var ac={Receive:0,Remove:0,Adjust:0};fl.forEach(function(l){var a=(l[LOG.Action]||'').replace(/d$/,'');if(ac.hasOwnProperty(a))ac[a]++;});if(actionsChart)actionsChart.destroy();actionsChart=new Chart(document.getElementById('chart-actions'),{type:'doughnut',data:{labels:Object.keys(ac),datasets:[{data:Object.values(ac),backgroundColor:['#2D6B46','#BA1A1A','#6B5000'],borderWidth:0}]},options:{responsive:true,plugins:{title:{display:true,text:'Actions Breakdown'+(viewDept?' — '+viewDept:''),font:{family:'Google Sans',weight:'bold'}},legend:{position:'bottom'}}}});}
+  var fl=allLogs.filter(function(l){
+    var ts=(l[LOG.Timestamp]||'').slice(0,10);
+    return ts>=fromStr&&ts<=toStr
+      &&(!trendItem||(l.Title||'').toLowerCase().indexOf(trendItem.toLowerCase())>=0)
+      &&(!deptTitles||deptTitles.has(l.Title));
+  });
+  var dm={};fl.forEach(function(l){var a=(l[LOG.Action]||'').toLowerCase();if(a==='remove'||a==='removed'){var d=(l[LOG.Timestamp]||'').slice(0,10);dm[d]=(dm[d]||0)+Math.abs(parseFloat(l[LOG.QuantityDelta])||0);}});
+  var labels=Object.keys(dm).sort(),data=labels.map(function(d){return dm[d];});
+  var chartTitle='Daily Consumption'+(viewDept?' — '+viewDept:'')+(trendItem?' — '+trendItem:'');
+  if(usageChart)usageChart.destroy();
+  usageChart=new Chart(document.getElementById('chart-usage'),{type:'bar',data:{labels:labels.map(function(d){return d.slice(5);}),datasets:[{label:'Units Consumed',data:data,backgroundColor:'rgba(0,105,110,.6)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false},title:{display:true,text:chartTitle,font:{family:'Google Sans',weight:'bold'}}},scales:{y:{beginAtZero:true}}}});
+  var ac={Receive:0,Remove:0,Adjust:0};fl.forEach(function(l){var a=(l[LOG.Action]||'').replace(/d$/,'');if(ac.hasOwnProperty(a))ac[a]++;});
+  if(actionsChart)actionsChart.destroy();
+  actionsChart=new Chart(document.getElementById('chart-actions'),{type:'doughnut',data:{labels:Object.keys(ac),datasets:[{data:Object.values(ac),backgroundColor:['#2D6B46','#BA1A1A','#6B5000'],borderWidth:0}]},options:{responsive:true,plugins:{title:{display:true,text:'Actions Breakdown'+(viewDept?' — '+viewDept:''),font:{family:'Google Sans',weight:'bold'}},legend:{position:'bottom'}}}});
+}
 
 // EXPIRY
 function renderExpiry(){var items=allInventory.filter(function(r){return !viewDept||iv(r,'Instrument')===viewDept;}),now=new Date(),exp=0,w30=0,w90=0;var rows=items.filter(function(r){return iv(r,'ExpiryDate');}).map(function(r){var e=(iv(r,'ExpiryDate')||'').split('T')[0];var dl=Math.round((new Date(e+'T00:00:00')-now)/86400000);var s=parseFloat(iv(r,'InStock'))||0,d=parseFloat(iv(r,'DailyUse'))||0;var ds=d>0?Math.round(s/d):null,ol=parseFloat(iv(r,'OpenLifeDays'))||0;var wr=ds!==null&&ol>0?ds/ol:null;if(dl<0)exp++;else if(dl<=30)w30++;else if(dl<=90)w90++;return{t:r.Title,dept:iv(r,'Instrument'),exp:e,dl:dl,s:s,ds:ds,wr:wr};}).sort(function(a,b){return a.dl-b.dl;});document.getElementById('expiry-summary').innerHTML=sumCard(exp,'Expired','var(--out)',null)+sumCard(w30,'<30 Days','var(--order)',null)+sumCard(w90,'<90 Days','var(--watch)',null)+sumCard(rows.length,'Have Expiry','var(--on-surface)',null);document.getElementById('expiry-tbody').innerHTML=rows.map(function(r){var dc=r.dl<0?'exp-urgent':r.dl<=30?'exp-soon':'exp-ok';var wc=r.wr===null?'':'waste-'+(r.wr>1.5?'high':r.wr>1?'med':'low');var wt=r.wr===null?'—':r.wr>1.5?'HIGH':r.wr>1?'MEDIUM':'LOW';return'<tr><td>'+esc(r.t)+'</td><td>'+esc(r.dept||'')+'</td><td>'+r.exp+'</td><td class="'+dc+'">'+r.dl+'d</td><td>'+r.s+'</td><td>'+(r.ds!==null?r.ds+'d':'—')+'</td><td><span class="'+wc+'">'+wt+'</span></td></tr>';}).join('');}
@@ -627,7 +751,8 @@ function renderForecast(){
   var sortBy=document.getElementById('fc-sort').value;
   var items=allInventory.filter(function(r){
     if(deptF&&iv(r,'Instrument')!==deptF)return false;
-    return(parseFloat(iv(r,'InStock'))||0)>0||(parseFloat(iv(r,'DailyUse'))||0)>0;
+    // Include any item with stock, a PAR level, or any daily use configured
+    return(parseFloat(iv(r,'InStock'))||0)>=0&&(parseFloat(iv(r,'MinPAR'))||0)>0;
   });
 
   // Build forecast for each item
@@ -691,19 +816,21 @@ function renderForecast(){
     sumCard(expRisk,'Expiry Risk','var(--watch)',null)+
     sumCard(forecasts.length,'Tracked','var(--on-surface)',null);
 
-  // Main chart: horizontal bar of days to stockout (top 20)
-  var chartItems=forecasts.filter(function(f){return f.daysToZero<9999;}).slice(0,20);
+  // Main chart: horizontal bar — all items with finite stockout, capped at 180d for display
+  var chartItems=forecasts.slice(0,25);
+  var chartData=chartItems.map(function(f){return f.daysToZero>=9999?null:Math.min(f.daysToZero,180);});
+  var parData=chartItems.map(function(f){return f.daysToPAR>0&&f.daysToPAR<9999?Math.min(f.daysToPAR,180):null;});
   if(forecastChart)forecastChart.destroy();
   forecastChart=new Chart(document.getElementById('chart-forecast'),{
     type:'bar',
     data:{
-      labels:chartItems.map(function(f){return f.title.length>25?f.title.slice(0,23)+'…':f.title;}),
+      labels:chartItems.map(function(f){return f.title.length>28?f.title.slice(0,26)+'…':f.title;}),
       datasets:[
-        {label:'Days to Stockout',data:chartItems.map(function(f){return f.daysToZero;}),backgroundColor:chartItems.map(function(f){return f.alert==='critical'?'rgba(186,26,26,.7)':f.alert==='warning'?'rgba(139,94,0,.6)':'rgba(0,105,110,.5)';}),borderRadius:4},
-        {label:'Days to PAR',data:chartItems.map(function(f){return f.daysToPAR;}),backgroundColor:'rgba(0,105,110,.12)',borderRadius:4}
+        {label:'Days to Stockout',data:chartData,backgroundColor:chartItems.map(function(f){return f.alert==='critical'?'rgba(186,26,26,.75)':f.alert==='warning'?'rgba(139,94,0,.65)':'rgba(0,105,110,.5)';}),borderRadius:4},
+        {label:'Days to PAR',data:parData,backgroundColor:'rgba(0,105,110,.15)',borderRadius:4}
       ]
     },
-    options:{indexAxis:'y',responsive:true,plugins:{title:{display:true,text:'Projected Days Until Stockout',font:{family:'Google Sans',size:14,weight:'bold'}},legend:{position:'bottom',labels:{font:{family:'Google Sans'}}}},scales:{x:{beginAtZero:true,title:{display:true,text:'Days',font:{family:'Google Sans'}}}}}
+    options:{indexAxis:'y',responsive:true,plugins:{title:{display:true,text:'Projected Days Until Stockout (capped at 180d)',font:{family:'Google Sans',size:13,weight:'bold'}},legend:{position:'bottom',labels:{font:{family:'Google Sans'}}},tooltip:{callbacks:{label:function(ctx){var f=chartItems[ctx.dataIndex];if(ctx.datasetIndex===0)return f.daysToZero>=9999?'No burn data':ctx.parsed.x+'d to stockout';return ctx.parsed.x+'d to PAR';}}}},scales:{x:{beginAtZero:true,title:{display:true,text:'Days',font:{family:'Google Sans'}},max:180},y:{ticks:{font:{family:'Google Sans',size:11}}}}}
   });
 
   // Forecast cards
