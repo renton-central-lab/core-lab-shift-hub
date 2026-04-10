@@ -99,10 +99,14 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   overflow-y:auto;flex-shrink:0;order:2;
 }
 .panel-hdr{padding:16px 18px;font-family:var(--font);font-size:14px;font-weight:700;color:var(--md-on-surface);display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--md-outline-variant);background:var(--md-surface-container-low)}
+/* Collapsible panel sections */
 .panel-section{padding:14px 18px;border-bottom:1px solid var(--md-outline-variant)}
-.panel-section-grow{flex:1;min-height:0;display:flex;flex-direction:column}
-.panel-section-grow .recent-list{flex:1;overflow-y:auto}
-.panel-title{font-family:var(--font);font-size:11px;font-weight:700;color:var(--md-on-surface-variant);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.panel-section.collapsed .panel-body{display:none}
+.panel-title{font-family:var(--font);font-size:11px;font-weight:700;color:var(--md-on-surface-variant);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.panel-title:hover{color:var(--md-on-surface)}
+.panel-title .pt-chevron{margin-left:auto;font-size:16px;transition:transform .2s;color:var(--md-outline)}
+.panel-section.collapsed .pt-chevron{transform:rotate(-90deg)}
+.panel-section.collapsed .panel-title{margin-bottom:0}
 
 /* Panel Search */
 .panel-search-wrap{display:flex;align-items:center;gap:8px;background:var(--md-surface-container-lowest);border:1.5px solid var(--md-outline-variant);border-radius:var(--radius-full);padding:6px 14px}
@@ -337,50 +341,82 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   <div class="panel-hdr">
     <span class="material-icons-outlined" style="font-size:20px;color:var(--md-primary)">monitoring</span>
     <span>Activity Center</span>
+    <button onclick="toggleAllPanelSections()" id="panel-collapse-btn" title="Collapse all" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--md-outline);display:flex;align-items:center;padding:4px;border-radius:var(--radius-sm)"><span class="material-icons-outlined" style="font-size:18px">unfold_less</span></button>
   </div>
 
   <!-- Quick Search -->
-  <div class="panel-section">
-    <div class="panel-search-wrap">
-      <span class="material-icons-outlined" style="font-size:18px;color:var(--md-outline)">search</span>
-      <input type="text" class="panel-search" id="panel-search" placeholder="Quick item lookup..." oninput="panelSearch(this.value)">
+  <div class="panel-section" id="ps-search">
+    <div class="panel-title" onclick="togglePanelSection('ps-search')">
+      <span class="material-icons-outlined" style="font-size:16px">search</span>Quick Lookup
+      <span class="material-icons-outlined pt-chevron">expand_more</span>
     </div>
-    <div id="panel-search-results" class="panel-search-results"></div>
+    <div class="panel-body">
+      <div class="panel-search-wrap">
+        <span class="material-icons-outlined" style="font-size:18px;color:var(--md-outline)">search</span>
+        <input type="text" class="panel-search" id="panel-search" id="panel-search-input" placeholder="Search items..." oninput="panelSearch(this.value)">
+      </div>
+      <div id="panel-search-results" class="panel-search-results"></div>
+    </div>
   </div>
 
   <!-- Alerts -->
-  <div class="panel-section" id="alerts-section" style="display:none">
-    <div class="panel-title"><span class="material-icons-outlined" style="font-size:16px;color:var(--out)">warning</span>Alerts</div>
-    <div id="panel-alerts" class="alert-list"></div>
+  <div class="panel-section" id="ps-alerts" style="display:none">
+    <div class="panel-title" onclick="togglePanelSection('ps-alerts')">
+      <span class="material-icons-outlined" style="font-size:16px;color:var(--out)">warning</span>Alerts
+      <span class="material-icons-outlined pt-chevron">expand_more</span>
+    </div>
+    <div class="panel-body" id="panel-alerts" class="alert-list"></div>
   </div>
 
   <!-- Session Stats -->
-  <div class="panel-section">
-    <div class="panel-title"><span class="material-icons-outlined" style="font-size:16px">assessment</span>This Session</div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="stat-val" id="stat-scans">0</div><div class="stat-lbl">Scanned</div></div>
-      <div class="stat-box"><div class="stat-val" id="stat-received">0</div><div class="stat-lbl">Received</div></div>
-      <div class="stat-box"><div class="stat-val" id="stat-removed">0</div><div class="stat-lbl">Removed</div></div>
-      <div class="stat-box"><div class="stat-val" id="stat-new">0</div><div class="stat-lbl">New Items</div></div>
+  <div class="panel-section" id="ps-stats">
+    <div class="panel-title" onclick="togglePanelSection('ps-stats')">
+      <span class="material-icons-outlined" style="font-size:16px">assessment</span>This Session
+      <span class="material-icons-outlined pt-chevron">expand_more</span>
+    </div>
+    <div class="panel-body">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val" id="stat-scans">0</div><div class="stat-lbl">Scanned</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-received">0</div><div class="stat-lbl">Received</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-removed">0</div><div class="stat-lbl">Removed</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-new">0</div><div class="stat-lbl">New Items</div></div>
+      </div>
     </div>
   </div>
 
   <!-- Recent Scans -->
-  <div class="panel-section panel-section-grow">
-    <div class="panel-title"><span class="material-icons-outlined" style="font-size:16px">qr_code_scanner</span>Recent Scans <span style="font-size:10px;font-weight:400;color:var(--md-outline);margin-left:4px">this session</span></div>
-    <div id="recent-scans" class="recent-list"><div class="recent-empty">Scan an item to see it here</div></div>
+  <div class="panel-section" id="ps-recent">
+    <div class="panel-title" onclick="togglePanelSection('ps-recent')">
+      <span class="material-icons-outlined" style="font-size:16px">qr_code_scanner</span>Recent Scans
+      <span style="font-size:10px;font-weight:400;color:var(--md-outline);margin-left:2px;text-transform:none;letter-spacing:0">this session</span>
+      <span class="material-icons-outlined pt-chevron">expand_more</span>
+    </div>
+    <div class="panel-body">
+      <div id="recent-scans" class="recent-list"><div class="recent-empty">Scan an item to see it here</div></div>
+    </div>
   </div>
 
   <!-- Today's Log -->
-  <div class="panel-section panel-section-grow">
-    <div class="panel-title"><span class="material-icons-outlined" style="font-size:16px">receipt_long</span>Today's Transactions <span style="font-size:10px;font-weight:400;color:var(--md-outline);margin-left:4px">all users · live</span></div>
-    <div id="today-log" class="recent-list"><div class="recent-empty">Loading...</div></div>
+  <div class="panel-section" id="ps-log">
+    <div class="panel-title" onclick="togglePanelSection('ps-log')">
+      <span class="material-icons-outlined" style="font-size:16px">receipt_long</span>Today's Transactions
+      <span style="font-size:10px;font-weight:400;color:var(--md-outline);margin-left:2px;text-transform:none;letter-spacing:0">all users · live</span>
+      <span class="material-icons-outlined pt-chevron">expand_more</span>
+    </div>
+    <div class="panel-body">
+      <div id="today-log" class="recent-list"><div class="recent-empty">Loading...</div></div>
+    </div>
   </div>
 
   <!-- Inventory Snapshot -->
-  <div class="panel-section">
-    <div class="panel-title"><span class="material-icons-outlined" style="font-size:16px">inventory_2</span>Inventory Snapshot</div>
-    <div id="inv-snapshot" class="snapshot-grid"></div>
+  <div class="panel-section" id="ps-snapshot">
+    <div class="panel-title" onclick="togglePanelSection('ps-snapshot')">
+      <span class="material-icons-outlined" style="font-size:16px">inventory_2</span>Inventory Snapshot
+      <span class="material-icons-outlined pt-chevron">expand_more</span>
+    </div>
+    <div class="panel-body">
+      <div id="inv-snapshot" class="snapshot-grid"></div>
+    </div>
   </div>
 </aside>
 
@@ -987,7 +1023,11 @@ function panelSearch(q){
       var dept=r.field_1||iv(r,'Instrument')||'';
       var statusText=stock<=0?'OUT':stock<par?'LOW':'OK';
       var statusColor=stock<=0?'var(--out)':stock<par?'var(--order)':'var(--ok)';
-      return'<div class="psr-item"><div class="psr-name">'+esc(r.Title)+'</div><div class="psr-meta">'+esc(dept)+' · Stock: <strong style="color:'+statusColor+'">'+stock+'</strong> · PAR: '+par+' · '+statusText+'</div></div>';
+      return'<div class="psr-item" onclick="lookupByTitle(\''+esc(r.Title).replace(/'/g,"\\'")+'\')" title="Click to open item">'+
+        '<div class="psr-name">'+esc(r.Title)+'</div>'+
+        '<div class="psr-meta">'+esc(dept)+' · Stock: <strong style="color:'+statusColor+'">'+stock+'</strong> · PAR: '+par+' · '+statusText+
+        ' <span style="float:right;font-size:10px;color:var(--md-primary);font-weight:600">Open →</span></div>'+
+      '</div>';
     }).join('');
     results.className='panel-search-results show';
   },200);
@@ -1074,7 +1114,7 @@ async function loadTodayLog(){
 
 // Alerts
 function renderAlerts(){
-  var sec=document.getElementById('alerts-section');
+  var sec=document.getElementById('ps-alerts');
   var list=document.getElementById('panel-alerts');
   if(!sec||!list)return;
   var alerts=[];
@@ -1088,6 +1128,7 @@ function renderAlerts(){
   });
   if(alerts.length===0){sec.style.display='none';return;}
   sec.style.display='block';
+  list.className='alert-list panel-body';
   list.innerHTML=alerts.slice(0,8).map(function(a){
     return'<div class="alert-item '+a.type+'"><span class="material-icons-outlined">'+a.icon+'</span><span class="a-text">'+a.text+'</span></div>';
   }).join('');
@@ -1107,8 +1148,41 @@ function renderSnapshot(){
     '<div class="snap-box snap-out"><div class="snap-val">'+out+'</div><div class="snap-lbl">Out</div></div>';
 }
 
+// ── Panel section collapse ──
+var PANEL_STORAGE_KEY='scanner-panel-state';
+function savePanelState(){var state={};['ps-search','ps-alerts','ps-stats','ps-recent','ps-log','ps-snapshot'].forEach(function(id){var el=document.getElementById(id);if(el)state[id]=el.classList.contains('collapsed');});try{localStorage.setItem(PANEL_STORAGE_KEY,JSON.stringify(state));}catch(e){}}
+function loadPanelState(){try{var s=localStorage.getItem(PANEL_STORAGE_KEY);if(s){var state=JSON.parse(s);Object.keys(state).forEach(function(id){var el=document.getElementById(id);if(el&&state[id])el.classList.add('collapsed');});}}catch(e){}}
+function togglePanelSection(id){var el=document.getElementById(id);if(!el)return;el.classList.toggle('collapsed');savePanelState();}
+function toggleAllPanelSections(){
+  var ids=['ps-search','ps-stats','ps-recent','ps-log','ps-snapshot'];
+  var anyExpanded=ids.some(function(id){var el=document.getElementById(id);return el&&!el.classList.contains('collapsed');});
+  ids.forEach(function(id){var el=document.getElementById(id);if(el){if(anyExpanded)el.classList.add('collapsed');else el.classList.remove('collapsed');}});
+  var btn=document.getElementById('panel-collapse-btn');
+  if(btn)btn.querySelector('.material-icons-outlined').textContent=anyExpanded?'unfold_more':'unfold_less';
+  savePanelState();
+}
+
+// ── Quick search click → load item screen ──
+async function lookupByTitle(title){
+  var si=document.getElementById('panel-search');
+  if(si)si.value='';
+  var results=document.getElementById('panel-search-results');
+  if(results){results.innerHTML='';results.className='panel-search-results';}
+  showLoad('Loading '+title+'...');
+  try{
+    var safe=title.replace(/'/g,"''");
+    var sel='Id,Title,field_1,field_2,field_3,field_4,field_5,field_6,field_7,field_8,field_9,field_10,field_11,field_12,field_13';
+    var data=await spFetch(SP.lists.inventory,'?$top=1&$select='+sel+'&$filter='+encodeURIComponent("Title eq '"+safe+"'"));
+    var invRow=(data.value||data)[0]||null;
+    if(!invRow){hideLoad();showToast('Item not found',true);return;}
+    currentItem=invRow;
+    renderItem();hideLoad();goScreen('screen-item');
+  }catch(e){hideLoad();showToast('Load failed: '+(e.message||'').slice(0,50),true);}
+}
+
 window.addEventListener('load',function(){
   initAuth();
+  loadPanelState();
 });
 </script>
 </body>
