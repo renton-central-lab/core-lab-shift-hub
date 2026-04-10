@@ -658,22 +658,31 @@ async function restoreFromBackup(){
   try{
     var text=await fileInput.files[0].text();
     var data=JSON.parse(text);
-    if(!data.lists||!data.lists.ReagentInventory){throw new Error('Invalid backup file');}
-    var invRows=data.lists.ReagentInventory||[];
+    // Detect format: native dashboard backup vs Power Automate backup
+    var invRows=[];
+    if(data.lists&&data.lists.ReagentInventory){
+      // Native dashboard format
+      invRows=data.lists.ReagentInventory;
+      statusEl.textContent='Detected dashboard backup format...';
+    }else if(data.inventory){
+      // Power Automate format
+      invRows=data.inventory;
+      statusEl.textContent='Detected Power Automate backup format...';
+    }else{
+      throw new Error('Invalid backup file: no inventory data found. Expected "lists.ReagentInventory" or "inventory" key.');
+    }
     var restored=0,errors=0;
     statusEl.textContent='Restoring '+invRows.length+' inventory items...';
     for(var i=0;i<invRows.length;i++){
       try{
-        // Check if item exists by Title
         var safeTitle=(invRows[i].Title||'').replace(/'/g,"''");
+        if(!safeTitle)continue;
         var existing=await spFetch(SP.lists.inventory,"?$top=1&$select=Id,Title&$filter="+encodeURIComponent("Title eq '"+safeTitle+"'"));
         if(existing.length>0){
-          // Update existing
-          var fields={};for(var k in invRows[i]){if(k!=='Title'&&k!=='__metadata'&&k!=='Id')fields[k]=invRows[i][k];}
+          var fields={};for(var k in invRows[i]){if(k!=='Title'&&k!=='__metadata'&&k!=='Id'&&k!=='ID'&&!k.startsWith('odata')&&!k.startsWith('GUID'))fields[k]=invRows[i][k];}
           await spPatch(SP.lists.inventory,existing[0].Id,fields);
         }else{
-          // Create new
-          var fields={};for(var k in invRows[i]){if(k!=='__metadata'&&k!=='Id')fields[k]=invRows[i][k];}
+          var fields={};for(var k in invRows[i]){if(k!=='__metadata'&&k!=='Id'&&k!=='ID'&&!k.startsWith('odata')&&!k.startsWith('GUID'))fields[k]=invRows[i][k];}
           var dg=await getDigest(),mt=await getItemType(SP.lists.inventory);
           fields.__metadata={type:mt};
           var token=await getToken();
