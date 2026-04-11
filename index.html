@@ -1101,17 +1101,22 @@ var CATEGORIES = [
   'General Announcement'
 ];
 
+var _cachedToken = null;
+var _tokenExpiry = 0;
+
 async function initMSAL() {
   msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-  // Handle redirect response — fires after returning from Microsoft login
   try {
     var response = await msalInstance.handleRedirectPromise();
     if (response && response.account) {
       msalInstance.setActiveAccount(response.account);
+      if (response.accessToken) {
+        _cachedToken = response.accessToken;
+        _tokenExpiry = response.expiresOn ? response.expiresOn.getTime() : (Date.now() + 3600000);
+      }
       return response.account;
     }
   } catch(e) { console.error('Redirect error:', e); }
-  // Check if already signed in from cache
   var accounts = msalInstance.getAllAccounts();
   if (accounts.length > 0) {
     msalInstance.setActiveAccount(accounts[0]);
@@ -1121,18 +1126,17 @@ async function initMSAL() {
 }
 
 async function loginMSAL() {
-  // Use redirect instead of popup — no popup blocker issues
   await msalInstance.loginRedirect({
     scopes: ['https://uwnetid.sharepoint.com/AllSites.Write', 'User.Read']
   });
-  // Execution stops here — page redirects to Microsoft then back
-  // initMSAL will handle the response on return via handleRedirectPromise
 }
 
 async function getToken() {
+  if (_cachedToken && Date.now() < _tokenExpiry - 60000) {
+    return _cachedToken;
+  }
   var account = msalInstance.getActiveAccount();
   if (!account) {
-    // Try to get account from cache
     var accounts = msalInstance.getAllAccounts();
     if (accounts.length > 0) {
       account = accounts[0];
@@ -1144,33 +1148,17 @@ async function getToken() {
   try {
     var result = await msalInstance.acquireTokenSilent({
       scopes: ['https://uwnetid.sharepoint.com/AllSites.Write'],
-      account: account,
-      forceRefresh: false
+      account: account
     });
-    return result.accessToken;
+    _cachedToken = result.accessToken;
+    _tokenExpiry = result.expiresOn ? result.expiresOn.getTime() : (Date.now() + 3600000);
+    return _cachedToken;
   } catch(e) {
-    console.warn('Silent token failed, trying with forceRefresh:', e.message);
-    try {
-      var result2 = await msalInstance.acquireTokenSilent({
-        scopes: ['https://uwnetid.sharepoint.com/AllSites.Write'],
-        account: account,
-        forceRefresh: true
-      });
-      return result2.accessToken;
-    } catch(e2) {
-      console.warn('ForceRefresh failed, redirecting:', e2.message);
-      // Only redirect if we haven't already tried (prevent loop)
-      var lastRedirect = sessionStorage.getItem('sp-token-redirect');
-      var now = Date.now();
-      if (lastRedirect && (now - parseInt(lastRedirect)) < 30000) {
-        throw new Error('Token acquisition failed after redirect. Please clear site data and try again.');
-      }
-      sessionStorage.setItem('sp-token-redirect', String(now));
-      await msalInstance.acquireTokenRedirect({
-        scopes: ['https://uwnetid.sharepoint.com/AllSites.Write']
-      });
-      throw e2;
-    }
+    console.warn('Silent token failed, redirecting:', e.message);
+    await msalInstance.acquireTokenRedirect({
+      scopes: ['https://uwnetid.sharepoint.com/AllSites.Write']
+    });
+    throw e;
   }
 }
 
@@ -1650,6 +1638,7 @@ async function initAuth(){
     $('authStatus').textContent='Connecting to Microsoft 365...';
     var account=await initMSAL();
     authDbg('initMSAL='+(account?account.username:'null'));
+    authDbg('cached token='+(!!_cachedToken));
     if(!account){
       $('authStatus').textContent='Redirecting to sign-in...';
       authDbg('No account — calling loginMSAL redirect');
@@ -1660,70 +1649,48 @@ async function initAuth(){
     authDbg('spUser name='+spUser.name+' email='+spUser.email);
     authDbg('cached users='+Object.keys(users).join(',')||'(none)');
 
-    // Always set a fallback me from MSAL so nav works even if SP fails
-    var fallbackIni=spUser.name.split(' ').filter(Boolean).map(function(p){return p[0].toUpperCase();}).join('')||'U';
-    var isAdminAcct=(account.username||'').toLowerCase()==='jesusem@uw.edu';
-    if(!me){
-      me={initials:fallbackIni,fullName:spUser.name||spUser.email||'User',role:isAdminAcct?'MLS Lead':'MLS1',isAdmin:isAdminAcct};
-      authDbg('fallback me set: '+me.initials+' admin='+me.isAdmin);
-    }
-
-    // Show UI immediately — data loads in background
-    $('authBg').style.display='none';
-    setHubReady();
-    refreshUI();
-
     // ── FAST PATH ────────────────────────────────────────────────────
     var cachedIni=matchUser(spUser,users);
     authDbg('cachedIni='+cachedIni);
     if(cachedIni&&users[cachedIni]){
-      applyUser(cachedIni);
-      authDbg('fast-path applyUser me='+JSON.stringify(me&&{i:me.initials,admin:me.isAdmin}));
+      var ok=applyUser(cachedIni);
+      authDbg('fast-path applyUser='+ok+' me='+JSON.stringify(me&&{i:me.initials,admin:me.isAdmin}));
+      $('authBg').style.display='none';
       refreshUI();
       toast('Welcome back, '+me.fullName+'!'+(me.isAdmin?' · Admin':''));
       loadAllData().then(function(){
         if(users[ADMIN_INI]&&!users[ADMIN_INI].fullName)users[ADMIN_INI].fullName=_msalName||'Jesus Martinez';
         var freshIni=matchUser(spUser,users)||cachedIni;
         if(applyUser(freshIni)){lastSyncTime=new Date();uBD();refreshUI();renderAll();}
-      }).catch(function(e){
-        console.warn('BG sync failed:',e);
-        toast('SP data sync failed: '+(e.message||'').slice(0,50));
-      });
+      }).catch(function(e){console.warn('BG sync failed:',e);});
       return;
     }
 
     // ── SLOW PATH ─────────────────────────────────────────────────────
     $('authStatus').textContent='Loading data from SharePoint...';
     authDbg('slow path — loading SP data...');
-    try{
-      await loadAllData();
-      authDbg('SP loaded — users='+Object.keys(users).join(','));
-      var ini=matchUser(spUser,users);
-      authDbg('SP match ini='+ini);
-      if(!ini){
-        ini=fallbackIni;
-        var base=ini,num=2;while(users[ini]){ini=base+num;num++;}
-        users[ini]={fullName:spUser.name,role:'MLS1',isAdmin:isAdminAcct,nickname:'',picture:''};
-        authDbg('new user created: '+ini);
-        try{await spSaveUser(ini,users[ini]);}catch(e){authDbg('Save user failed: '+e.message);}
-      }
-      if(users[ini]&&!users[ini].fullName)users[ini].fullName=_msalName||spUser.name||ini;
-      applyUser(ini);
-      authDbg('me set: '+me.initials+' admin='+me.isAdmin);
-      lastSyncTime=new Date();uBD();
-      refreshUI();
-      toast('Signed in: '+me.fullName+' ['+me.initials+']'+(me.isAdmin?' · Admin':''));
-    }catch(spErr){
-      authDbg('SP load failed: '+spErr.message+' — using MSAL fallback');
-      toast('Signed in (offline mode). SP data unavailable.');
-      refreshUI();
+    await loadAllData();
+    authDbg('SP loaded — users='+Object.keys(users).join(','));
+    var ini=matchUser(spUser,users);
+    authDbg('SP match ini='+ini);
+    if(!ini){
+      ini=spUser.name.split(' ').filter(Boolean).map(function(p){return p[0].toUpperCase();}).join('');
+      var base=ini,num=2;while(users[ini]){ini=base+num;num++;}
+      users[ini]={fullName:spUser.name,role:'MLS1',isAdmin:(ini===ADMIN_INI),nickname:'',picture:''};
+      authDbg('new user created: '+ini);
+      await spSaveUser(ini,users[ini]);
     }
+    if(users[ini]&&!users[ini].fullName)users[ini].fullName=_msalName||spUser.name||ini;
+    if(!applyUser(ini)){throw new Error('User record missing after SP load for ini='+ini);}
+    authDbg('me set: '+me.initials+' admin='+me.isAdmin);
+    lastSyncTime=new Date();uBD();
+    $('authBg').style.display='none';
+    refreshUI();
+    toast('Signed in: '+me.fullName+' ['+ini+']'+(me.isAdmin?' · Admin':''));
   }catch(e){
     console.error('Auth failed:',e);
     authDbg('ERROR: '+e.message);
-    // Even on total failure, try to show the UI
-    setHubReady();
-    $('loginErr').textContent='Sign-in failed: '+(e.message||'Unknown error');
+    $('loginErr').textContent='Sign-in failed: '+(e.message||'Unknown error')+'. See debug info above.';
     $('loginErr').style.display='block';
     $('authStatus').textContent='Connection failed';
     var rb=$('authRetryBtn');if(rb)rb.style.display='inline-block';
