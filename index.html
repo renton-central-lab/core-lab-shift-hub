@@ -477,14 +477,25 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
 
   body{ overflow-x:hidden; }
 
-  /* Header: compact, hide subtitle */
-  .header{ height:var(--mob-header-h); padding:0 14px; }
+  /* ── HEADER: larger tap targets on mobile ── */
+  .header{ height:var(--mob-header-h);padding:0 14px; }
   .hdr-logo{ width:30px;height:30px; }
   .hdr-title{ font-size:14px; }
   .hdr-sub{ display:none; }
   #clockChip{ display:none; }
-  #backupChip{ padding:5px 7px; }
+  #backupChip{ padding:5px 8px; }
   #backupChip #backupTime{ display:none; }
+  /* Make avatar a proper touch target */
+  .av-hdr{
+    width:36px!important;height:36px!important;
+    font-size:12px!important;
+    -webkit-tap-highlight-color:transparent;
+    cursor:pointer;
+  }
+  .hdr-right{ gap:6px; }
+  /* Bell and logout buttons */
+  .bell-btn{ width:36px;height:36px; }
+  .logout-btn{ width:36px!important;height:36px!important; }
 
   /* Desktop nav tabs: hidden */
   .nav{ display:none!important; }
@@ -1447,7 +1458,7 @@ function fd(d){if(!d)return'';const[y,m,dy]=d.split('-');return m+'/'+dy+'/'+y;}
 function toast(m){const t=document.createElement('div');t.className='toast-msg';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3200);}
 function ln(i){const u=users[(i||'').toUpperCase()];return u?u.fullName:i;}
 function li(n){for(const[k,v]of Object.entries(users)){if(v.fullName===n)return k;}return'';}
-function isAdm(){return me&&users[me.initials]&&users[me.initials].isAdmin;}
+function isAdm(){return me&&(me.isAdmin||me.initials===ADMIN_INI||(users[me.initials]&&users[me.initials].isAdmin));}
 function isLead(){return me&&(ELEVATED.includes(me.role)||isAdm());}
 function ul(){return Object.entries(users).map(([i,u])=>({ini:i,name:u.fullName})).sort((a,b)=>a.name.localeCompare(b.name));}
 function canEdit(e){if(!me)return false;if(['Resolved','Escalated'].includes(e.status))return isLead();return isLead()||e.authorInitials===me.initials;}
@@ -1557,11 +1568,13 @@ async function initAuth(){
       await spSaveUser(ini,users[ini]);
     }
     var u=users[ini];
-    me={initials:ini,fullName:u.fullName,role:u.role};
+    // Always force admin rights for ADMIN_INI regardless of SP record
+    if(ini===ADMIN_INI){users[ini].isAdmin=true;u=users[ini];}
+    me={initials:ini,fullName:u.fullName,role:u.role,isAdmin:!!u.isAdmin};
     lastSyncTime=new Date();uBD();
     $('authBg').style.display='none';
     refreshUI();
-    toast('Welcome, '+u.fullName+' ('+ini+') - MS name: '+spUser.name);
+    toast('Signed in: '+u.fullName+' ['+ini+']'+(u.isAdmin?' · Admin':''));
   }catch(e){
     console.error('Auth failed:',e);
     $('loginErr').textContent='Authentication failed: '+(e.message||'Unknown error')+'. Make sure popups are allowed.';
@@ -1599,8 +1612,13 @@ setTimeout(function(){checkMandatoryReads();},300);}
 
 // === PROFILE ===
 function openProfile(){
-  if(!me)return;
+  if(!me){toast('Not signed in yet — please wait');return;}
   var u=users[me.initials];
+  if(!u){
+    // Fallback: create local user entry so profile still opens
+    u={fullName:me.fullName||me.initials,role:me.role||'MLS1',isAdmin:false,nickname:'',picture:''};
+    users[me.initials]=u;
+  }
   $('profNick').value=u.nickname||'';
   $('profInfo').textContent=me.initials+' / '+u.fullName+' / '+u.role+(u.isAdmin?' (Admin)':'');
   var p=$('profPicPreview');
