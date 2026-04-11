@@ -119,51 +119,46 @@ html,body{height:100%;font-family:var(--font-body);background:var(--surface);col
   .page-btn{width:32px;height:32px;font-size:16px;}
   .page-input{width:40px;height:32px;font-size:12px;}
 
-  /* ── Stock list: compact card rows ── */
+  /* ── Stock list: clean compact rows ── */
+  /* Row HTML order: [check?][name+sub][dept][type][stock][par][status][edit][editRow] */
+  /* On mobile: show check(if admin) + name + stock + status + edit only */
   .stock-list{border-radius:var(--radius);overflow:hidden;}
   .stock-list-hdr{display:none;}
   .stock-row-item,
   .stock-row-item.admin-cols{
     display:grid;
-    grid-template-columns:auto 1fr auto auto;
-    gap:0 8px;
-    padding:11px 12px;
+    grid-template-columns:1fr auto auto auto;
+    grid-template-rows:auto;
+    gap:0 8px;padding:10px 12px;
     align-items:center;
-    border-bottom:1px solid var(--outline-variant);
   }
-  /* Checkbox col — only when admin */
   .stock-row-item.admin-cols{
-    grid-template-columns:24px 1fr auto auto;
+    grid-template-columns:20px 1fr auto auto auto;
   }
-  .sri-check{width:16px;height:16px;}
-  /* Name takes col 2 */
-  .sri-name{grid-column:2;font-size:13px;}
-  .sri-sub{font-size:10px;color:var(--on-surface-variant);}
-  /* Hide dept/type on mobile */
-  .sri-dept,.sri-type{display:none;}
-  /* Stock number col 3 */
-  .sri-stock{
-    grid-column:3;
-    font-size:15px;font-weight:700;
-    display:flex;align-items:center;gap:4px;
-  }
-  /* Status pill col 4 */
-  .status-pill{font-size:8px;padding:2px 7px;}
-  /* Edit pencil: last col */
-  .edit-pencil{grid-column:4;width:26px;height:26px;}
-  /* For non-admin: push status to col 3, edit to col 4 */
-  .stock-row-item:not(.admin-cols) .status-pill{grid-column:3;}
-  .stock-row-item:not(.admin-cols) .edit-pencil{grid-column:4;}
-  .stock-row-item:not(.admin-cols) .sri-stock{grid-column:3;margin-right:6px;}
-
-  /* Better: use explicit col assignments via CSS */
-  .stock-row-item .status-pill{align-self:center;}
-
-  /* ── Inline edit row on mobile ── */
-  .sri-edit-row{grid-column:1/-1;}
-  .sri-edit-row.open{padding-top:8px;}
+  /* Col assignments for non-admin: name=1, dept=hide, type=hide, stock=2, par=hide, status=3, edit=4 */
+  .stock-row-item>div:nth-child(1){grid-column:1;} /* name */
+  .stock-row-item .sri-dept{display:none;}
+  .stock-row-item .sri-type{display:none;}
+  .stock-row-item .sri-stock{grid-column:2;font-size:13px;font-weight:700;white-space:nowrap;}
+  .stock-row-item .sri-par{display:none;}
+  .stock-row-item>div:nth-child(7){grid-column:3;} /* status */
+  .stock-row-item>button.edit-pencil,
+  .stock-row-item>.edit-pencil{grid-column:4;width:28px;height:28px;}
+  /* Admin cols: check=1, name=2, dept=hide, type=hide, stock=3, par=hide, status=4, edit=5 */
+  .stock-row-item.admin-cols .sri-check{grid-column:1;}
+  .stock-row-item.admin-cols>div:nth-child(2){grid-column:2;}
+  .stock-row-item.admin-cols .sri-stock{grid-column:3;}
+  .stock-row-item.admin-cols>div:nth-child(7){grid-column:4;}
+  .stock-row-item.admin-cols .edit-pencil{grid-column:5;}
+  /* Edit row spans full width */
+  .sri-edit-row{grid-column:1/-1;padding-top:8px;}
+  .sri-edit-row.open{padding-top:10px;}
   .sri-edit-grid{grid-template-columns:1fr 1fr;gap:6px;}
   .sri-ef input,.sri-ef select{font-size:13px;padding:6px 8px;}
+  .sri-check{width:16px;height:16px;margin:0;}
+  .status-pill{font-size:8px;padding:2px 7px;white-space:nowrap;}
+  .sri-name{font-size:13px;line-height:1.3;}
+  .sri-sub{font-size:10px;color:var(--on-surface-variant);}
 
   /* Save all bar */
   .save-all-bar{
@@ -276,6 +271,39 @@ html,body{height:100%;font-family:var(--font-body);background:var(--surface);col
   .mob-btn.active::before{width:56px;opacity:1;}
 }
 @media(min-width:900px){.mobile-nav{display:none!important;}}
+/* ── Mobile filter chips ── */
+.mob-filter-strip{
+  display:none;
+  overflow-x:auto;gap:6px;
+  padding:0 0 8px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  -ms-overflow-style:none;
+}
+.mob-filter-strip::-webkit-scrollbar{display:none;}
+.mob-filter-chip{
+  flex-shrink:0;padding:6px 14px;border-radius:999px;
+  font-size:12px;font-weight:600;font-family:var(--font);
+  border:1.5px solid var(--outline-variant);
+  background:var(--surface-lowest);color:var(--on-surface-variant);
+  cursor:pointer;white-space:nowrap;
+  transition:background var(--dur-short) var(--me-standard),
+             color var(--dur-short) var(--me-standard),
+             border-color var(--dur-short) var(--me-standard),
+             transform var(--dur-short) var(--me-spring);
+  -webkit-tap-highlight-color:transparent;
+}
+.mob-filter-chip:active{transform:scale(.95);}
+.mob-filter-chip.active{
+  background:var(--primary-container);
+  color:var(--on-primary-container);
+  border-color:var(--primary);font-weight:700;
+}
+.mob-filter-chip-sm{padding:4px 11px;font-size:11px;}
+
+@media(max-width:899px){
+  .mob-filter-strip{display:flex;}
+}
+
 select.filter-select{padding:6px 32px 6px 14px;border-radius:var(--radius-full);font-size:12px;font-weight:600;font-family:var(--font);border:1.5px solid var(--outline-variant);background:var(--surface-lowest);color:var(--on-surface-variant);outline:none;cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23757870' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color var(--dur-short) var(--me-standard)}
 select.filter-select:focus{border-color:var(--primary);outline:none}
 
@@ -582,6 +610,24 @@ input[type=number]{-moz-appearance:textfield}
     </div>
     <div class="content" id="content">
       <div class="view active" id="view-stock">
+        <!-- Mobile dept + type filter chips (hidden on desktop) -->
+        <div class="mob-filter-strip" id="mob-dept-strip">
+          <button class="mob-filter-chip active" onclick="mobDeptFilter(this,'')">All</button>
+          <button class="mob-filter-chip" onclick="mobDeptFilter(this,'Chemistry')">Chemistry</button>
+          <button class="mob-filter-chip" onclick="mobDeptFilter(this,'Hematology')">Hematology</button>
+          <button class="mob-filter-chip" onclick="mobDeptFilter(this,'Coagulation')">Coagulation</button>
+          <button class="mob-filter-chip" onclick="mobDeptFilter(this,'Urinalysis')">Urinalysis</button>
+          <button class="mob-filter-chip" onclick="mobDeptFilter(this,'Laboratory Supplies')">Lab Supplies</button>
+          <button class="mob-filter-chip" onclick="mobDeptFilter(this,'Office Supplies')">Office Supplies</button>
+        </div>
+        <div class="mob-filter-strip" id="mob-type-strip" style="margin-top:-4px">
+          <button class="mob-filter-chip mob-filter-chip-sm active" onclick="mobTypeFilter(this,'')">All Types</button>
+          <button class="mob-filter-chip mob-filter-chip-sm" onclick="mobTypeFilter(this,'Reagent')">Reagent</button>
+          <button class="mob-filter-chip mob-filter-chip-sm" onclick="mobTypeFilter(this,'QC Material')">QC</button>
+          <button class="mob-filter-chip mob-filter-chip-sm" onclick="mobTypeFilter(this,'Calibrator')">Calibrator</button>
+          <button class="mob-filter-chip mob-filter-chip-sm" onclick="mobTypeFilter(this,'Supply')">Supply</button>
+          <button class="mob-filter-chip mob-filter-chip-sm" onclick="mobTypeFilter(this,'Part')">Part</button>
+        </div>
         <div class="summary-bar" id="summary-bar"></div>
         <div class="page-controls" id="page-controls">
           <span class="page-info" id="page-info"></span>
@@ -715,7 +761,7 @@ function deptMatch(rowDept,filterDept){
 function iv(r,k){return r[INV[k]||k];}
 var msalInstance=null,spToken=null,spTokenExpiry=0,isAdmin=false,adminMode=false;
 var allInventory=[],allLogs=[],_listTypes={};
-var stockPage=1,ITEMS_PER_PAGE=25,statusFilter=null,pendingEdits={};
+var stockPage=1,ITEMS_PER_PAGE=window.innerWidth<=899?15:25,statusFilter=null,pendingEdits={};
 var subDept='',subType='',bulkSelected={};
 var viewDept='';
 var miniCharts={};
@@ -783,6 +829,18 @@ function subFilter(kind,val){
     if(kind==='dept'&&oc.indexOf("'dept'")>=0){b.classList.toggle('active',oc.indexOf("'"+val+"'")>=0||(val===''&&oc.indexOf("''")>=0));}
     if(kind==='type'&&oc.indexOf("'type'")>=0){b.classList.toggle('active',oc.indexOf("'"+val+"'")>=0||(val===''&&oc.indexOf("''")>=0));}
   });}
+  stockPage=1;renderAll();
+}
+function mobDeptFilter(btn,val){
+  subDept=val;
+  document.querySelectorAll('#mob-dept-strip .mob-filter-chip').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  stockPage=1;renderAll();
+}
+function mobTypeFilter(btn,val){
+  subType=val;
+  document.querySelectorAll('#mob-type-strip .mob-filter-chip').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
   stockPage=1;renderAll();
 }
 function applyFilters(){stockPage=1;renderAll();}
