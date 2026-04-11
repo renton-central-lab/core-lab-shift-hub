@@ -103,6 +103,17 @@ tbody tr{border-bottom:1px solid var(--g100);transition:background var(--dur-mic
 /* Section headers */
 /* Section headers — see Sections below */
 .sec-hdr .mi{transition:transform var(--dur-med) var(--me-emphasized);}
+
+/* CAP field show/hide — uses display:none to avoid grid gap artifacts */
+.cap-field{display:none;overflow:hidden;opacity:0;max-height:0;pointer-events:none;}
+.cap-field.cap-visible{display:flex;flex-direction:column;gap:3px;
+  transition:max-height var(--dur-long) var(--me-emphasized),opacity var(--dur-med) var(--me-decelerate);}
+.cap-field.cap-show{opacity:1;max-height:200px;pointer-events:auto;}
+.cap-field.full.cap-visible{display:flex;}
+.cap-divider{display:none;overflow:hidden;opacity:0;max-height:0;pointer-events:none;}
+.cap-divider.cap-visible{display:block;
+  transition:max-height var(--dur-med) var(--me-emphasized),opacity var(--dur-med) var(--me-decelerate),margin var(--dur-med) var(--me-emphasized);}
+.cap-divider.cap-show{opacity:1;max-height:30px;margin-top:4px;margin-bottom:4px;pointer-events:auto;}
 /* Push notification toggle */
 .push-toggle{position:relative;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background var(--dur-short) var(--me-standard),transform var(--dur-short) var(--me-spring),color var(--dur-short) var(--me-standard);color:rgba(255,255,255,.4);-webkit-tap-highlight-color:transparent;user-select:none;}
 .push-toggle:hover{background:rgba(255,255,255,.2);transform:scale(1.08);}
@@ -747,9 +758,17 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   .msr-review-card .msr-stat{ font-size:9px;padding:2px 6px; }
 
   /* ── CAP FIELDS: mobile form adjustments ── */
-  .form-divider[style*="dashed"] span{
+  .cap-divider span{
     font-size:8px!important;
     padding:0 6px!important;
+  }
+  .cap-field.cap-show{
+    max-height:260px;/* taller for mobile textareas with 15px font */
+  }
+  .cap-field.cap-visible select,
+  .cap-field.cap-visible input,
+  .cap-field.cap-visible textarea{
+    font-size:15px;padding:10px 12px;
   }
 
   /* ── CAP detail in mobile cards ── */
@@ -1073,15 +1092,15 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   <div class="form-item"><label>Priority *</label><select id="ePri"><option value="">Select...</option><option>High</option><option>Medium</option><option>Low</option></select></div>
   <div class="form-item full"><label>Description *</label><textarea id="eDesc"></textarea></div>
   <div class="form-item full"><label>Action Taken</label><textarea id="eAction"></textarea></div>
-  <div class="form-divider" style="margin:4px 0;border-top:1.5px dashed var(--g200);position:relative;"><span style="position:absolute;top:-8px;left:12px;background:var(--white);padding:0 8px;font-size:9px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;">CAP Compliance Fields</span></div>
-  <div class="form-item"><label id="lbl-actionType">Action Type *</label><select id="eActionType" onchange="updateCapRequired()"><option value="">Select...</option><option>Corrective</option><option>Preventive</option><option>Corrective + Preventive</option><option>None Required</option></select></div>
-  <div class="form-item"><label id="lbl-instrument">Instrument / System</label><input type="text" id="eInstrument" placeholder="e.g., Sysmex XN-1, STA-R Max 3"></div>
-  <div class="form-item"><label id="lbl-reagentLot">Reagent Lot #</label><input type="text" id="eReagentLot" placeholder="e.g., LOT-2026-001"></div>
-  <div class="form-item"><label id="lbl-testSystem">Test System</label><input type="text" id="eTestSystem" placeholder="e.g., CBC, PT/INR, BMP"></div>
-  <div class="form-item full"><label id="lbl-rootCause">Root Cause Analysis</label><textarea id="eRootCause" placeholder="Document the root cause identified through investigation..." style="min-height:50px;"></textarea></div>
-  <div class="form-item"><label id="lbl-effReviewDate">Effectiveness Review Due</label><input type="date" id="eEffReviewDate"></div>
-  <div class="form-item"><label>Effectiveness Verified</label><select id="eEffVerified"><option value="">Not Yet Reviewed</option><option>Effective</option><option>Partially Effective</option><option>Not Effective</option><option>N/A</option></select></div>
-  <div class="form-item full" id="effNotesWrap"><label>Effectiveness Notes</label><textarea id="eEffNotes" placeholder="Document how effectiveness was evaluated..." style="min-height:36px;"></textarea></div>
+  <div class="form-divider cap-divider" id="capDivider" style="border-top:1.5px dashed var(--g200);position:relative;"><span style="position:absolute;top:-8px;left:12px;background:var(--white);padding:0 8px;font-size:9px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;">CAP Compliance Fields</span></div>
+  <div class="form-item cap-field" id="wrap-actionType"><label id="lbl-actionType">Action Type *</label><select id="eActionType" onchange="updateCapRequired()"><option value="">Select...</option><option>Corrective</option><option>Preventive</option><option>Corrective + Preventive</option><option>None Required</option></select></div>
+  <div class="form-item cap-field" id="wrap-instrument"><label id="lbl-instrument">Instrument / System</label><input type="text" id="eInstrument" placeholder="e.g., Sysmex XN-1, STA-R Max 3"></div>
+  <div class="form-item cap-field" id="wrap-reagentLot"><label id="lbl-reagentLot">Reagent Lot #</label><input type="text" id="eReagentLot" placeholder="e.g., LOT-2026-001"></div>
+  <div class="form-item cap-field" id="wrap-testSystem"><label id="lbl-testSystem">Test System</label><input type="text" id="eTestSystem" placeholder="e.g., CBC, PT/INR, BMP"></div>
+  <div class="form-item full cap-field" id="wrap-rootCause"><label id="lbl-rootCause">Root Cause Analysis</label><textarea id="eRootCause" placeholder="Document the root cause identified through investigation..." style="min-height:50px;"></textarea></div>
+  <div class="form-item cap-field" id="wrap-effReviewDate"><label id="lbl-effReviewDate">Effectiveness Review Due</label><input type="date" id="eEffReviewDate"></div>
+  <div class="form-item cap-field" id="wrap-effVerified"><label>Effectiveness Verified</label><select id="eEffVerified"><option value="">Not Yet Reviewed</option><option>Effective</option><option>Partially Effective</option><option>Not Effective</option><option>N/A</option></select></div>
+  <div class="form-item full cap-field" id="wrap-effNotes"><label>Effectiveness Notes</label><textarea id="eEffNotes" placeholder="Document how effectiveness was evaluated..." style="min-height:36px;"></textarea></div>
   <div class="form-item full"><label>Attachments</label><div class="attach-area"><input type="file" id="eFiles" accept="image/*" multiple onchange="handleAttach(event)" style="font-size:10px;"><div class="attach-preview" id="attachPreview"></div></div></div>
   <div class="form-divider"></div>
   <div class="form-item"><label>Status</label><select id="eStatus" onchange="onStatusChange()"><option>Open</option><option>In Progress</option><option>Resolved</option><option>Escalated</option></select></div>
@@ -2688,16 +2707,46 @@ function renderMobileLog(){
 function renderAll(){renderDash();renderAnn();renderLog();if(window.innerWidth<=600)setTimeout(renderMobileLog,50);}
 
 // === CAP CONDITIONAL REQUIRED FIELDS ===
-function getCapRequirements(category){
-  var r={actionType:true,instrument:false,reagentLot:false,testSystem:false,rootCause:false,effReviewDate:false};
+// Visibility: which fields SHOW based on category
+// Required: which visible fields are MANDATORY
+function getCapVisibility(category){
+  var v={actionType:false,instrument:false,reagentLot:false,testSystem:false,rootCause:false,effReviewDate:false,effVerified:false,effNotes:false};
   var c=category||'';
+  // Administrative categories: hide everything
+  if(c===''||c==='Staffing Note'||c==='Training / Competency'||c==='General Announcement'||c==='Follow-Up Item')return v;
+  // All analytical/operational categories get Action Type
+  v.actionType=true;
+  if(c==='Instrument Issue'||c==='Instrument Downtime'){v.instrument=true;v.testSystem=true;v.rootCause=true;}
+  else if(c==='QC Flag / Failure'||c==='QC Corrective Action'){v.instrument=true;v.reagentLot=true;v.testSystem=true;v.rootCause=true;}
+  else if(c==='Calibration'){v.instrument=true;v.reagentLot=true;v.testSystem=true;}
+  else if(c.indexOf('Maintenance')>=0){v.instrument=true;}
+  else if(c==='Reagent / Supply Issue'){v.reagentLot=true;v.rootCause=true;}
+  else if(c==='Safety / Incident'){v.rootCause=true;v.instrument=true;}
+  else if(c==='Specimen / Pre-analytical'){v.rootCause=true;v.testSystem=true;}
+  else if(c==='Critical Value / Result Review'){v.instrument=true;v.testSystem=true;}
+  else if(c==='Process / Workflow Issue'){v.rootCause=true;}
+  else if(c==='IT / LIS Issue'){v.rootCause=true;}
+  else if(c==='Pending — Action Required'){v.instrument=true;v.rootCause=true;}
+  // Effectiveness fields: show when a CAPA action type is selected
+  var at=($('eActionType')?$('eActionType').value:'')||'';
+  if(at==='Corrective'||at==='Preventive'||at==='Corrective + Preventive'){v.effReviewDate=true;v.effVerified=true;v.effNotes=true;}
+  return v;
+}
+
+function getCapRequirements(category){
+  var r={actionType:false,instrument:false,reagentLot:false,testSystem:false,rootCause:false,effReviewDate:false};
+  var c=category||'';
+  // No requirements for admin categories
+  if(c===''||c==='Staffing Note'||c==='Training / Competency'||c==='General Announcement'||c==='Follow-Up Item')return r;
+  // Action Type always required when visible
+  r.actionType=true;
   if(c==='Instrument Issue'||c==='Instrument Downtime'){r.instrument=true;r.testSystem=true;r.rootCause=true;}
   else if(c==='QC Flag / Failure'||c==='QC Corrective Action'){r.instrument=true;r.reagentLot=true;r.testSystem=true;r.rootCause=true;}
   else if(c==='Calibration'){r.instrument=true;r.reagentLot=true;r.testSystem=true;}
   else if(c.indexOf('Maintenance')>=0){r.instrument=true;}
   else if(c==='Reagent / Supply Issue'){r.reagentLot=true;r.rootCause=true;}
   else if(c==='Safety / Incident'){r.rootCause=true;}
-  // Effectiveness review required when a CAPA is documented
+  // Effectiveness review required when CAPA
   var at=($('eActionType')?$('eActionType').value:'')||'';
   if(at==='Corrective'||at==='Preventive'||at==='Corrective + Preventive'){r.effReviewDate=true;}
   return r;
@@ -2705,55 +2754,81 @@ function getCapRequirements(category){
 
 function updateCapRequired(){
   var cat=($('eCat')?$('eCat').value:'')||'';
-  var r=getCapRequirements(cat);
+  var vis=getCapVisibility(cat);
+  var req=getCapRequirements(cat);
 
-  var fields=[
-    {id:'lbl-actionType',key:'actionType'},
-    {id:'lbl-instrument',key:'instrument'},
-    {id:'lbl-reagentLot',key:'reagentLot'},
-    {id:'lbl-testSystem',key:'testSystem'},
-    {id:'lbl-rootCause',key:'rootCause'},
-    {id:'lbl-effReviewDate',key:'effReviewDate'}
-  ];
-
-  fields.forEach(function(f){
-    var lbl=$(f.id);if(!lbl)return;
-    var baseName=lbl.textContent.replace(/\s*\*$/,'').replace(/\s*\(required\)$/,'');
-    if(r[f.key]){
-      lbl.innerHTML=baseName+' <span style="color:var(--red);font-weight:700;">*</span>';
+  // Show/hide the divider
+  var divider=$('capDivider');
+  var anyVisible=Object.values(vis).some(function(v){return v;});
+  if(divider){
+    if(anyVisible){
+      divider.classList.add('cap-visible');
+      requestAnimationFrame(function(){requestAnimationFrame(function(){divider.classList.add('cap-show');});});
     }else{
-      lbl.textContent=baseName;
+      divider.classList.remove('cap-show');
+      setTimeout(function(){if(!divider.classList.contains('cap-show'))divider.classList.remove('cap-visible');},350);
     }
-  });
+  }
 
-  // Highlight required empty fields with subtle border
+  // Field visibility map
+  var wrapMap={
+    actionType:'wrap-actionType',instrument:'wrap-instrument',reagentLot:'wrap-reagentLot',
+    testSystem:'wrap-testSystem',rootCause:'wrap-rootCause',effReviewDate:'wrap-effReviewDate',
+    effVerified:'wrap-effVerified',effNotes:'wrap-effNotes'
+  };
+
+  var delay=0;
+  for(var key in wrapMap){
+    var wrap=$(wrapMap[key]);if(!wrap)continue;
+    if(vis[key]){
+      (function(w,d){
+        w.classList.add('cap-visible');
+        setTimeout(function(){requestAnimationFrame(function(){w.classList.add('cap-show');});},d);
+      })(wrap,delay);
+      delay+=40;// stagger each field by 40ms
+    }else{
+      wrap.classList.remove('cap-show');
+      (function(w){setTimeout(function(){if(!w.classList.contains('cap-show'))w.classList.remove('cap-visible');},350);})(wrap);
+    }
+  }
+
+  // Required indicators on labels
+  var labelMap={
+    actionType:'lbl-actionType',instrument:'lbl-instrument',reagentLot:'lbl-reagentLot',
+    testSystem:'lbl-testSystem',rootCause:'lbl-rootCause',effReviewDate:'lbl-effReviewDate'
+  };
+  for(var key in labelMap){
+    var lbl=$(labelMap[key]);if(!lbl)continue;
+    var baseName=lbl.textContent.replace(/\s*\*$/,'');
+    if(req[key]){lbl.innerHTML=baseName+' <span style="color:var(--red);font-weight:700;">*</span>';}
+    else{lbl.textContent=baseName;}
+  }
+
+  // Amber border on required empty fields
   var inputMap={instrument:'eInstrument',reagentLot:'eReagentLot',testSystem:'eTestSystem',rootCause:'eRootCause',effReviewDate:'eEffReviewDate',actionType:'eActionType'};
   for(var key in inputMap){
-    var el=$(inputMap[key]);
-    if(!el)continue;
-    if(r[key]&&!el.value.trim()){
-      el.style.borderColor='var(--amber)';
-    }else{
-      el.style.borderColor='';
-    }
+    var el=$(inputMap[key]);if(!el)continue;
+    if(vis[key]&&req[key]&&!el.value.trim()){el.style.borderColor='var(--amber)';}
+    else{el.style.borderColor='';}
   }
 }
 
 function validateCapFields(){
   var cat=($('eCat')?$('eCat').value:'')||'';
+  var vis=getCapVisibility(cat);
   var r=getCapRequirements(cat);
   var missing=[];
 
-  if(r.actionType&&!$('eActionType').value)missing.push('Action Type');
-  if(r.instrument&&!$('eInstrument').value.trim())missing.push('Instrument / System');
-  if(r.reagentLot&&!$('eReagentLot').value.trim())missing.push('Reagent Lot #');
-  if(r.testSystem&&!$('eTestSystem').value.trim())missing.push('Test System');
-  if(r.rootCause&&!$('eRootCause').value.trim())missing.push('Root Cause Analysis');
-  if(r.effReviewDate&&!$('eEffReviewDate').value)missing.push('Effectiveness Review Due Date');
+  // Only validate fields that are VISIBLE and REQUIRED
+  if(vis.actionType&&r.actionType&&!$('eActionType').value)missing.push('Action Type');
+  if(vis.instrument&&r.instrument&&!$('eInstrument').value.trim())missing.push('Instrument / System');
+  if(vis.reagentLot&&r.reagentLot&&!$('eReagentLot').value.trim())missing.push('Reagent Lot #');
+  if(vis.testSystem&&r.testSystem&&!$('eTestSystem').value.trim())missing.push('Test System');
+  if(vis.rootCause&&r.rootCause&&!$('eRootCause').value.trim())missing.push('Root Cause Analysis');
+  if(vis.effReviewDate&&r.effReviewDate&&!$('eEffReviewDate').value)missing.push('Effectiveness Review Due Date');
 
   if(missing.length>0){
     toast('CAP required: '+missing.join(', '));
-    // Highlight the missing fields
     var inputMap={
       'Action Type':'eActionType','Instrument / System':'eInstrument',
       'Reagent Lot #':'eReagentLot','Test System':'eTestSystem',
