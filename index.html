@@ -132,7 +132,7 @@ select:focus,input[type="text"]:focus,input[type="date"]:focus,input[type="time"
 .bell-btn:hover{background:rgba(255,255,255,.2);color:var(--white);}
 .bell-badge{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;background:var(--red);color:var(--white);font-size:9px;font-weight:700;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 4px;}
 .bell-badge.show{display:flex;}
-.bell-drop{display:none;position:absolute;top:calc(100% + 8px);right:0;width:360px;background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);box-shadow:var(--shadow-3);z-index:200;overflow:hidden;}
+.bell-drop{display:none;position:fixed;top:60px;right:20px;width:360px;background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);box-shadow:var(--shadow-3);z-index:200;overflow:hidden;}
 .bell-drop.show{display:block;}
 .bell-drop-hdr{padding:10px 14px;border-bottom:1px solid var(--g200);background:var(--g50);display:flex;align-items:center;justify-content:space-between;}
 .bell-drop-hdr h4{font-size:12px;font-weight:700;color:var(--navy);}
@@ -511,9 +511,8 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   .page.active{ animation:mobPageIn var(--dur-med) var(--me-decelerate) both; }
   @keyframes mobPageIn{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
-  /* ── BOTTOM NAV ── */
+  /* ── BOTTOM NAV: JS controls display, CSS controls style ── */
   .mob-bottom-nav{
-    display:flex!important;
     position:fixed;bottom:0;left:0;right:0;
     height:var(--mob-nav-h);
     padding-bottom:var(--mob-safe-b);
@@ -521,6 +520,7 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
     border-top:1px solid var(--g200);
     box-shadow:0 -2px 20px rgba(28,26,22,.08);
     z-index:90;
+    /* display controlled by JS refreshUI() */
   }
   .mob-nav-btn{
     flex:1;display:flex;flex-direction:column;align-items:center;
@@ -542,9 +542,8 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   }
   .mob-nav-btn.active::before{ width:54px;opacity:1; }
 
-  /* ── FAB ── */
+  /* ── FAB: JS controls display ── */
   .mob-fab{
-    display:flex!important;
     position:fixed;
     bottom:calc(var(--mob-nav-h) + var(--mob-safe-b) + 14px);
     right:16px;
@@ -785,10 +784,6 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   .tbl-scroll{ overflow-x:auto; }
 }
 
-/* ── Shared: always hide desktop nav on mobile ── */
-@media(max-width:600px){
-  .mob-log-cards{ display:flex; }
-}
 </head>
 <body>
 
@@ -816,10 +811,6 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
     <div class="bell-btn" id="bellBtn" onclick="toggleBell(event)">
       <span class="mi" style="font-size:18px;">notifications</span>
       <div class="bell-badge" id="bellBadge">0</div>
-      <div class="bell-drop" id="bellDrop">
-        <div class="bell-drop-hdr"><h4>Notifications</h4><button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="markAllRead(event)">Mark all read</button></div>
-        <div class="bell-list" id="bellList"></div>
-      </div>
     </div>
     <div class="av av-hdr" id="hdrAvatar" onclick="openProfile()" title="Profile" style="cursor:pointer"></div>
     <button class="logout-btn" onclick="doLogout()" title="Sign Out" style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;"><span class="mi" style="font-size:18px;">logout</span></button>
@@ -1508,7 +1499,7 @@ function nLeads(tp,ti,de,eid){Object.entries(users).forEach(([i,u])=>{if((ELEVAT
 function myN(){return me?(notifs[me.initials]||[]):[];}
 function uBell(){const c=myN().filter(n=>!n.read).length;const b=$('bellBadge');if(c>0){b.classList.add('show');b.textContent=c;}else b.classList.remove('show');}
 function toggleBell(e){e.stopPropagation();$('bellDrop').classList.toggle('show');rBL();}
-document.addEventListener('click',e=>{if(!e.target.closest('#bellBtn'))$('bellDrop').classList.remove('show');});
+document.addEventListener('click',e=>{if(!e.target.closest('#bellBtn')&&!e.target.closest('#bellDrop'))$('bellDrop').classList.remove('show');});
 function rBL(){
   const l=$('bellList'),ns=myN();
   if(!ns.length){l.innerHTML='<div class="bell-empty"><span class="mi" style="font-size:28px;display:block;margin-bottom:6px;">notifications_none</span>No notifications</div>';return;}
@@ -1589,16 +1580,25 @@ function refreshUI(){
   $('navAdmin').style.display=isAdm()?'flex':'none';
   $('clearHistBtn').style.display=isAdm()?'inline-flex':'none';
   $('annBtn').style.display=isLead()?'inline-flex':'none';
-  // Mobile nav
+  // Mobile nav — force display via setProperty to override any CSS
   var isMob=window.innerWidth<=600;
   var mobNav=$('mobBottomNav');
-  if(mobNav)mobNav.style.display=isMob?'flex':'none';
+  if(mobNav){
+    if(isMob){mobNav.style.setProperty('display','flex','important');}
+    else{mobNav.style.display='none';}
+  }
   var mobAdm=$('mobAdmin');
   if(mobAdm)mobAdm.style.display=isAdm()?'flex':'none';
   var mobFab=$('mobFab');
   var curP=document.querySelector('.page.active');
   var curPId=curP?curP.id:'';
-  if(mobFab)mobFab.style.display=(isMob&&(curPId==='pageLog'||curPId==='pageAnn'))?'flex':'none';
+  if(mobFab){
+    if(isMob&&(curPId==='pageLog'||curPId==='pageAnn')){
+      mobFab.style.setProperty('display','flex','important');
+    }else{
+      mobFab.style.display='none';
+    }
+  }
   renderAll();
 
 // Restore last tab, but reset to announcements on new day
@@ -1905,9 +1905,14 @@ function switchPage(p){
   ['Ann','Dash','Log','Audit','Admin'].forEach(function(n){
     var el=$('mob'+n);if(el)el.classList.toggle('active',p===n.toLowerCase());
   });
-  // Show/hide FAB (only on log and ann pages)
+  // Show/hide FAB (only on log and ann pages, only on mobile)
   var fab=$('mobFab');
-  if(fab)fab.style.display=(p==='log'||p==='ann')?'flex':'none';
+  if(fab){
+    var isMob=window.innerWidth<=600;
+    var showFab=isMob&&(p==='log'||p==='ann');
+    if(showFab){fab.style.setProperty('display','flex','important');}
+    else{fab.style.display='none';}
+  }
   try{localStorage.setItem('rcl7_lastTab',p);localStorage.setItem('rcl7_lastTabDate',new Date().toISOString().split('T')[0]);}catch(e){}
 }
 
@@ -2420,6 +2425,12 @@ setInterval(async function(){try{await loadAllData();lastSyncTime=new Date();uBD
 startApp();
 
 </script>
+<!-- BELL DROPDOWN (outside header for correct fixed positioning) -->
+<div class="bell-drop" id="bellDrop">
+  <div class="bell-drop-hdr"><h4>Notifications</h4><button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="markAllRead(event)">Mark all read</button></div>
+  <div class="bell-list" id="bellList"></div>
+</div>
+
 <!-- MOBILE BOTTOM NAV -->
 <nav class="mob-bottom-nav" id="mobBottomNav" style="display:none">
   <button class="mob-nav-btn active" id="mobAnn" onclick="switchPage('ann')">
