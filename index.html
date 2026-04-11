@@ -441,20 +441,46 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
 /* Audit */
 .aud-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
 .aud-header h2{font-size:16px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:6px;}
-.aud-day{margin-bottom:14px;}
+.aud-filters{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.aud-search{min-width:160px;padding:5px 10px 5px 30px;border-radius:20px;font-size:11px;border:1px solid var(--g300);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ea4b0' viewBox='0 0 24 24'%3E%3Cpath d='M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E") no-repeat 9px center;outline:none;transition:border-color var(--dur-short) var(--me-standard),box-shadow var(--dur-short) var(--me-standard);}
+.aud-search:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,121,107,.1);}
+.aud-day{margin-bottom:14px;animation:sectionIn var(--dur-med) var(--me-decelerate) both;}
 .aud-day-hdr{background:var(--teal);color:var(--white);padding:10px 14px;border-radius:var(--rl) var(--rl) 0 0;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:space-between;}
 .aud-day-hdr .day-cnt{font-size:10px;font-weight:500;opacity:.6;}
 .aud-entries{background:var(--white);border:1px solid var(--g200);border-top:none;border-radius:0 0 var(--r) var(--r);}
-.aud-entry{padding:7px 12px;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:flex-start;font-size:11px;}
-.aud-entry:last-child{border-bottom:none;}.aud-entry:hover{background:var(--g50);}
-.aud-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.aud-entry{padding:8px 12px;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:flex-start;font-size:11px;
+  transition:background var(--dur-micro) var(--me-standard);}
+.aud-entry:last-child{border-bottom:none;}
+.aud-entry:hover{background:var(--g50);}
+.aud-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
 .aud-dot.add{background:var(--teal);}.aud-dot.edit{background:var(--amber);}.aud-dot.delete{background:var(--red);}
-.aud-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--g400);width:58px;flex-shrink:0;}
+.aud-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--g400);width:58px;flex-shrink:0;margin-top:1px;}
 .aud-user{font-weight:700;color:var(--navy);min-width:42px;flex-shrink:0;font-size:10px;}
 .aud-type{font-size:8px;font-weight:700;text-transform:uppercase;padding:1px 5px;border-radius:3px;flex-shrink:0;}
 .aud-type.add{background:#d6f5e8;color:var(--green);}.aud-type.edit{background:#fef3c7;color:var(--amber);}.aud-type.delete{background:#fbe2e2;color:var(--red);}
-.aud-text{color:var(--g600);line-height:1.3;flex:1;font-size:10px;}
-.aud-edit-btn{background:none;border:1px solid var(--g300);border-radius:3px;padding:1px 5px;font-size:8px;cursor:pointer;color:var(--g500);font-family:inherit;}
+.aud-body{flex:1;min-width:0;}
+.aud-text{color:var(--g700);line-height:1.4;font-size:11px;font-weight:600;}
+.aud-detail{color:var(--g500);font-size:10px;line-height:1.3;margin-top:2px;}
+.aud-entry-link{font-size:9px;color:var(--teal);font-weight:600;cursor:pointer;margin-top:2px;display:inline-flex;align-items:center;gap:2px;}
+.aud-entry-link:hover{text-decoration:underline;}
+.aud-changes{margin-top:6px;padding:6px 8px;background:var(--g50);border-radius:var(--r);border:1px solid var(--g200);display:none;
+  animation:capRowIn var(--dur-med) var(--me-decelerate) both;}
+.aud-changes.show{display:block;}
+.aud-change-row{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid var(--g100);font-size:10px;align-items:flex-start;}
+.aud-change-row:last-child{border-bottom:none;}
+.aud-change-field{font-weight:700;color:var(--navy);min-width:80px;flex-shrink:0;font-size:9px;text-transform:uppercase;letter-spacing:.03em;}
+.aud-change-from{color:var(--red);text-decoration:line-through;flex:1;min-width:0;word-break:break-word;}
+.aud-change-arrow{color:var(--g400);flex-shrink:0;font-size:12px;}
+.aud-change-to{color:var(--green);font-weight:600;flex:1;min-width:0;word-break:break-word;}
+.aud-toggle-btn{background:none;border:1px solid var(--g300);border-radius:3px;padding:1px 6px;font-size:8px;cursor:pointer;color:var(--teal);font-family:inherit;font-weight:600;
+  transition:background var(--dur-short) var(--me-standard),color var(--dur-short) var(--me-standard);}
+.aud-toggle-btn:hover{background:var(--teal-bg);color:var(--teal);}
+.aud-meta{display:flex;gap:6px;align-items:center;margin-top:3px;font-size:9px;color:var(--g400);}
+.aud-actions{display:flex;gap:4px;flex-shrink:0;margin-left:auto;align-self:flex-start;}
+.aud-edit-btn{background:none;border:1px solid var(--g300);border-radius:3px;padding:2px 6px;font-size:8px;cursor:pointer;color:var(--g500);font-family:inherit;
+  transition:background var(--dur-short) var(--me-standard),color var(--dur-short) var(--me-standard),transform var(--dur-short) var(--me-spring);}
+.aud-edit-btn:hover{background:var(--teal-bg);color:var(--teal);transform:scale(1.05);}
+.aud-edit-btn:active{transform:scale(.92);}
 
 /* Month tabs */
 .month-tabs{display:flex;gap:2px;margin-bottom:4px;overflow-x:auto;padding-bottom:3px;}
@@ -726,11 +752,20 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
 
   /* ── AUDIT PAGE ── */
   .aud-header{ flex-direction:column;align-items:flex-start;gap:8px; }
+  .aud-filters{ width:100%;flex-wrap:wrap; }
+  .aud-search{ width:100%;min-width:0; }
+  .aud-filters select{ flex:1;min-width:80px; }
   .aud-day-hdr{ padding:8px 12px;font-size:10px; }
-  .aud-entry{ padding:7px 10px; }
-  .aud-time{ width:48px;font-size:8px; }
-  .aud-user{ min-width:30px;font-size:9px; }
+  .aud-entry{ padding:8px 10px;flex-wrap:wrap;gap:6px; }
+  .aud-time{ width:auto;font-size:8px; }
+  .aud-body{ width:100%;min-width:0; }
   .aud-text{ font-size:10px; }
+  .aud-detail{ font-size:9px; }
+  .aud-meta{ flex-wrap:wrap;gap:4px; }
+  .aud-change-row{ flex-wrap:wrap;gap:3px; }
+  .aud-change-field{ width:100%;min-width:0;font-size:8px;margin-bottom:-2px; }
+  .aud-change-from,.aud-change-to{ font-size:9px; }
+  .aud-actions{ width:auto; }
 
   /* ── ADMIN PAGE ── */
   .admin-row{ flex-wrap:wrap;gap:6px;padding:10px 0; }
@@ -916,6 +951,7 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   .tbl-scroll{ overflow-x:auto; }
 }
 
+</style>
 </head>
 <body>
 
@@ -1034,10 +1070,15 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
 
   <!-- AUDIT -->
   <div class="page" id="pageAudit">
-    <div class="aud-header"><h2><span class="mi">history</span> Audit History</h2>
-      <div style="display:flex;gap:6px;align-items:center;">
+    <div class="aud-header">
+      <h2><span class="mi">history</span> Audit Trail</h2>
+      <div class="aud-filters">
+        <input type="text" class="aud-search" id="audSearch" placeholder="Search audit..." oninput="renderAudit()">
+        <select id="audType" onchange="renderAudit()" style="font-size:10px;padding:4px 8px;border-radius:20px;border:1px solid var(--g300);">
+          <option value="">All Types</option><option value="add">Added</option><option value="edit">Edited</option><option value="delete">Deleted</option>
+        </select>
+        <select id="audMonth" onchange="renderAudit()" style="font-size:10px;padding:4px 8px;border-radius:20px;border:1px solid var(--g300);"></select>
         <span style="font-size:10px;color:var(--g500);">Records: <strong id="audCount">0</strong></span>
-        <select id="audMonth" onchange="renderAudit()" style="font-size:10px;padding:4px 8px;"></select>
         <button class="btn btn-d" id="clearHistBtn" onclick="clearAuditHistory()" style="font-size:9px;padding:4px 8px;display:none;"><span class="mi mi-xs">lock</span> Clear</button>
       </div>
     </div>
@@ -1493,14 +1534,14 @@ function spToUser(item,fm) {
 
 function auditToSP(h) {
   var fm=_fieldMaps['AuditLog']||{};
-  var obj=spSet(fm,[['Title',gid()],['LogType',h.type||''],['Text',(h.text||'').slice(0,255)],['Detail',(h.detail||'').slice(0,255)],['User',h.user||''],['Timestamp',h.timestamp||new Date().toISOString()]]);
+  var obj=spSet(fm,[['Title',gid()],['LogType',h.type||''],['Text',(h.text||'').slice(0,255)],['Detail',(h.detail||'').slice(0,255)],['User',h.user||''],['Timestamp',h.timestamp||new Date().toISOString()],['UserName',h.userName||''],['UserRole',h.userRole||''],['EntryId',h.entryId||''],['EntryCategory',h.entryCategory||''],['ChangedFieldsJSON',h.changedFields?JSON.stringify(h.changedFields):''],['AnnId',h.annId||'']]);
   return obj;
 }
 
 function spToAudit(item,fm) {
   fm=fm||_fieldMaps['AuditLog']||{};
   var g=function(n){return spVal(item,n,fm);};
-  return {type:g('LogType')||'',text:g('Text')||'',detail:g('Detail')||'',user:g('User')||'',timestamp:g('Timestamp')||'',_spId:item.Id};
+  return {type:g('LogType')||'',text:g('Text')||'',detail:g('Detail')||'',user:g('User')||'',timestamp:g('Timestamp')||'',_spId:item.Id,userName:g('UserName')||'',userRole:g('UserRole')||'',entryId:g('EntryId')||'',entryCategory:g('EntryCategory')||'',changedFields:tryParse(g('ChangedFieldsJSON'),[]),annId:g('AnnId')||'',editedBy:''};
 }
 
 // === MONTHLY REVIEWS SP MAPPERS ===
@@ -1608,8 +1649,9 @@ async function spSaveUser(ini, userData) {
   }
 }
 
-async function spAddAudit(type, text, detail) {
-  var h = { type: type, text: text, detail: detail || '', user: me ? me.initials : '??', timestamp: new Date().toISOString() };
+async function spAddAudit(type, text, detail, extra) {
+  extra=extra||{};
+  var h = { type: type, text: text, detail: detail || '', user: me ? me.initials : '??', timestamp: new Date().toISOString(), userName: me ? me.fullName : '', userRole: me ? me.role : '', entryId: extra.entryId || '', entryCategory: extra.entryCategory || '', changedFields: extra.changedFields || [], annId: extra.annId || '' };
   hist.unshift(h);
   if (hist.length > 2000) hist = hist.slice(0, 2000);
   await spAdd('AuditLog', auditToSP(h));
@@ -1650,9 +1692,9 @@ function li(n){for(const[k,v]of Object.entries(users)){if(v.fullName===n)return 
 function isAdm(){return me&&(me.isAdmin||me.initials===ADMIN_INI||(users[me.initials]&&users[me.initials].isAdmin));}
 function isLead(){return me&&(ELEVATED.includes(me.role)||isAdm());}
 function ul(){return Object.entries(users).map(([i,u])=>({ini:i,name:u.fullName})).sort((a,b)=>a.name.localeCompare(b.name));}
-function canEdit(e){if(!me)return false;if(['Resolved','Escalated'].includes(e.status))return isLead();return isLead()||e.authorInitials===me.initials;}
-function canDel(e){if(!me)return false;if(e.status!=='Open')return isLead();return isLead()||e.authorInitials===me.initials;}
-function addH(t,tx,dt){hist.unshift({type:t,text:tx,detail:dt||'',user:me?me.initials:'??',timestamp:new Date().toISOString()});if(hist.length>2000)hist=hist.slice(0,2000);spAddAudit(t,tx,dt).catch(function(e){console.error('Audit save failed:',e);});}
+function canEdit(e){if(!me)return false;if(isAdm())return true;if(['Resolved','Escalated'].includes(e.status))return isLead();return isLead()||e.authorInitials===me.initials;}
+function canDel(e){if(!me)return false;if(isAdm())return true;if(e.status!=='Open')return isLead();return isLead()||e.authorInitials===me.initials;}
+function addH(t,tx,dt,extra){extra=extra||{};var h={type:t,text:tx,detail:dt||'',user:me?me.initials:'??',timestamp:new Date().toISOString(),userName:me?me.fullName:'',userRole:me?me.role:'',entryId:extra.entryId||'',entryCategory:extra.entryCategory||'',changedFields:extra.changedFields||[],annId:extra.annId||''};hist.unshift(h);if(hist.length>2000)hist=hist.slice(0,2000);spAddAudit(t,tx,dt,extra).catch(function(e){console.error('Audit save failed:',e);});}
 
 // === PUSH NOTIFICATIONS (Browser Notification API) ===
 var _pushEnabled=false;
@@ -1981,7 +2023,11 @@ function renderMonthlyReview(){
   if(reviews.length>0){
     historyHtml='<div class="msr-history">'
       +'<div style="font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Completed Reviews for '+MONTHS[curMonth]+' '+curYear+'</div>'
-      +reviews.map(function(r){
+      +reviews.map(function(r,ri){
+        var adminBtns=isAdm()?'<div style="display:flex;gap:4px;margin-top:6px;padding-top:4px;border-top:1px solid var(--g200);">'
+          +'<button class="btn btn-s" style="padding:2px 8px;font-size:9px;" onclick="editMSR(\''+esc(r.id)+'\')"><span class="mi mi-xs">edit</span> Edit</button>'
+          +'<button class="btn btn-d" style="padding:2px 8px;font-size:9px;" onclick="deleteMSR(\''+esc(r.id)+'\')"><span class="mi mi-xs">delete</span></button>'
+          +'</div>':'';
         return'<div class="msr-review-card">'
           +'<div class="msr-rc-top">'
           +'<div class="msr-reviewer">'+avH(r.reviewerInitials,22)+' '+esc(r.reviewerName)+' <span style="font-size:9px;font-weight:500;color:var(--g400);">('+esc(r.reviewerRole)+')</span></div>'
@@ -1995,6 +2041,7 @@ function renderMonthlyReview(){
           +'<div class="msr-stat"><b>'+r.effReviewsDue+'</b> eff. reviews due</div>'
           +'</div>'
           +(r.comments?'<div class="msr-comment"><b>Comments:</b> '+esc(r.comments)+'</div>':'')
+          +adminBtns
           +'</div>';
       }).join('')
       +'</div>';
@@ -2090,6 +2137,37 @@ function jumpToReview(month,year){
     var zone=$('monthlyReviewZone');
     if(zone)zone.scrollIntoView({behavior:'smooth',block:'center'});
   },300);
+}
+
+function editMSR(rid){
+  if(!isAdm()){toast('Admin only');return;}
+  var r=monthlyReviews.find(function(x){return x.id===rid;});
+  if(!r)return;
+  var comments=prompt('Edit review comments:',r.comments||'');
+  if(comments===null)return;
+  var reviewer=prompt('Reviewer name:',r.reviewerName||'');
+  if(reviewer===null)return;
+  var role=prompt('Reviewer role:',r.reviewerRole||'');
+  if(role===null)return;
+  r.comments=comments;r.reviewerName=reviewer;r.reviewerRole=role;
+  spSaveReview(r).catch(function(e){console.error(e);});
+  addH('edit','Edited monthly review: '+MONTHS[r.month]+' '+r.year,'By admin',{entryId:rid});
+  renderMonthlyReview();toast('Review updated');
+}
+
+async function deleteMSR(rid){
+  if(!isAdm()){toast('Admin only');return;}
+  if(!confirm('Delete this monthly review? This cannot be undone.'))return;
+  var r=monthlyReviews.find(function(x){return x.id===rid;});
+  if(!r)return;
+  monthlyReviews=monthlyReviews.filter(function(x){return x.id!==rid;});
+  if(r._spId){
+    try{await spDelete('MonthlyReviews',r._spId);}catch(e){console.error('SP delete failed:',e);}
+  }else{
+    try{var existing=await spGet('MonthlyReviews',"Title eq '"+rid+"'");if(existing.length>0)await spDelete('MonthlyReviews',existing[0].Id);}catch(e){console.error(e);}
+  }
+  addH('delete','Deleted monthly review: '+MONTHS[r.month]+' '+r.year,'By admin');
+  renderMonthlyReview();renderDash();toast('Review deleted');
 }
 
 // === AVATAR ===
@@ -2913,8 +2991,8 @@ function renderResolvedAnn(){var z=$('resAnnZone');if(!z)return;var rs=announcem
 function dismissAnn(id){if(!me)return;if(!dismissed[me.initials])dismissed[me.initials]=[];dismissed[me.initials].push(id);saveAll();renderAnn();}
 function addWC(aid){var input=$('wci_'+aid);if(!input)return;var t=input.value.trim();if(!t)return;var a=announcements.find(x=>x.id===aid);if(!a)return;if(!a.comments)a.comments=[];a.comments.push({author:me?me.fullName:'',text:t,timestamp:new Date().toISOString()});var _wca=announcements.find(function(x){return x.id===aid;});if(_wca)spSaveAnn(_wca).catch(function(e){console.error(e);});input.value='';renderAnn();}
 function editAnn(aid){if(!isLead()&&!isAdm()){toast('Leads+ only');return;}var a=announcements.find(x=>x.id===aid);if(!a)return;if(a.annType==='welcome'){var n=prompt('Name:',a.welcomeName||'');if(n===null)return;var r=prompt('Role:',a.welcomeRole||'');if(r===null)return;var t=prompt('Message:',a.text||'');if(t===null)return;a.welcomeName=n;a.welcomeRole=r;a.text=t;addH('edit','Edited welcome for '+n,'');}else{var t2=prompt('Text:',a.text||'');if(t2===null)return;a.text=t2;addH('edit','Edited '+(a.annType||'announcement')+': "'+t2.slice(0,30)+'..."','');}var _ea=announcements.find(function(x){return x.id===aid;});if(_ea)spSaveAnn(_ea).catch(function(e){console.error(e);});renderAnn();toast('Updated');}
-function resolveAnn(aid){if(!isLead()){toast('Leads+ only');return;}var a=announcements.find(x=>x.id===aid);if(!a)return;if(!confirm('Resolve this? Moves to resolved section.'))return;a.resolved=true;a.resolvedDate=new Date().toISOString().split('T')[0];a.resolvedBy=me.initials;addH('edit','Resolved: "'+(a.text||a.welcomeName||'').slice(0,30)+'..."','');var _ra=announcements.find(function(x){return x.id===aid;});if(_ra)spSaveAnn(_ra).catch(function(e){console.error(e);});renderAnn();toast('Resolved');}
-function unresolveAnn(aid){if(!isLead()){toast('Leads+ only');return;}var a=announcements.find(x=>x.id===aid);if(!a)return;if(!confirm('Reopen this?'))return;a.resolved=false;delete a.resolvedDate;delete a.resolvedBy;addH('edit','Reopened: "'+(a.text||a.welcomeName||'').slice(0,30)+'..."','');var _ua=announcements.find(function(x){return x.id===aid;});if(_ua)spSaveAnn(_ua).catch(function(e){console.error(e);});renderAnn();toast('Reopened');}
+function resolveAnn(aid){if(!isLead()&&!isAdm()){toast('Leads+ only');return;}var a=announcements.find(x=>x.id===aid);if(!a)return;if(!confirm('Resolve this? Moves to resolved section.'))return;a.resolved=true;a.resolvedDate=new Date().toISOString().split('T')[0];a.resolvedBy=me.initials;addH('edit','Resolved: "'+(a.text||a.welcomeName||'').slice(0,30)+'..."','');var _ra=announcements.find(function(x){return x.id===aid;});if(_ra)spSaveAnn(_ra).catch(function(e){console.error(e);});renderAnn();toast('Resolved');}
+function unresolveAnn(aid){if(!isLead()&&!isAdm()){toast('Leads+ only');return;}var a=announcements.find(x=>x.id===aid);if(!a)return;if(!confirm('Reopen this?'))return;a.resolved=false;delete a.resolvedDate;delete a.resolvedBy;addH('edit','Reopened: "'+(a.text||a.welcomeName||'').slice(0,30)+'..."','');var _ua=announcements.find(function(x){return x.id===aid;});if(_ua)spSaveAnn(_ua).catch(function(e){console.error(e);});renderAnn();toast('Reopened');}
 function deleteAnn(aid){if(!isAdm()){toast('Admin only');return;}var a=announcements.find(x=>x.id===aid);if(!a)return;if(!confirm('Delete permanently?'))return;spDeleteAnn(aid).then(function(){toast('Deleted from SharePoint');}).catch(function(e){console.error('SP delete failed:',e);toast('Delete failed');});announcements=announcements.filter(x=>x.id!==aid);addH('delete','Deleted: "'+(a.text||a.welcomeName||'').slice(0,30)+'..."','');renderAnn();toast('Deleted');}
 function openAnnModal(){annType='standard';setAnnType('standard');$('annText').value='';$('annPri').value='Low';$('annWelcomeName').value='';$('annWelcomeRole').value='';openSheet('annModalBg');}
 function closeAnnModal(){closeSheet('annModalBg');}
@@ -2967,13 +3045,104 @@ function renderLog(){var all=gME(),esc_=all.filter(e=>e.status==='Escalated'),re
 // === ENTRY MODAL ===
 function openEntryModal(id){editId=id||null;attachments=[];$('entryModalTitle').textContent=id?'Edit Entry':'New Entry';$('entrySaveBtn').textContent=id?'Update':'Save';var rb=$('eReporter');if(id){var e=entries.find(x=>x.id===id);if(!e)return;$('eDate').value=e.date;$('eTime').value=e.time;$('eShift').value=e.shift;$('eDept').value=e.department||'General';rb.value=e.reportedBy||ln(e.authorInitials);rb.readOnly=!isLead();rb.style.background=isLead()?'var(--white)':'var(--g100)';$('eCat').value=e.category;$('ePri').value=e.priority;$('eDesc').value=e.description;$('eAction').value=e.action||'';$('eStatus').value=e.status;$('eFollowUp').value=e.followUp||'No';$('eNotes').value=e.notes||'';attachments=(e.attachments||[]).slice();onFollowUpChange();if(e.followUpAssign)setTimeout(()=>{$('eFUAssign').value=e.followUpAssign;},0);onStatusChange();if(e.resolvedBy)setTimeout(()=>{$('eResBy').value=e.resolvedBy;},0);$('eResDate').value=e.resDate||'';$('eActionType').value=e.actionType||'';$('eInstrument').value=e.instrument||'';$('eReagentLot').value=e.reagentLot||'';$('eTestSystem').value=e.testSystem||'';$('eRootCause').value=e.rootCause||'';$('eEffReviewDate').value=e.effReviewDate||'';$('eEffVerified').value=e.effVerified||'';$('eEffNotes').value=e.effNotes||'';}else{var now=new Date();$('eDate').value=now.toISOString().split('T')[0];$('eTime').value=now.toTimeString().slice(0,5);var hr=now.getHours();$('eShift').value=hr<15?'Day':hr<23?'Evening':'Night';$('eDept').value=curDept||'';rb.value=me?me.fullName:'';rb.readOnly=!isLead();rb.style.background=isLead()?'var(--white)':'var(--g100)';$('eCat').value='';$('ePri').value='';$('eDesc').value='';$('eAction').value='';$('eStatus').value='Open';$('eFollowUp').value='No';$('eNotes').value='';$('eResDate').value='';$('eActionType').value='';$('eInstrument').value='';$('eReagentLot').value='';$('eTestSystem').value='';$('eRootCause').value='';$('eEffReviewDate').value='';$('eEffVerified').value='';$('eEffNotes').value='';onStatusChange();onFollowUpChange();}updateCapRequired();rAP();openSheet('entryModalBg');}
 function closeEntryModal(){closeSheet('entryModalBg');editId=null;attachments=[];}
-function saveEntry(){var dt=$('eDate').value,tm=$('eTime').value,sh=$('eShift').value,dept=$('eDept').value,cat=$('eCat').value,pri=$('ePri').value,desc=$('eDesc').value.trim(),rep=$('eReporter').value.trim();if(!dt||!tm||!sh||!dept||!cat||!pri||!desc){toast('Fill required fields');return;}if(!validateCapFields())return;var st=$('eStatus').value,rb=$('eResBy').value,rd=$('eResDate').value,fu=$('eFollowUp').value,fua=fu==='Yes'?$('eFUAssign').value:'';if(rb&&rd&&st!=='Resolved')st='Resolved';var ai=me.initials;if(editId){var o=entries.find(x=>x.id===editId);if(o){if(isLead()&&rep!==o.reportedBy){var ni=li(rep);ai=ni||o.authorInitials;}else ai=o.authorInitials;}}var en={id:editId||gid(),date:dt,time:tm,shift:sh,department:dept,reportedBy:rep,authorInitials:editId?ai:me.initials,category:cat,priority:pri,description:desc,action:$('eAction').value.trim(),status:st,followUp:fu,followUpAssign:fua,resolvedBy:rb,resDate:rd,notes:$('eNotes').value.trim(),attachments:attachments.slice(),lastModified:new Date().toISOString(),actionType:$('eActionType').value,instrument:$('eInstrument').value.trim(),reagentLot:$('eReagentLot').value.trim(),testSystem:$('eTestSystem').value.trim(),rootCause:$('eRootCause').value.trim(),effReviewDate:$('eEffReviewDate').value,effVerified:$('eEffVerified').value,effNotes:$('eEffNotes').value.trim()};if(editId){var idx=entries.findIndex(e=>e.id===editId);if(idx!==-1){var old=entries[idx],ch=[];if(old.status!==en.status)ch.push('St:'+old.status+'->'+en.status);if(old.priority!==en.priority)ch.push('Pri:'+old.priority+'->'+en.priority);entries[idx]=en;addH('edit','Edited: '+cat,'('+ch.join(', ')+')'||'Minor');toast('Updated');}}else{entries.push(en);addH('add','New: '+cat+' - "'+desc.slice(0,35)+'..."','Pri:'+pri);toast('Added');var d=new Date(dt+'T00:00:00');if(d.getMonth()!==curMonth){curMonth=d.getMonth();rMT();}}if(en.status==='Escalated')nLeads('escalation','Escalation: '+cat,desc.slice(0,70)+' ('+rep+')',en.id);if(en.followUp==='Yes'&&en.followUpAssign){if(en.followUpAssign!==me.initials)pNot(en.followUpAssign,'followup','Follow-up assigned',cat+': '+desc.slice(0,70),en.id);nLeads('followup','F/U: '+ln(en.followUpAssign),cat+': '+desc.slice(0,50),en.id);}spSaveEntry(en).then(function(){renderAll();}).catch(function(e){toast('Save failed');console.error(e);});pushOnNewEntry(en);closeEntryModal();renderAll();}
+function saveEntry(){var dt=$('eDate').value,tm=$('eTime').value,sh=$('eShift').value,dept=$('eDept').value,cat=$('eCat').value,pri=$('ePri').value,desc=$('eDesc').value.trim(),rep=$('eReporter').value.trim();if(!dt||!tm||!sh||!dept||!cat||!pri||!desc){toast('Fill required fields');return;}if(!validateCapFields())return;var st=$('eStatus').value,rb=$('eResBy').value,rd=$('eResDate').value,fu=$('eFollowUp').value,fua=fu==='Yes'?$('eFUAssign').value:'';if(rb&&rd&&st!=='Resolved')st='Resolved';var ai=me.initials;if(editId){var o=entries.find(x=>x.id===editId);if(o){if(isLead()&&rep!==o.reportedBy){var ni=li(rep);ai=ni||o.authorInitials;}else ai=o.authorInitials;}}var en={id:editId||gid(),date:dt,time:tm,shift:sh,department:dept,reportedBy:rep,authorInitials:editId?ai:me.initials,category:cat,priority:pri,description:desc,action:$('eAction').value.trim(),status:st,followUp:fu,followUpAssign:fua,resolvedBy:rb,resDate:rd,notes:$('eNotes').value.trim(),attachments:attachments.slice(),lastModified:new Date().toISOString(),actionType:$('eActionType').value,instrument:$('eInstrument').value.trim(),reagentLot:$('eReagentLot').value.trim(),testSystem:$('eTestSystem').value.trim(),rootCause:$('eRootCause').value.trim(),effReviewDate:$('eEffReviewDate').value,effVerified:$('eEffVerified').value,effNotes:$('eEffNotes').value.trim()};if(editId){var idx=entries.findIndex(e=>e.id===editId);if(idx!==-1){var old=entries[idx],changedFields=[];
+var diffFields=[['status','Status'],['priority','Priority'],['category','Category'],['department','Department'],['shift','Shift'],['description','Description'],['action','Action Taken'],['actionType','Action Type'],['instrument','Instrument'],['reagentLot','Reagent Lot'],['testSystem','Test System'],['rootCause','Root Cause'],['effReviewDate','Eff. Review Due'],['effVerified','Eff. Verified'],['effNotes','Eff. Notes'],['followUp','Follow-Up'],['followUpAssign','Assigned To'],['resolvedBy','Resolved By'],['resDate','Resolution Date'],['notes','Notes'],['reportedBy','Reported By'],['date','Date'],['time','Time']];
+diffFields.forEach(function(f){var key=f[0],label=f[1],oldVal=String(old[key]||''),newVal=String(en[key]||'');if(oldVal!==newVal)changedFields.push({field:label,from:oldVal,to:newVal});});
+entries[idx]=en;
+var summary=changedFields.length>0?changedFields.map(function(c){return c.field+': '+c.from+' -> '+c.to;}).join('; '):'Minor edit (no field changes)';
+addH('edit','Edited: '+cat+' ('+en.id+')',summary.slice(0,255),{entryId:en.id,entryCategory:cat,changedFields:changedFields});toast('Updated');}}else{entries.push(en);addH('add','New: '+cat+' - "'+desc.slice(0,35)+'..."','Pri:'+pri+', Dept:'+dept+', Shift:'+sh,{entryId:en.id,entryCategory:cat});toast('Added');var d=new Date(dt+'T00:00:00');if(d.getMonth()!==curMonth){curMonth=d.getMonth();rMT();}}if(en.status==='Escalated')nLeads('escalation','Escalation: '+cat,desc.slice(0,70)+' ('+rep+')',en.id);if(en.followUp==='Yes'&&en.followUpAssign){if(en.followUpAssign!==me.initials)pNot(en.followUpAssign,'followup','Follow-up assigned',cat+': '+desc.slice(0,70),en.id);nLeads('followup','F/U: '+ln(en.followUpAssign),cat+': '+desc.slice(0,50),en.id);}spSaveEntry(en).then(function(){renderAll();}).catch(function(e){toast('Save failed');console.error(e);});pushOnNewEntry(en);closeEntryModal();renderAll();}
 function editEntry(id){var e=entries.find(x=>x.id===id);if(!e)return;if(!canEdit(e)){toast('Cannot edit');return;}openEntryModal(id);}
 function deleteEntry(id){var e=entries.find(x=>x.id===id);if(!e)return;if(!canDel(e)){toast('Cannot delete');return;}if(!confirm('Delete?\n'+e.category+': '+e.description.slice(0,50)))return;entries=entries.filter(x=>x.id!==id);addH('delete','Deleted: '+e.category,'');spDeleteEntry(id).catch(function(e){console.error(e);});renderAll();toast('Deleted');}
 
 // === AUDIT ===
-function renderAudit(){var sel=$('audMonth');if(!sel.options.length)sel.innerHTML='<option value="-1">All</option>'+MONTHS.map((m,i)=>'<option value="'+i+'"'+(i===curMonth?' selected':'')+'>'+m+'</option>').join('');var mi=parseInt(sel.value),f=hist;if(mi>=0)f=hist.filter(h=>{var d=new Date(h.timestamp);return d.getMonth()===mi&&d.getFullYear()===curYear;});$('audCount').textContent=f.length;var g={};f.forEach(h=>{var dk=h.timestamp.split('T')[0];if(!g[dk])g[dk]=[];g[dk].push(h);});var ds=Object.keys(g).sort().reverse(),c=$('audContent');if(!ds.length){c.innerHTML='<div class="empty"><span class="mi">history</span><h3>No records</h3></div>';return;}c.innerHTML=ds.map(dk=>{var de=g[dk],dl=new Date(dk+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});return'<div class="aud-day"><div class="aud-day-hdr"><span>'+dl+'</span><span class="day-cnt">'+de.length+'</span></div><div class="aud-entries">'+de.map(h=>{var t=new Date(h.timestamp).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),ed=h.editedBy?' <span style="font-size:8px;color:var(--g400);">[ed:'+esc(ln(h.editedBy))+']</span>':'';return'<div class="aud-entry"><div class="aud-dot '+h.type+'"></div><div class="aud-time">'+t+'</div><div class="aud-user">'+esc(ln(h.user))+'</div><div class="aud-type '+h.type+'">'+h.type.toUpperCase()+'</div><div class="aud-text">'+esc(h.text)+(h.detail?'<br><span style="font-size:9px;color:var(--g400);">'+esc(h.detail)+'</span>':'')+ed+'</div>'+(isAdm()?'<div><button class="aud-edit-btn" onclick="eAE('+hist.indexOf(h)+')"><span class="mi mi-xs">edit</span></button></div>':'')+'</div>';}).join('')+'</div></div>';}).join('');}
-function eAE(i){if(!isAdm())return;var h=hist[i];if(!h)return;var t=prompt('Edit:',h.text);if(t===null)return;var d=prompt('Detail:',h.detail||'');hist[i].text=t;if(d!==null)hist[i].detail=d;hist[i].editedBy=me.initials;saveAll();renderAudit();toast('Updated');}
+function renderAudit(){
+  var sel=$('audMonth');
+  if(!sel.options.length)sel.innerHTML='<option value="-1">All</option>'+MONTHS.map((m,i)=>'<option value="'+i+'"'+(i===curMonth?' selected':'')+'>'+m+'</option>').join('');
+  var mi=parseInt(sel.value);
+  var typeFilter=($('audType')?$('audType').value:'')||'';
+  var searchQ=($('audSearch')?$('audSearch').value:'')||'';
+  var f=hist;
+  if(mi>=0)f=f.filter(h=>{var d=new Date(h.timestamp);return d.getMonth()===mi&&d.getFullYear()===curYear;});
+  if(typeFilter)f=f.filter(h=>h.type===typeFilter);
+  if(searchQ){var q=searchQ.toLowerCase();f=f.filter(h=>{var haystack=((h.text||'')+' '+(h.detail||'')+' '+(h.user||'')+' '+(h.userName||'')+' '+(h.entryId||'')+' '+(h.entryCategory||'')).toLowerCase();return haystack.indexOf(q)>=0;});}
+  $('audCount').textContent=f.length;
+  var g={};f.forEach(h=>{var dk=h.timestamp.split('T')[0];if(!g[dk])g[dk]=[];g[dk].push(h);});
+  var ds=Object.keys(g).sort().reverse(),c=$('audContent');
+  if(!ds.length){c.innerHTML='<div class="empty"><span class="mi">history</span><h3>No audit records</h3><p>'+(searchQ?'Try a different search':'No activity recorded for this period')+'</p></div>';return;}
+  c.innerHTML=ds.map(function(dk,di){
+    var de=g[dk],dl=new Date(dk+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    return'<div class="aud-day" style="--si:'+di+'"><div class="aud-day-hdr"><span>'+dl+'</span><span class="day-cnt">'+de.length+' record'+(de.length!==1?'s':'')+'</span></div><div class="aud-entries">'+de.map(function(h,hi){
+      var t=new Date(h.timestamp).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'});
+      var hIdx=hist.indexOf(h);
+      var changes=h.changedFields||[];
+      var hasChanges=changes.length>0;
+      var changeId='aud-chg-'+dk+'-'+hi;
+      // Build change detail HTML
+      var changeHtml='';
+      if(hasChanges){
+        changeHtml='<div class="aud-changes" id="'+changeId+'">'+
+          '<div style="font-size:8px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;display:flex;align-items:center;gap:4px;"><span class="mi mi-xs">compare_arrows</span> Field Changes ('+changes.length+')</div>'+
+          changes.map(function(c){
+            return'<div class="aud-change-row"><div class="aud-change-field">'+esc(c.field)+'</div><div class="aud-change-from">'+(c.from?esc(c.from.length>80?c.from.slice(0,80)+'...':c.from):'<em style="color:var(--g400)">(empty)</em>')+'</div><div class="aud-change-arrow">&rarr;</div><div class="aud-change-to">'+(c.to?esc(c.to.length>80?c.to.slice(0,80)+'...':c.to):'<em style="color:var(--g400)">(empty)</em>')+'</div></div>';
+          }).join('')+
+          '</div>';
+      }
+      // Entry link
+      var entryLink=h.entryId?'<span class="aud-entry-link" onclick="goToAuditEntry(\''+esc(h.entryId)+'\')"><span class="mi mi-xs">open_in_new</span> '+esc(h.entryId.slice(0,12))+'</span>':'';
+      // Category badge
+      var catBadge=h.entryCategory?'<span style="font-size:8px;background:var(--teal-bg);color:var(--teal);padding:1px 5px;border-radius:3px;font-weight:600;">'+esc(h.entryCategory)+'</span>':'';
+      // User info
+      var userDisplay=h.userName?esc(h.userName)+' ('+esc(h.user)+')':esc(ln(h.user));
+      var roleDisplay=h.userRole?' <span style="font-size:8px;color:var(--g400);">'+esc(h.userRole)+'</span>':'';
+      // Edited marker
+      var editedMark=h.editedBy?' <span style="font-size:8px;color:var(--amber);font-weight:600;">[corrected by '+esc(ln(h.editedBy))+']</span>':'';
+
+      return'<div class="aud-entry">'+
+        '<div class="aud-dot '+h.type+'"></div>'+
+        '<div class="aud-time">'+t+'</div>'+
+        '<div class="aud-body">'+
+          '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">'+
+            '<span class="aud-type '+h.type+'">'+h.type.toUpperCase()+'</span>'+
+            catBadge+
+          '</div>'+
+          '<div class="aud-text">'+esc(h.text)+editedMark+'</div>'+
+          (h.detail?'<div class="aud-detail">'+esc(h.detail)+'</div>':'')+
+          '<div class="aud-meta">'+
+            '<span style="font-weight:600;color:var(--navy);">'+userDisplay+'</span>'+roleDisplay+
+            entryLink+
+            (hasChanges?'<button class="aud-toggle-btn" onclick="toggleAudChanges(\''+changeId+'\',this)"><span class="mi mi-xs">compare_arrows</span> '+changes.length+' change'+(changes.length!==1?'s':'')+'</button>':'')+
+          '</div>'+
+          changeHtml+
+        '</div>'+
+        '<div class="aud-actions">'+
+          (isAdm()?'<button class="aud-edit-btn" onclick="eAE('+hIdx+')"><span class="mi mi-xs">edit</span></button>':'')
+        +'</div>'+
+      '</div>';
+    }).join('')+'</div></div>';
+  }).join('');
+}
+function toggleAudChanges(id,btn){var el=$(id);if(!el)return;el.classList.toggle('show');if(btn)btn.innerHTML=el.classList.contains('show')?'<span class="mi mi-xs">expand_less</span> Hide':'<span class="mi mi-xs">compare_arrows</span> '+((el.querySelectorAll('.aud-change-row')||[]).length)+' changes';}
+function goToAuditEntry(eid){var e=entries.find(function(x){return x.id===eid;});if(!e){toast('Entry not found');return;}switchPage('log');var d=new Date(e.date+'T00:00:00');if(d.getMonth()!==curMonth){curMonth=d.getMonth();rMT();}if(e.status==='Resolved')secOpen.res=true;highlightId=eid;renderLog();setTimeout(function(){var row=document.querySelector('tr[data-eid="'+eid+'"]');if(row){row.scrollIntoView({behavior:'smooth',block:'center'});row.classList.add('row-hl');setTimeout(function(){row.classList.remove('row-hl');highlightId=null;},4000);}},200);}
+function eAE(i){
+  if(!isAdm())return;
+  var h=hist[i];if(!h)return;
+  var t=prompt('Edit audit text:',h.text);if(t===null)return;
+  var d=prompt('Edit detail:',h.detail||'');
+  var eid=prompt('Entry ID:',h.entryId||'');
+  var ecat=prompt('Category:',h.entryCategory||'');
+  hist[i].text=t;
+  if(d!==null)hist[i].detail=d;
+  if(eid!==null)hist[i].entryId=eid;
+  if(ecat!==null)hist[i].entryCategory=ecat;
+  hist[i].editedBy=me.initials;
+  // Update in SharePoint if we have the SP ID
+  if(h._spId){
+    var fm=_fieldMaps['AuditLog']||{};
+    var updateObj=spSet(fm,[['Text',(t||'').slice(0,255)],['Detail',(d||'').slice(0,255)],['EntryId',eid||''],['EntryCategory',ecat||'']]);
+    spUpdate('AuditLog',h._spId,updateObj).catch(function(e){console.error('Audit update failed:',e);});
+  }
+  renderAudit();toast('Audit record updated');
+}
 function clearAuditHistory(){if(!isAdm())return;if(!confirm('Delete ALL audit history?'))return;if(!confirm('FINAL confirmation?'))return;toast('Clearing from SharePoint...');spGet('AuditLog').then(function(items){var deletes=items.map(function(item){return spDelete('AuditLog',item.Id);});return Promise.all(deletes);}).then(function(){hist=[];renderAudit();toast('Audit history cleared');}).catch(function(e){console.error('Clear audit failed:',e);toast('Failed to clear');});}
 
 // === DASHBOARD ===
