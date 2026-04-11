@@ -1634,20 +1634,21 @@ function authDbg(msg){
 
 async function initAuth(){
   try{
+    var dbgEl=$('authDebug'),statusEl=$('authStatus'),errEl=$('loginErr'),bgEl=$('authBg'),retryEl=$('authRetryBtn');
     authDbg('innerWidth='+window.innerWidth+' isMob='+isMobile()+' screen='+screen.width+'x'+screen.height);
-    $('authStatus').textContent='Connecting to Microsoft 365...';
+    if(statusEl)statusEl.textContent='Connecting to Microsoft 365...';
     var account=await initMSAL();
     authDbg('initMSAL='+(account?account.username:'null'));
     authDbg('cached token='+(!!_cachedToken));
     if(!account){
-      $('authStatus').textContent='Redirecting to sign-in...';
+      if(statusEl)statusEl.textContent='Redirecting to sign-in...';
       authDbg('No account — calling loginMSAL redirect');
       account=await loginMSAL();
     }
     var spUser=getSPUserFromAccount(account);
     _msalName=spUser.name||spUser.email||'';
     authDbg('spUser name='+spUser.name+' email='+spUser.email);
-    authDbg('cached users='+Object.keys(users).join(',')||'(none)');
+    authDbg('cached users='+(Object.keys(users).join(',')||'(none)'));
 
     // ── FAST PATH ────────────────────────────────────────────────────
     var cachedIni=matchUser(spUser,users);
@@ -1655,7 +1656,7 @@ async function initAuth(){
     if(cachedIni&&users[cachedIni]){
       var ok=applyUser(cachedIni);
       authDbg('fast-path applyUser='+ok+' me='+JSON.stringify(me&&{i:me.initials,admin:me.isAdmin}));
-      $('authBg').style.display='none';
+      if(bgEl)bgEl.style.display='none';
       refreshUI();
       toast('Welcome back, '+me.fullName+'!'+(me.isAdmin?' · Admin':''));
       loadAllData().then(function(){
@@ -1667,7 +1668,7 @@ async function initAuth(){
     }
 
     // ── SLOW PATH ─────────────────────────────────────────────────────
-    $('authStatus').textContent='Loading data from SharePoint...';
+    if(statusEl)statusEl.textContent='Loading data from SharePoint...';
     authDbg('slow path — loading SP data...');
     await loadAllData();
     authDbg('SP loaded — users='+Object.keys(users).join(','));
@@ -1684,16 +1685,16 @@ async function initAuth(){
     if(!applyUser(ini)){throw new Error('User record missing after SP load for ini='+ini);}
     authDbg('me set: '+me.initials+' admin='+me.isAdmin);
     lastSyncTime=new Date();uBD();
-    $('authBg').style.display='none';
+    if(bgEl)bgEl.style.display='none';
     refreshUI();
     toast('Signed in: '+me.fullName+' ['+ini+']'+(me.isAdmin?' · Admin':''));
   }catch(e){
     console.error('Auth failed:',e);
     authDbg('ERROR: '+e.message);
-    $('loginErr').textContent='Sign-in failed: '+(e.message||'Unknown error')+'. See debug info above.';
-    $('loginErr').style.display='block';
-    $('authStatus').textContent='Connection failed';
-    var rb=$('authRetryBtn');if(rb)rb.style.display='inline-block';
+    var errEl2=$('loginErr'),statusEl2=$('authStatus'),retryEl2=$('authRetryBtn');
+    if(errEl2){errEl2.textContent='Sign-in failed: '+(e.message||'Unknown error')+'. See debug info above.';errEl2.style.display='block';}
+    if(statusEl2)statusEl2.textContent='Connection failed';
+    if(retryEl2)retryEl2.style.display='inline-block';
   }
 }
 function doLogout(){if(!confirm('Sign out?'))return;if(msalInstance){msalInstance.logoutPopup().catch(function(){});}me=null;localStorage.clear();window.location.reload();}
@@ -2532,7 +2533,7 @@ runAutoBackup();setInterval(runAutoBackup,BK_MINS*60000);setInterval(uBD,30000);
 setInterval(async function(){try{await loadAllData();lastSyncTime=new Date();uBD();renderAll();}catch(e){}},60000);
 ['searchBox','fShift','fCat','fPri','fMonth','fYear'].forEach(id=>{$(id).addEventListener(id==='searchBox'?'input':'change',renderLog);});
 }
-startApp();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',startApp);}else{startApp();}
 
 </script>
 <!-- BELL DROPDOWN (outside header for correct fixed positioning) -->
