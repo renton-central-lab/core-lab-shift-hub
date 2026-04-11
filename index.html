@@ -467,8 +467,13 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   --mob-safe-b:env(safe-area-inset-bottom,0px);
 }
 
-/* ── Hide mobile-only elements on desktop ─────── */
-.mob-bottom-nav,.mob-fab,.mob-search-bar{ display:none; }
+/* ── Hub ready + mobile body classes — auth-gated nav ── */
+/* Bottom nav shows only after auth AND on mobile */
+body.hub-ready.hub-mob .mob-bottom-nav{ display:flex; }
+body.hub-ready.hub-mob .mob-fab.fab-visible{ display:flex; }
+/* Ensure no nav flicker before auth */
+.mob-bottom-nav{ display:none; }
+.mob-fab{ display:none; }
 
 /* ══════════════════════════════════
    PHONE (≤600px)
@@ -813,7 +818,10 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   <div style="margin:0 0 16px;"><span class="mi" style="font-size:36px;color:var(--teal);animation:spin 1s linear infinite;display:block;">sync</span></div>
   <p class="auth-sub" id="authStatus" style="font-weight:600;color:var(--g600);">Authenticating with Microsoft 365...</p>
   <p class="auth-sub" style="margin-top:6px;font-size:10px;">This may take a few seconds on first load.</p>
+  <!-- Debug info -->
+  <div id="authDebug" style="margin-top:12px;padding:8px;background:var(--g50);border-radius:var(--r);font-size:9px;font-family:monospace;color:var(--g600);text-align:left;display:none;word-break:break-all;"></div>
   <div class="auth-err" id="loginErr" style="margin-top:12px;"></div>
+  <button id="authRetryBtn" onclick="window.location.reload()" style="display:none;margin-top:12px;padding:8px 20px;background:var(--teal);color:white;border:none;border-radius:20px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">Reload &amp; Retry</button>
 </div>
 </div>
 <style>@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}</style>
@@ -1543,6 +1551,16 @@ function goToNotifEntry(){const eid=pendingNE;closeNotifDetail();if(!eid)return;
 function markAllRead(e){e.stopPropagation();myN().forEach(n=>n.read=true);notifs[me.initials]=myN();saveAll();uBell();rBL();toast('All read');}
 
 // === AUTH ===
+// ── Reliable mobile detection — matchMedia, not window.innerWidth ──────────
+var _mobMQ = window.matchMedia ? window.matchMedia('(max-width:600px)') : null;
+function isMobile(){ return _mobMQ ? _mobMQ.matches : (screen.width <= 600); }
+// Tag body with mob/ready classes for CSS-driven nav visibility
+function setHubReady(){
+  if(isMobile()) document.body.classList.add('hub-mob');
+  else document.body.classList.remove('hub-mob');
+  document.body.classList.add('hub-ready');
+}
+
 // Modal open/close helpers — reflow trick ensures CSS transitions fire on Android
 function openSheet(bgId,cls){
   cls=cls||'open';
@@ -1550,8 +1568,8 @@ function openSheet(bgId,cls){
   if(!bg)return;
   bg.classList.add(cls);
   // On mobile: trigger slide-up transition after display change settles
-  if(window.innerWidth<=600){
-    void bg.offsetWidth; // force reflow
+  if(isMobile()){
+    void bg.offsetWidth; // force reflow — makes transition fire on Android
     var modal=bg.querySelector('.modal,.mand-card,.nd-card');
     if(modal)modal.classList.add('sheet-open');
   }
@@ -1589,54 +1607,72 @@ function applyUser(ini){
   return true;
 }
 
+function authDbg(msg){
+  var d=$('authDebug');
+  if(!d)return;
+  d.style.display='block';
+  d.textContent+=(d.textContent?'\n':'')+new Date().toLocaleTimeString()+': '+msg;
+  console.log('[Auth]',msg);
+}
+
 async function initAuth(){
   try{
+    authDbg('innerWidth='+window.innerWidth+' isMob='+isMobile()+' screen='+screen.width+'x'+screen.height);
     $('authStatus').textContent='Connecting to Microsoft 365...';
     var account=await initMSAL();
+    authDbg('initMSAL='+(account?account.username:'null'));
     if(!account){
       $('authStatus').textContent='Redirecting to sign-in...';
+      authDbg('No account — calling loginMSAL redirect');
       account=await loginMSAL();
     }
     var spUser=getSPUserFromAccount(account);
+    authDbg('spUser name='+spUser.name+' email='+spUser.email);
+    authDbg('cached users='+Object.keys(users).join(',')||'(none)');
 
-    // ── FAST PATH: try cached users first ────────────────────────────────
-    // users is already loaded from localStorage at startup (line ~1430)
+    // ── FAST PATH ────────────────────────────────────────────────────
     var cachedIni=matchUser(spUser,users);
+    authDbg('cachedIni='+cachedIni);
     if(cachedIni&&users[cachedIni]){
-      applyUser(cachedIni);
+      var ok=applyUser(cachedIni);
+      authDbg('fast-path applyUser='+ok+' me='+JSON.stringify(me&&{i:me.initials,admin:me.isAdmin}));
       $('authBg').style.display='none';
       refreshUI();
       toast('Welcome back, '+me.fullName+'!'+(me.isAdmin?' · Admin':''));
-      // Background: load fresh SP data silently
-      $('authStatus').textContent='Syncing...';
       loadAllData().then(function(){
         var freshIni=matchUser(spUser,users)||cachedIni;
         if(applyUser(freshIni)){lastSyncTime=new Date();uBD();refreshUI();renderAll();}
-      }).catch(function(e){console.warn('Background SP sync failed:',e);});
+      }).catch(function(e){console.warn('BG sync failed:',e);});
       return;
     }
 
-    // ── SLOW PATH: no cached match, load SP data now ──────────────────────
+    // ── SLOW PATH ─────────────────────────────────────────────────────
     $('authStatus').textContent='Loading data from SharePoint...';
+    authDbg('slow path — loading SP data...');
     await loadAllData();
+    authDbg('SP loaded — users='+Object.keys(users).join(','));
     var ini=matchUser(spUser,users);
+    authDbg('SP match ini='+ini);
     if(!ini){
-      // New user — create record
       ini=spUser.name.split(' ').filter(Boolean).map(function(p){return p[0].toUpperCase();}).join('');
       var base=ini,num=2;while(users[ini]){ini=base+num;num++;}
       users[ini]={fullName:spUser.name,role:'MLS1',isAdmin:(ini===ADMIN_INI),nickname:'',picture:''};
+      authDbg('new user created: '+ini);
       await spSaveUser(ini,users[ini]);
     }
-    if(!applyUser(ini)){throw new Error('User record missing after SP load');}
+    if(!applyUser(ini)){throw new Error('User record missing after SP load for ini='+ini);}
+    authDbg('me set: '+me.initials+' admin='+me.isAdmin);
     lastSyncTime=new Date();uBD();
     $('authBg').style.display='none';
     refreshUI();
     toast('Signed in: '+me.fullName+' ['+ini+']'+(me.isAdmin?' · Admin':''));
   }catch(e){
     console.error('Auth failed:',e);
-    $('loginErr').textContent='Sign-in failed: '+(e.message||'Unknown error')+'. Reload and try again.';
+    authDbg('ERROR: '+e.message);
+    $('loginErr').textContent='Sign-in failed: '+(e.message||'Unknown error')+'. See debug info above.';
     $('loginErr').style.display='block';
-    $('authStatus').textContent='Connection failed — reload to retry';
+    $('authStatus').textContent='Connection failed';
+    var rb=$('authRetryBtn');if(rb)rb.style.display='inline-block';
   }
 }
 function doLogout(){if(!confirm('Sign out?'))return;if(msalInstance){msalInstance.logoutPopup().catch(function(){});}me=null;localStorage.clear();window.location.reload();}
@@ -1646,25 +1682,14 @@ function refreshUI(){
   $('navAdmin').style.display=isAdm()?'flex':'none';
   $('clearHistBtn').style.display=isAdm()?'inline-flex':'none';
   $('annBtn').style.display=isLead()?'inline-flex':'none';
-  // Mobile nav — force display via setProperty to override any CSS
-  var isMob=window.innerWidth<=600;
-  var mobNav=$('mobBottomNav');
-  if(mobNav){
-    if(isMob){mobNav.style.setProperty('display','flex','important');}
-    else{mobNav.style.display='none';}
-  }
+  // Mobile nav — driven by CSS class on body, not window.innerWidth
+  setHubReady(); // tags body as hub-ready + hub-mob
   var mobAdm=$('mobAdmin');
   if(mobAdm)mobAdm.style.display=isAdm()?'flex':'none';
   var mobFab=$('mobFab');
   var curP=document.querySelector('.page.active');
   var curPId=curP?curP.id:'';
-  if(mobFab){
-    if(isMob&&(curPId==='pageLog'||curPId==='pageAnn')){
-      mobFab.style.setProperty('display','flex','important');
-    }else{
-      mobFab.style.display='none';
-    }
-  }
+  if(mobFab){if(curPId==='pageLog'||curPId==='pageAnn'){mobFab.classList.add('fab-visible');}else{mobFab.classList.remove('fab-visible');}}
   renderAll();
 
 // Restore last tab, but reset to announcements on new day
@@ -1971,19 +1996,17 @@ function switchPage(p){
   ['Ann','Dash','Log','Audit','Admin'].forEach(function(n){
     var el=$('mob'+n);if(el)el.classList.toggle('active',p===n.toLowerCase());
   });
-  // Show/hide FAB (only on log and ann pages, only on mobile)
+  // Show/hide FAB — class-based, no innerWidth check
   var fab=$('mobFab');
   if(fab){
-    var isMob=window.innerWidth<=600;
-    var showFab=isMob&&(p==='log'||p==='ann');
-    if(showFab){fab.style.setProperty('display','flex','important');}
-    else{fab.style.display='none';}
+    if(p==='log'||p==='ann'){fab.classList.add('fab-visible');}
+    else{fab.classList.remove('fab-visible');}
   }
   try{localStorage.setItem('rcl7_lastTab',p);localStorage.setItem('rcl7_lastTabDate',new Date().toISOString().split('T')[0]);}catch(e){}
 }
 
 function renderMobileLog(){
-  if(window.innerWidth>600)return;
+  if(!isMobile())return;
   ['escZone','activeZone','resZone'].forEach(function(zId){
     var zone=$(zId);
     if(!zone)return;
@@ -2498,7 +2521,7 @@ startApp();
 </div>
 
 <!-- MOBILE BOTTOM NAV -->
-<nav class="mob-bottom-nav" id="mobBottomNav" style="display:none">
+<nav class="mob-bottom-nav" id="mobBottomNav">
   <button class="mob-nav-btn active" id="mobAnn" onclick="switchPage('ann')">
     <span class="mi">campaign</span>Feed
   </button>
@@ -2517,7 +2540,7 @@ startApp();
 </nav>
 
 <!-- MOBILE FAB — New Entry -->
-<button class="mob-fab" id="mobFab" style="display:none" onclick="openEntryModal()" title="New shift entry">
+<button class="mob-fab" id="mobFab" onclick="openEntryModal()" title="New shift entry">
   <span class="mi">add</span>
 </button>
 
