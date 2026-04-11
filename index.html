@@ -467,13 +467,12 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   --mob-safe-b:env(safe-area-inset-bottom,0px);
 }
 
-/* ── Hub ready + mobile body classes — auth-gated nav ── */
-/* Bottom nav shows only after auth AND on mobile */
-body.hub-ready.hub-mob .mob-bottom-nav{ display:flex; }
-body.hub-ready.hub-mob .mob-fab.fab-visible{ display:flex; }
-/* Ensure no nav flicker before auth */
+/* ── Bottom nav: CSS @media handles mobile, JS hub-ready handles auth timing ── */
 .mob-bottom-nav{ display:none; }
 .mob-fab{ display:none; }
+@media(max-width:600px){
+  body.hub-ready .mob-bottom-nav{ display:flex; }
+}
 
 /* ══════════════════════════════════
    PHONE (≤600px)
@@ -1336,7 +1335,7 @@ function spToAnn(item,fm) {
 
 function userToSP(ini, u) {
   var fm=_fieldMaps['HubUsers']||{};
-  return spSet(fm,[['Title',ini],['FullName',u.fullName||''],['Role',u.role||'MLS1'],['IsAdmin',u.isAdmin?'Yes':'No'],['Nickname',u.nickname||''],['PictureData',u.picture||'']]);
+  return spSet(fm,[['Title',ini],['FullName',u.fullName||_msalName||ini],['Role',u.role||'MLS1'],['IsAdmin',u.isAdmin?'Yes':'No'],['Nickname',u.nickname||''],['PictureData',u.picture||'']]);
 }
 function spSetUser(ini,u){return userToSP(ini,u);}
 
@@ -1452,7 +1451,7 @@ const K={E:'rcl7_entries',H:'rcl7_history',U:'rcl7_users',S:'rcl7_session',D:'rc
 const ELEVATED=['MLS Lead','Lab Manager'];
 const ADMIN_INI='JM';
 
-let entries=ld(K.E,[]),hist=ld(K.H,[]),users=ld(K.U,{}),me=null;
+let entries=ld(K.E,[]),hist=ld(K.H,[]),users=ld(K.U,{}),me=null,_msalName='';
 let dismissed=ld(K.D,{}),notifs=ld(K.N,{}),announcements=ld(K.A,[]);
 let curMonth=new Date().getMonth(),curYear=2026;
 let editId=null,sortKey='date',sortAsc=false;
@@ -1463,6 +1462,7 @@ let chartInstances={};
 if(!users[ADMIN_INI])users[ADMIN_INI]={fullName:'Jesus Martinez',role:'MLS Lead',password:'admin',isAdmin:true};
 users[ADMIN_INI].isAdmin=true;
 if(!users[ADMIN_INI].role||users[ADMIN_INI].role==='MLS1')users[ADMIN_INI].role='MLS Lead';
+if(!users[ADMIN_INI].fullName)users[ADMIN_INI].fullName='Jesus Martinez'; // ensure name never blank
 sv(K.U,users);
 
 // === HELPERS ===
@@ -1556,8 +1556,7 @@ var _mobMQ = window.matchMedia ? window.matchMedia('(max-width:600px)') : null;
 function isMobile(){ return _mobMQ ? _mobMQ.matches : (screen.width <= 600); }
 // Tag body with mob/ready classes for CSS-driven nav visibility
 function setHubReady(){
-  if(isMobile()) document.body.classList.add('hub-mob');
-  else document.body.classList.remove('hub-mob');
+  // hub-mob is set by CSS @media — JS only marks auth complete
   document.body.classList.add('hub-ready');
 }
 
@@ -1567,12 +1566,12 @@ function openSheet(bgId,cls){
   var bg=$(bgId);
   if(!bg)return;
   bg.classList.add(cls);
-  // On mobile: trigger slide-up transition after display change settles
-  if(isMobile()){
-    void bg.offsetWidth; // force reflow — makes transition fire on Android
-    var modal=bg.querySelector('.modal,.mand-card,.nd-card');
-    if(modal)modal.classList.add('sheet-open');
-  }
+  // Always force reflow + add sheet-open
+  // Desktop: mobile CSS doesn't apply so sheet-open is a no-op
+  // Mobile: triggers the translateY(100%)→(0) transition
+  void bg.offsetWidth;
+  var modal=bg.querySelector('.modal,.mand-card,.nd-card');
+  if(modal)modal.classList.add('sheet-open');
 }
 function closeSheet(bgId,cls){
   cls=cls||'open';
@@ -1603,7 +1602,10 @@ function applyUser(ini){
   if(ini===ADMIN_INI&&users[ini])users[ini].isAdmin=true;
   var u=users[ini];
   if(!u)return false;
-  me={initials:ini,fullName:u.fullName,role:u.role,isAdmin:!!(u.isAdmin||(ini===ADMIN_INI))};
+  // Never use empty fullName — fallback to MSAL name or existing me.fullName
+  var fn=u.fullName||(me&&me.fullName&&me.fullName!==ini?me.fullName:'')||_msalName||ini;
+  if(fn&&!u.fullName)u.fullName=fn; // patch empty SP record in-memory
+  me={initials:ini,fullName:fn,role:u.role||'MLS1',isAdmin:!!(u.isAdmin||(ini===ADMIN_INI))};
   return true;
 }
 
@@ -1627,6 +1629,7 @@ async function initAuth(){
       account=await loginMSAL();
     }
     var spUser=getSPUserFromAccount(account);
+    _msalName=spUser.name||spUser.email||'';
     authDbg('spUser name='+spUser.name+' email='+spUser.email);
     authDbg('cached users='+Object.keys(users).join(',')||'(none)');
 
@@ -1640,6 +1643,8 @@ async function initAuth(){
       refreshUI();
       toast('Welcome back, '+me.fullName+'!'+(me.isAdmin?' · Admin':''));
       loadAllData().then(function(){
+        // Ensure admin user always has correct name after SP refresh
+        if(users[ADMIN_INI]&&!users[ADMIN_INI].fullName)users[ADMIN_INI].fullName=_msalName||'Jesus Martinez';
         var freshIni=matchUser(spUser,users)||cachedIni;
         if(applyUser(freshIni)){lastSyncTime=new Date();uBD();refreshUI();renderAll();}
       }).catch(function(e){console.warn('BG sync failed:',e);});
@@ -1660,6 +1665,7 @@ async function initAuth(){
       authDbg('new user created: '+ini);
       await spSaveUser(ini,users[ini]);
     }
+    if(users[ini]&&!users[ini].fullName)users[ini].fullName=_msalName||spUser.name||ini;
     if(!applyUser(ini)){throw new Error('User record missing after SP load for ini='+ini);}
     authDbg('me set: '+me.initials+' admin='+me.isAdmin);
     lastSyncTime=new Date();uBD();
@@ -1683,7 +1689,7 @@ function refreshUI(){
   $('clearHistBtn').style.display=isAdm()?'inline-flex':'none';
   $('annBtn').style.display=isLead()?'inline-flex':'none';
   // Mobile nav — driven by CSS class on body, not window.innerWidth
-  setHubReady(); // tags body as hub-ready + hub-mob
+  setHubReady(); // marks auth complete — CSS @media handles mobile detection
   var mobAdm=$('mobAdmin');
   if(mobAdm)mobAdm.style.display=isAdm()?'flex':'none';
   var mobFab=$('mobFab');
