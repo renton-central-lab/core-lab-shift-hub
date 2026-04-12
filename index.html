@@ -2130,6 +2130,8 @@ function renderMonthlyReview(){
       +'</div>';
   }else if(canReview&&myReview){
     formHtml='<div style="margin-top:8px;font-size:10px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:4px;"><span class="mi mi-xs">check_circle</span> Reviewed and signed by '+esc(me.fullName)+' on '+fd(myReview.reviewDate)+'</div>';
+  }else if(canReview&&metrics.total===0){
+    formHtml='<div style="margin-top:10px;text-align:center;padding:16px;color:var(--g400);font-size:11px;"><span class="mi" style="font-size:28px;display:block;margin-bottom:4px;color:var(--g300);">event_available</span>No entries recorded for '+MONTHS[curMonth]+' '+curYear+'. The sign-off form appears once entries exist for this month.</div>';
   }
 
   zone.innerHTML=bannerHtml
@@ -3700,25 +3702,25 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 // ═══════════════════════════════════════════
 var _tutStep=0,_tutSteps=[],_tutActive=false;
 
-// Step definitions: target = CSS selector or 'center' for no spotlight
-// Common steps for ALL roles
+// Step definitions: target = CSS selector or function returning selector, or 'center'
+function isMobile(){return window.innerWidth<=600;}
+
 var STEPS_ALL=[
-  {target:'.hdr-right',page:'ann',title:'This is your toolbar',text:'Up here you will find the <strong>notification bell</strong>, the <strong>push notification toggle</strong> (speaker icon), and your <strong>profile avatar</strong> (the circle with your initials). Tap your initials anytime to view or edit your profile.'},
-  {target:'.push-toggle',page:'ann',title:'Turn on push notifications',text:'Tap this speaker icon to enable push notifications. Your browser will ask to allow notifications. <strong>Tap Allow.</strong> Once enabled, a green dot appears and you will get alerts for escalations, follow-ups, and mandatory announcements even when this tab is in the background.'},
-  {target:'.bell-btn',page:'ann',title:'The notification bell',text:'This bell shows a red badge when you have unread notifications. Tap it to see escalations, follow-up assignments, and status changes. Tap any notification to jump to that entry.'},
-  {target:'#annBtn',page:'ann',vis:function(){return isLead();},title:'Post announcements',text:'As a lead, this button lets you post announcements. You can choose <strong>Standard</strong> (general info), <strong>Mandatory</strong> (requires staff acknowledgment), or <strong>Welcome</strong> (new team member introduction).'},
-  {target:'.nav-tab[onclick*="log"]',page:'ann',title:'The Shift Log tab',text:'Tap here to go to the <strong>Shift Log</strong>. This is where all shift events are documented: instrument issues, QC flags, specimen problems, and more. Let me show you around.'},
-  {target:'.dept-tabs',page:'log',title:'Department filters',text:'These tabs filter entries by department. Tap <strong>Hematology</strong>, <strong>Coagulation</strong>, <strong>Chemistry</strong>, or <strong>Urinalysis</strong> to see only that department\'s entries. Tap <strong>All</strong> to see everything.'},
-  {target:'.ctrl-new-entry',page:'log',title:'Create a new entry',text:'Tap this button to log a new event. A form opens with fields for date, time, shift, department, category, priority, and description. <strong>Date, time, shift, and your name fill in automatically.</strong> You just need to pick a category, set the priority, and describe what happened.'},
-  {target:'#escZone',page:'log',title:'Entry sections',text:'Entries are organized into three sections: <strong>Escalated</strong> (red, needs leadership attention), <strong>Active</strong> (open and in-progress items), and <strong>Resolved</strong> (completed, collapsed by default). Tap a section header to expand or collapse it.'},
+  {target:function(){return '.hdr-right';},page:'ann',title:'This is your toolbar',text:'At the top of the screen you will find the <strong>notification bell</strong>, the <strong>push notification toggle</strong> (speaker icon), and your <strong>profile circle</strong> (with your initials or photo). Tap your initials anytime to view your profile or restart this tutorial.'},
+  {target:function(){return '.push-toggle';},page:'ann',title:'Turn on push notifications',text:'Tap this icon to enable push notifications. Your browser will ask to allow notifications. <strong>Tap Allow.</strong> Once enabled, a green pulsing dot appears and you will receive alerts for escalations, follow-ups, and mandatory announcements even when this tab is in the background.'},
+  {target:function(){return '.bell-btn';},page:'ann',title:'The notification bell',text:'This bell shows a red badge when there are unread notifications. Tap it to see escalations, follow-up assignments, and status changes. Tap any notification to jump directly to that entry.'},
+  {target:function(){return isLead()?'#annBtn':null;},page:'ann',vis:function(){return isLead();},title:'Post announcements',text:'As a lead, this button lets you post announcements. Choose <strong>Standard</strong> (general info), <strong>Mandatory</strong> (requires staff acknowledgment before dismissing), or <strong>Welcome</strong> (new team member introduction with comment thread).'},
+  {target:function(){return isMobile()?'#mobLog':'.nav-tab[onclick*="log"]';},page:'ann',title:'The Shift Log',text:'Tap here to go to the <strong>Shift Log</strong>, where all shift events are documented. On your phone, this is the "Log" button in the bottom navigation bar. On a computer, it is a tab near the top of the screen.'},
+  {target:function(){return '.dept-tabs';},page:'log',title:'Department filters',text:'These buttons filter entries by department. Tap <strong>Hematology</strong>, <strong>Coagulation</strong>, <strong>Chemistry</strong>, or <strong>Urinalysis</strong> to see only that section\'s entries. Tap <strong>All</strong> to see everything.'},
+  {target:function(){return isMobile()?'#mobFab':'.ctrl-new-entry';},page:'log',title:'Create a new entry',text:function(){return isMobile()?'Tap this <strong>green + button</strong> in the bottom-right corner to create a new shift log entry. A form slides up from the bottom of the screen with fields for category, priority, and description. Date, time, shift, and your name fill in automatically.':'Tap the <strong>New Entry</strong> button to log a new event. A form opens with fields for date, time, shift, department, category, priority, and description. Date, time, shift, and your name fill in automatically.';}},
+  {target:function(){return '#activeZone';},page:'log',title:'Entry sections',text:'Entries are organized into sections: <strong>Escalated</strong> (red, for items needing leadership attention), <strong>Active</strong> (open and in-progress items), and <strong>Resolved</strong> (completed, collapsed by default). Tap a section header to expand or collapse it.'},
 ];
 
-// Additional steps for LEADS
 var STEPS_LEAD=[
-  {target:'.ctrl-export',page:'log',title:'Export reports',text:'Tap <strong>Export</strong> to download the shift log as CSV, JSON, or PDF. The PDF includes a <strong>CAP Compliance Details</strong> section with all root causes, instruments, and reagent lots, plus a <strong>Resolution Summary</strong>. This is the primary document for CAP inspections.'},
-  {target:'#monthlyReviewZone',page:'log',title:'Monthly Supervisory Review',text:'Scroll to the very bottom of the Shift Log to find this section. <strong>By the 15th of each month</strong>, review all entries from the previous month and tap <strong>Sign Review</strong>. The system calculates the metrics automatically. If the review is overdue, a red banner appears and you will receive a push notification on every login.'},
-  {target:'.nav-tab[onclick*="dash"]',page:'log',title:'The Dashboard',text:'Tap here to see the <strong>Dashboard</strong>. It shows stat cards (total entries, open items, escalated, resolution rate, CAPA count, effectiveness reviews due, monthly review status) and charts (by category, shift, priority, and daily trend). You can export these metrics as PDF, CSV, or text.'},
-  {target:'.nav-tab[onclick*="aud"]',page:'log',title:'The Audit Trail',text:'This tab shows <strong>every change ever made</strong> in the Shift Hub. Each record shows who made the change, when, and the original values of every modified field. <strong>CAP inspectors review this</strong> to verify that record corrections preserve the original data. You can export it as a PDF formatted specifically for inspections.'},
+  {target:function(){return isMobile()?'.ctrl-export':'.ctrl-export';},page:'log',title:'Export shift log reports',text:'Tap <strong>Export</strong> to download the shift log as CSV, JSON, or PDF. The PDF includes a <strong>CAP Compliance Details</strong> section with root causes, instruments, and reagent lots, plus a <strong>Resolution Summary</strong>. This is the main document to give a CAP inspector.'},
+  {target:function(){return '#monthlyReviewZone';},page:'log',title:'Monthly Supervisory Review',text:'Scroll to the very bottom of the Shift Log page to find this section. <strong>By the 15th of each month</strong>, review all entries from the previous month and tap <strong>Sign Review</strong>. The system calculates all the metrics automatically. If the review is late, a red "Overdue" banner appears and you get a push notification on every login.'},
+  {target:function(){return isMobile()?'#mobDash':'.nav-tab[onclick*="dash"]';},page:'log',title:'The Dashboard',text:'Tap here to see the <strong>Dashboard</strong>. It shows stat cards (total entries, open items, escalated, resolution rate, CAPA count, effectiveness reviews due, monthly review status) and charts. You can export these metrics as PDF, CSV, or text from the button at the top.'},
+  {target:function(){return isMobile()?'#mobAudit':'.nav-tab[onclick*="aud"]';},page:'log',title:'The Audit Trail',text:'This tab shows <strong>every change ever made</strong> in the Shift Hub: who changed it, when, and what the original values were. <strong>CAP inspectors review this</strong> to verify that record corrections are done properly. You can export it as a formatted PDF from the Export button at the top of that page.'},
 ];
 
 function getTutSteps(){
@@ -3771,7 +3773,7 @@ function showTutStep(){
     var activePage=document.querySelector('.page.active');
     if(!activePage||activePage.id!==pageId){
       switchPage(s.page);
-      setTimeout(function(){positionTutStep(s);},350);
+      setTimeout(function(){positionTutStep(s);},400);
       return;
     }
   }
@@ -3781,19 +3783,22 @@ function showTutStep(){
 function positionTutStep(s){
   var spot=$('tutSpot');
   var tip=$('tutTip');
-  var overlay=$('tutOverlay');
+
+  // Resolve target selector (may be a function for mobile awareness)
+  var targetSel=typeof s.target==='function'?s.target():s.target;
+  var textContent=typeof s.text==='function'?s.text():s.text;
 
   // Update content
   $('tutNum').textContent=_tutStep+1;
   $('tutBadge').textContent='Step '+(_tutStep+1)+' of '+_tutSteps.length;
   $('tutTitle').textContent=s.title;
-  $('tutText').innerHTML=s.text;
+  $('tutText').innerHTML=textContent;
   $('tutNext').textContent=_tutStep===_tutSteps.length-1?'Finish':'Next';
 
   // Dots
   $('tutDots').innerHTML=_tutSteps.map(function(_,i){return '<div class="tut-dot '+(i<_tutStep?'done':'')+' '+(i===_tutStep?'active':'')+'"></div>';}).join('');
 
-  if(s.target==='center'||!document.querySelector(s.target)){
+  if(!targetSel||targetSel==='center'||!document.querySelector(targetSel)){
     // Center the tooltip, hide spotlight
     spot.style.display='none';
     tip.style.bottom='auto';
@@ -3801,8 +3806,7 @@ function positionTutStep(s){
     tip.style.animation='none';
     requestAnimationFrame(function(){tip.style.animation='tutTipIn var(--dur-long) var(--me-spring) both';});
   }else{
-    // Position spotlight on target element
-    var el=document.querySelector(s.target);
+    var el=document.querySelector(targetSel);
     el.scrollIntoView({behavior:'smooth',block:'center'});
     setTimeout(function(){
       var rect=el.getBoundingClientRect();
@@ -3813,14 +3817,17 @@ function positionTutStep(s){
       spot.style.width=(rect.width+pad*2)+'px';
       spot.style.height=(rect.height+pad*2)+'px';
 
-      // Position tooltip below or above the spotlight
-      var tipH=280;// estimated max
+      // Position tooltip: prefer below, then above, then center
+      var tipH=260;
       var spaceBelow=window.innerHeight-rect.bottom;
       var spaceAbove=rect.top;
       // Reset positioning
       tip.style.transform='none';tip.style.top='auto';tip.style.bottom='auto';
 
       var tipLeft=Math.max(12,Math.min(rect.left,window.innerWidth-356))+'px';
+      // On mobile, always center horizontally
+      if(isMobile()){tipLeft='12px';}
+
       if(spaceBelow>tipH+20){
         tip.style.top=(rect.bottom+16)+'px';
         tip.style.left=tipLeft;
@@ -3828,6 +3835,7 @@ function positionTutStep(s){
         tip.style.bottom=(window.innerHeight-rect.top+16)+'px';
         tip.style.left=tipLeft;
       }else{
+        // Not enough space above or below, center on screen
         tip.style.top='50%';tip.style.left='50%';tip.style.transform='translate(-50%,-50%)';
       }
       tip.style.animation='none';
