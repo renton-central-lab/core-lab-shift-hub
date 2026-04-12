@@ -880,16 +880,17 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   }
   /* Drag handle */
   .modal::before{
-    content:'';display:block;position:absolute;
-    top:10px;left:50%;transform:translateX(-50%);
+    content:'';display:block;
     width:36px;height:4px;border-radius:2px;
     background:var(--g300);
+    margin:10px auto 0;
+    position:relative;z-index:3;
   }
   .modal-hdr{
-    padding:12px 18px 10px;
+    padding:8px 18px 10px;
     position:sticky;top:0;
-    background:var(--white);z-index:1;
-    border-radius:var(--rr) var(--rr) 0 0;
+    background:var(--white);z-index:2;
+    box-shadow:0 1px 0 var(--g200);
   }
   .modal-body{ padding:14px 18px; }
   .modal-ftr{
