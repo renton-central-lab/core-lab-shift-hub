@@ -949,15 +949,15 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   .tut-btn{padding:8px 14px;font-size:11px;}
   .tut-btn.skip{font-size:10px;padding:8px 6px;}
 
-  /* When tutorial elevates a modal, cap modal height so tooltip fits below */
+  /* When tutorial elevates a modal, cap height so tooltip fits at top */
   .tut-elevated .modal{
     max-height:55dvh!important;
     overflow-y:auto!important;
-    margin-top:auto!important;
   }
   .tut-elevated.modal-bg.open{
-    align-items:flex-start!important;
-    padding-top:8px!important;
+    align-items:flex-end!important;
+    padding-top:0!important;
+    padding-bottom:0!important;
   }
 
 } /* end @media 600px */
@@ -3926,11 +3926,16 @@ function positionTutStep(s){
   if(!el){
     // === CENTERED / BOTTOM TOOLTIP (no spotlight) ===
     if(isMobile()){
-      // Mobile: pin to bottom so modal content is visible above
       tip.style.position='fixed';
-      tip.style.bottom=(isModalStep?'10px':'80px');
       tip.style.left='12px';tip.style.right='12px';
-      tip.style.top='auto';tip.style.transform='none';
+      if(isModalStep){
+        // Modal steps: pin tooltip to TOP so the form is visible below
+        tip.style.top='8px';tip.style.bottom='auto';
+      }else{
+        // Non-modal centered: pin above bottom nav
+        tip.style.bottom='80px';tip.style.top='auto';
+      }
+      tip.style.transform='none';
     }else{
       // Desktop: center vertically, offset right if modal is open
       tip.style.position='fixed';
