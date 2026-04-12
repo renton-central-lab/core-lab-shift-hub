@@ -642,8 +642,9 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   }
   .mob-nav-btn.active::before{ width:54px;opacity:1; }
 
-  /* ── FAB: JS controls display ── */
+  /* ── FAB: JS controls visibility via fab-visible class ── */
   .mob-fab{
+    display:none;
     position:fixed;
     bottom:calc(var(--mob-nav-h) + var(--mob-safe-b) + 14px);
     right:16px;
@@ -651,10 +652,13 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
     background:var(--teal);color:var(--white);border:none;
     box-shadow:0 4px 18px rgba(0,121,107,.35);
     align-items:center;justify-content:center;cursor:pointer;z-index:85;
-    transition:transform var(--dur-short) var(--me-spring),box-shadow var(--dur-short) var(--me-standard);
+    transition:transform var(--dur-short) var(--me-spring),box-shadow var(--dur-short) var(--me-standard),opacity var(--dur-med) var(--me-decelerate);
     -webkit-tap-highlight-color:transparent;
   }
-  .mob-fab:active{ transform:scale(.92); }
+  .mob-fab.fab-visible{ display:flex; animation:fabIn var(--dur-med) var(--me-spring) both; }
+  @keyframes fabIn{from{opacity:0;transform:scale(0) rotate(-45deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
+  .mob-fab:hover{ box-shadow:0 6px 24px rgba(0,121,107,.45); }
+  .mob-fab:active{ transform:scale(.88); }
   .mob-fab .mi{ font-size:26px; }
 
   /* ── DASHBOARD PAGE ── */
@@ -932,6 +936,19 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   /* ── Export modal ── */
   .modal[style*="520px"]{ width:100%!important; }
 
+  /* ── TUTORIAL: mobile adjustments ── */
+  .tut-tooltip{
+    max-width:calc(100vw - 24px)!important;
+    width:calc(100vw - 24px)!important;
+    left:12px!important;right:12px!important;
+    border-radius:16px;
+  }
+  .tut-tip-title{font-size:14px;}
+  .tut-tip-text{font-size:11px;}
+  .tut-tip-footer{padding:8px 14px;}
+  .tut-btn{padding:8px 14px;font-size:11px;}
+  .tut-btn.skip{font-size:10px;padding:8px 6px;}
+
 } /* end @media 600px */
 
 /* ══════════════════════════════════
@@ -947,6 +964,36 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
   .form-grid{ grid-template-columns:1fr; }
   .tbl-scroll{ overflow-x:auto; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   GUIDED TUTORIAL — spotlight overlay system
+═══════════════════════════════════════════════════════ */
+.tut-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;pointer-events:auto;}
+.tut-overlay.active{display:block;}
+.tut-backdrop{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(28,26,22,.7);transition:opacity var(--dur-med) var(--me-decelerate);}
+.tut-spotlight{position:absolute;border-radius:16px;box-shadow:0 0 0 9999px rgba(28,26,22,.7);transition:top var(--dur-long) var(--me-emphasized),left var(--dur-long) var(--me-emphasized),width var(--dur-long) var(--me-emphasized),height var(--dur-long) var(--me-emphasized);pointer-events:none;z-index:9001;}
+.tut-spot-ring{position:absolute;top:-4px;left:-4px;right:-4px;bottom:-4px;border:2px solid rgba(0,121,107,.6);border-radius:20px;animation:tutRing 2s var(--me-standard) infinite;}
+@keyframes tutRing{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.03)}}
+.tut-tooltip{position:absolute;z-index:9002;background:var(--white);border-radius:20px;box-shadow:0 12px 40px rgba(28,26,22,.18);border:1px solid var(--g200);max-width:340px;width:calc(100vw - 32px);animation:tutTipIn var(--dur-long) var(--me-spring) both;pointer-events:auto;}
+@keyframes tutTipIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.tut-tip-body{padding:18px 20px;}
+.tut-tip-step{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.tut-tip-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--teal-d,#004D40),var(--teal));color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;}
+.tut-tip-badge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--g400);}
+.tut-tip-title{font-size:15px;font-weight:800;color:var(--navy);line-height:1.3;margin-bottom:4px;}
+.tut-tip-text{font-size:12px;color:var(--g600);line-height:1.7;}
+.tut-tip-text strong{color:var(--teal);}
+.tut-tip-footer{padding:10px 20px;border-top:1px solid var(--g200);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.tut-btn{padding:8px 18px;border-radius:14px;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:transform var(--dur-short) var(--me-spring),box-shadow var(--dur-short) var(--me-standard),background var(--dur-short) var(--me-standard);-webkit-tap-highlight-color:transparent;}
+.tut-btn:active{transform:scale(.93);}
+.tut-btn.next{background:linear-gradient(135deg,var(--teal-d,#004D40),var(--teal));color:white;box-shadow:0 3px 12px rgba(0,77,64,.2);}
+.tut-btn.next:hover{box-shadow:0 5px 16px rgba(0,77,64,.3);}
+.tut-btn.skip{background:none;color:var(--g400);font-size:11px;padding:8px 10px;}
+.tut-btn.skip:hover{color:var(--g600);}
+.tut-dots{display:flex;gap:3px;align-items:center;}
+.tut-dot{width:6px;height:6px;border-radius:50%;background:var(--g200);transition:all var(--dur-med) var(--me-spring);}
+.tut-dot.active{background:var(--teal);width:18px;border-radius:3px;}
+.tut-dot.done{background:var(--teal);}
 
 </style>
 </head>
@@ -1176,7 +1223,9 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
 <div class="modal-body">
   <div class="prof-section"><h4>Profile Picture</h4><div class="prof-pic-row"><div class="prof-pic-circle" id="profPicPreview"></div><div><input type="file" id="profPicFile" accept="image/*" onchange="handleProfPic(event)" style="font-size:10px;max-width:180px;"><button class="btn btn-s" style="padding:2px 6px;font-size:9px;margin-top:4px;" onclick="removeProfPic()">Remove</button></div></div></div>
   <div class="prof-section"><h4>Nickname</h4><div class="form-item"><label>Shown instead of initials (max 12 chars)</label><input type="text" id="profNick" maxlength="12" placeholder="e.g., Jesus"></div></div>
-  <div class="prof-section" style="border-bottom:none;"><span style="font-size:10px;color:var(--g400);" id="profInfo"></span></div>
+  <div class="prof-section" style="border-bottom:none;"><span style="font-size:10px;color:var(--g400);" id="profInfo"></span>
+    <div style="margin-top:10px;"><button class="btn btn-s" style="font-size:10px;padding:6px 12px;" onclick="restartTutorial()"><span class="mi mi-xs">school</span> Restart Tutorial</button></div>
+  </div>
 </div>
 <div class="modal-ftr"><button class="btn btn-p" onclick="saveProfile()">Save</button><button class="btn btn-s" onclick="closeProfile()">Cancel</button></div>
 </div></div>
@@ -3646,6 +3695,176 @@ setInterval(async function(){try{await loadAllData();lastSyncTime=new Date();uBD
 }
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',startApp);}else{startApp();}
 
+// ═══════════════════════════════════════════
+// GUIDED TUTORIAL SYSTEM
+// ═══════════════════════════════════════════
+var _tutStep=0,_tutSteps=[],_tutActive=false;
+
+// Step definitions: target = CSS selector or 'center' for no spotlight
+// Common steps for ALL roles
+var STEPS_ALL=[
+  {target:'.hdr-right',page:'ann',title:'This is your toolbar',text:'Up here you will find the <strong>notification bell</strong>, the <strong>push notification toggle</strong> (speaker icon), and your <strong>profile avatar</strong> (the circle with your initials). Tap your initials anytime to view or edit your profile.'},
+  {target:'.push-toggle',page:'ann',title:'Turn on push notifications',text:'Tap this speaker icon to enable push notifications. Your browser will ask to allow notifications. <strong>Tap Allow.</strong> Once enabled, a green dot appears and you will get alerts for escalations, follow-ups, and mandatory announcements even when this tab is in the background.'},
+  {target:'.bell-btn',page:'ann',title:'The notification bell',text:'This bell shows a red badge when you have unread notifications. Tap it to see escalations, follow-up assignments, and status changes. Tap any notification to jump to that entry.'},
+  {target:'#annBtn',page:'ann',vis:function(){return isLead();},title:'Post announcements',text:'As a lead, this button lets you post announcements. You can choose <strong>Standard</strong> (general info), <strong>Mandatory</strong> (requires staff acknowledgment), or <strong>Welcome</strong> (new team member introduction).'},
+  {target:'.nav-tab[onclick*="log"]',page:'ann',title:'The Shift Log tab',text:'Tap here to go to the <strong>Shift Log</strong>. This is where all shift events are documented: instrument issues, QC flags, specimen problems, and more. Let me show you around.'},
+  {target:'.dept-tabs',page:'log',title:'Department filters',text:'These tabs filter entries by department. Tap <strong>Hematology</strong>, <strong>Coagulation</strong>, <strong>Chemistry</strong>, or <strong>Urinalysis</strong> to see only that department\'s entries. Tap <strong>All</strong> to see everything.'},
+  {target:'.ctrl-new-entry',page:'log',title:'Create a new entry',text:'Tap this button to log a new event. A form opens with fields for date, time, shift, department, category, priority, and description. <strong>Date, time, shift, and your name fill in automatically.</strong> You just need to pick a category, set the priority, and describe what happened.'},
+  {target:'#escZone',page:'log',title:'Entry sections',text:'Entries are organized into three sections: <strong>Escalated</strong> (red, needs leadership attention), <strong>Active</strong> (open and in-progress items), and <strong>Resolved</strong> (completed, collapsed by default). Tap a section header to expand or collapse it.'},
+];
+
+// Additional steps for LEADS
+var STEPS_LEAD=[
+  {target:'.ctrl-export',page:'log',title:'Export reports',text:'Tap <strong>Export</strong> to download the shift log as CSV, JSON, or PDF. The PDF includes a <strong>CAP Compliance Details</strong> section with all root causes, instruments, and reagent lots, plus a <strong>Resolution Summary</strong>. This is the primary document for CAP inspections.'},
+  {target:'#monthlyReviewZone',page:'log',title:'Monthly Supervisory Review',text:'Scroll to the very bottom of the Shift Log to find this section. <strong>By the 15th of each month</strong>, review all entries from the previous month and tap <strong>Sign Review</strong>. The system calculates the metrics automatically. If the review is overdue, a red banner appears and you will receive a push notification on every login.'},
+  {target:'.nav-tab[onclick*="dash"]',page:'log',title:'The Dashboard',text:'Tap here to see the <strong>Dashboard</strong>. It shows stat cards (total entries, open items, escalated, resolution rate, CAPA count, effectiveness reviews due, monthly review status) and charts (by category, shift, priority, and daily trend). You can export these metrics as PDF, CSV, or text.'},
+  {target:'.nav-tab[onclick*="aud"]',page:'log',title:'The Audit Trail',text:'This tab shows <strong>every change ever made</strong> in the Shift Hub. Each record shows who made the change, when, and the original values of every modified field. <strong>CAP inspectors review this</strong> to verify that record corrections preserve the original data. You can export it as a PDF formatted specifically for inspections.'},
+];
+
+function getTutSteps(){
+  var steps=STEPS_ALL.slice();
+  if(isLead())steps=steps.concat(STEPS_LEAD);
+  // Add a final "you're done" step
+  steps.push({target:'center',page:null,title:'You are all set!',text:'That covers everything you need to know. The Shift Hub saves all data automatically. If you ever need to revisit this tutorial, you can trigger it from your profile menu. <strong>Welcome to the team!</strong>'});
+  return steps;
+}
+
+function shouldShowTutorial(){
+  if(!me)return false;
+  var key='rcl7_tut_done_'+me.initials;
+  return !localStorage.getItem(key);
+}
+
+function markTutorialDone(){
+  if(me)localStorage.setItem('rcl7_tut_done_'+me.initials,'1');
+}
+
+function startTutorial(){
+  _tutSteps=getTutSteps();
+  _tutStep=0;
+  _tutActive=true;
+  $('tutOverlay').classList.add('active');
+  showTutStep();
+}
+
+function tutNextStep(){
+  _tutStep++;
+  if(_tutStep>=_tutSteps.length){tutFinish();return;}
+  // If step needs a page change, do it
+  var s=_tutSteps[_tutStep];
+  if(s.page&&document.querySelector('.page.active').id!=='page'+s.page.charAt(0).toUpperCase()+s.page.slice(1)){
+    switchPage(s.page);
+    setTimeout(function(){showTutStep();},400);
+  }else{
+    showTutStep();
+  }
+}
+
+function showTutStep(){
+  var s=_tutSteps[_tutStep];
+  if(!s)return;
+  // Skip steps with visibility conditions that fail
+  if(s.vis&&!s.vis()){_tutStep++;if(_tutStep<_tutSteps.length)showTutStep();else tutFinish();return;}
+  // Navigate to correct page if needed
+  if(s.page){
+    var pageId='page'+s.page.charAt(0).toUpperCase()+s.page.slice(1);
+    var activePage=document.querySelector('.page.active');
+    if(!activePage||activePage.id!==pageId){
+      switchPage(s.page);
+      setTimeout(function(){positionTutStep(s);},350);
+      return;
+    }
+  }
+  positionTutStep(s);
+}
+
+function positionTutStep(s){
+  var spot=$('tutSpot');
+  var tip=$('tutTip');
+  var overlay=$('tutOverlay');
+
+  // Update content
+  $('tutNum').textContent=_tutStep+1;
+  $('tutBadge').textContent='Step '+(_tutStep+1)+' of '+_tutSteps.length;
+  $('tutTitle').textContent=s.title;
+  $('tutText').innerHTML=s.text;
+  $('tutNext').textContent=_tutStep===_tutSteps.length-1?'Finish':'Next';
+
+  // Dots
+  $('tutDots').innerHTML=_tutSteps.map(function(_,i){return '<div class="tut-dot '+(i<_tutStep?'done':'')+' '+(i===_tutStep?'active':'')+'"></div>';}).join('');
+
+  if(s.target==='center'||!document.querySelector(s.target)){
+    // Center the tooltip, hide spotlight
+    spot.style.display='none';
+    tip.style.bottom='auto';
+    tip.style.left='50%';tip.style.top='50%';tip.style.transform='translate(-50%,-50%)';
+    tip.style.animation='none';
+    requestAnimationFrame(function(){tip.style.animation='tutTipIn var(--dur-long) var(--me-spring) both';});
+  }else{
+    // Position spotlight on target element
+    var el=document.querySelector(s.target);
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(function(){
+      var rect=el.getBoundingClientRect();
+      var pad=8;
+      spot.style.display='block';
+      spot.style.top=(rect.top-pad)+'px';
+      spot.style.left=(rect.left-pad)+'px';
+      spot.style.width=(rect.width+pad*2)+'px';
+      spot.style.height=(rect.height+pad*2)+'px';
+
+      // Position tooltip below or above the spotlight
+      var tipH=280;// estimated max
+      var spaceBelow=window.innerHeight-rect.bottom;
+      var spaceAbove=rect.top;
+      // Reset positioning
+      tip.style.transform='none';tip.style.top='auto';tip.style.bottom='auto';
+
+      var tipLeft=Math.max(12,Math.min(rect.left,window.innerWidth-356))+'px';
+      if(spaceBelow>tipH+20){
+        tip.style.top=(rect.bottom+16)+'px';
+        tip.style.left=tipLeft;
+      }else if(spaceAbove>tipH+20){
+        tip.style.bottom=(window.innerHeight-rect.top+16)+'px';
+        tip.style.left=tipLeft;
+      }else{
+        tip.style.top='50%';tip.style.left='50%';tip.style.transform='translate(-50%,-50%)';
+      }
+      tip.style.animation='none';
+      requestAnimationFrame(function(){tip.style.animation='tutTipIn var(--dur-long) var(--me-spring) both';});
+    },300);
+  }
+}
+
+function tutSkip(){
+  if(!confirm('Skip the tutorial? You can restart it later from your profile.'))return;
+  tutFinish();
+}
+
+function tutFinish(){
+  _tutActive=false;
+  $('tutOverlay').classList.remove('active');
+  markTutorialDone();
+}
+
+// Restart tutorial (called from profile)
+function restartTutorial(){
+  closeProfile();
+  if(me)localStorage.removeItem('rcl7_tut_done_'+me.initials);
+  switchPage('ann');
+  setTimeout(startTutorial,400);
+}
+
+// Hook into refreshUI to trigger on first login
+var _origRefreshUI=refreshUI;
+refreshUI=function(){
+  _origRefreshUI();
+  setTimeout(function(){
+    if(shouldShowTutorial()){startTutorial();}
+  },1500);
+};
+
+
 </script>
 <!-- BELL DROPDOWN (outside header for correct fixed positioning) -->
 <div class="bell-drop" id="bellDrop">
@@ -3677,5 +3896,21 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   <span class="mi">add</span>
 </button>
 
+<div class="tut-overlay" id="tutOverlay">
+  <div class="tut-backdrop" onclick="tutSkip()"></div>
+  <div class="tut-spotlight" id="tutSpot"><div class="tut-spot-ring"></div></div>
+  <div class="tut-tooltip" id="tutTip">
+    <div class="tut-tip-body">
+      <div class="tut-tip-step"><div class="tut-tip-num" id="tutNum">1</div><div class="tut-tip-badge" id="tutBadge"></div></div>
+      <div class="tut-tip-title" id="tutTitle"></div>
+      <div class="tut-tip-text" id="tutText"></div>
+    </div>
+    <div class="tut-tip-footer">
+      <button class="tut-btn skip" onclick="tutSkip()">Skip tutorial</button>
+      <div class="tut-dots" id="tutDots"></div>
+      <button class="tut-btn next" id="tutNext" onclick="tutNextStep()">Next</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
