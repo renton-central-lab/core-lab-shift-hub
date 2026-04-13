@@ -77,7 +77,6 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--surfa
 /* Modal — spring slide up */
 .modal{background:var(--white);border-radius:var(--rr);box-shadow:var(--shadow-3);width:640px;max-width:95vw;animation:modalIn var(--dur-long) var(--me-spring) both;margin-bottom:32px;}
 @keyframes modalIn{from{opacity:0;transform:translateY(24px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
-@keyframes mSlide{from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);}}
 .mand-card{background:var(--white);border-radius:var(--rr);box-shadow:var(--shadow-3);width:520px;max-width:95vw;animation:modalIn var(--dur-long) var(--me-spring) both;overflow:hidden;border-top:4px solid var(--red);}
 .nd-card{background:var(--white);border-radius:var(--rr);box-shadow:var(--shadow-3);width:440px;max-width:95vw;animation:modalIn var(--dur-med) var(--me-spring) both;overflow:hidden;}
 .auth-card{background:var(--white);border-radius:var(--rr);box-shadow:var(--shadow-3);width:360px;max-width:95vw;padding:32px;animation:modalIn var(--dur-long) var(--me-spring) both;}
@@ -95,11 +94,6 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--surfa
 /* Table rows */
 tbody tr{border-bottom:1px solid var(--g100);transition:background var(--dur-micro) var(--me-standard);}
 /* Buttons */
-/* Buttons — see Controls section below */
-/* Attach thumbs */
-.attach-thumb{width:48px;height:48px;border-radius:4px;overflow:hidden;border:1px solid var(--g200);cursor:pointer;
-  transition:transform var(--dur-short) var(--me-spring),box-shadow var(--dur-short) var(--me-standard);}
-.attach-thumb:hover{transform:scale(1.1);box-shadow:var(--shadow-2);}
 /* Section headers */
 /* Section headers — see Sections below */
 .sec-hdr .mi{transition:transform var(--dur-med) var(--me-emphasized);}
@@ -127,10 +121,6 @@ tbody tr{border-bottom:1px solid var(--g100);transition:background var(--dur-mic
 /* Bell */
 .bell-btn{position:relative;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background var(--dur-short) var(--me-standard),transform var(--dur-short) var(--me-spring);color:rgba(255,255,255,.7);}
 .bell-btn:hover{background:rgba(255,255,255,.2);color:var(--white);transform:scale(1.08);}
-/* Action type options */
-.ato{flex:1;padding:10px 8px;border:2px solid var(--g200);border-radius:var(--r);cursor:pointer;text-align:center;background:var(--white);
-  transition:border-color var(--dur-short) var(--me-standard),background var(--dur-short) var(--me-standard),transform var(--dur-short) var(--me-spring);}
-.ato:hover{box-shadow:var(--shadow-1);}
 /* Input focus */
 select,input[type="text"],input[type="date"],input[type="time"],input[type="password"]{font-family:inherit;font-size:12px;padding:6px 10px;border:1px solid var(--g300);border-radius:var(--r);background:var(--white);color:var(--g700);outline:none;transition:border-color var(--dur-short) var(--me-standard),box-shadow var(--dur-short) var(--me-standard);}
 select:focus,input[type="text"]:focus,input[type="date"]:focus,input[type="time"]:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,121,107,.1);}
@@ -346,7 +336,7 @@ td.desc-cell .cell-txt{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orie
 td.desc-cell .cell-txt.expanded{-webkit-line-clamp:unset;overflow:visible;}
 td.desc-cell .cell-txt:hover{color:var(--teal);}
 .attach-thumbs{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
-.attach-thumb{width:48px;height:48px;border-radius:4px;overflow:hidden;border:1px solid var(--g200);cursor:pointer;transition:transform .1s;}
+.attach-thumb{width:48px;height:48px;border-radius:4px;overflow:hidden;border:1px solid var(--g200);cursor:pointer;transition:transform var(--dur-short) var(--me-spring),box-shadow var(--dur-short) var(--me-standard);}
 .attach-thumb:hover{transform:scale(1.08);box-shadow:var(--shadow-2);}
 .attach-thumb img{width:100%;height:100%;object-fit:cover;}
 .img-viewer-overlay{display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.9);z-index:400;justify-content:center;align-items:center;cursor:zoom-out;padding:20px;}
@@ -1006,7 +996,7 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
 .tut-btn.skip{background:none;color:var(--g400);font-size:11px;padding:8px 10px;}
 .tut-btn.skip:hover{color:var(--g600);}
 .tut-dots{display:flex;gap:3px;align-items:center;}
-.tut-dot{width:6px;height:6px;border-radius:50%;background:var(--g200);transition:all var(--dur-med) var(--me-spring);}
+.tut-dot{width:6px;height:6px;border-radius:50%;background:var(--g200);transition:width var(--dur-med) var(--me-spring),background var(--dur-med) var(--me-spring),border-radius var(--dur-med) var(--me-spring);}
 .tut-dot.active{background:var(--teal);width:18px;border-radius:3px;}
 .tut-dot.done{background:var(--teal);}
 
@@ -1159,7 +1149,7 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
         <span style="font-size:10px;font-weight:700;color:var(--teal);" id="hub-bk-status">Checking...</span>
         <span style="font-size:10px;color:var(--g400);" id="hub-bk-last"></span>
       </div>
-      <p style="font-size:10px;color:var(--g500);margin-bottom:8px;">Auto-backup runs once daily when you open the Shift Hub. Backups are stored as JSON in the SharePoint document library.</p>
+      <p style="font-size:10px;color:var(--g500);margin-bottom:8px;">Auto-backup runs three times daily (Night: 12-7 AM, Day: 7 AM-3 PM, Evening: 3-12 PM) when anyone opens the Shift Hub. Backups are stored as JSON in the SharePoint document library.</p>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
         <button class="btn btn-p" onclick="hubManualBackup()" id="hub-bk-btn"><span class="mi mi-xs">cloud_upload</span> Backup to SharePoint</button>
       </div>
@@ -2592,9 +2582,15 @@ async function hubManualBackup(){
 // Auto-backup on load (once per day)
 async function hubAutoBackup(){
   var statusEl=$('hub-bk-status');
-  var today=new Date().toISOString().slice(0,10);
+  // Three backups per day aligned with shift handoffs
+  // Night window: 12 AM - 6:59 AM | Day window: 7 AM - 2:59 PM | Evening window: 3 PM - 11:59 PM
+  var now=new Date();
+  var today=now.toISOString().slice(0,10);
+  var hr=now.getHours();
+  var window=hr<7?'NIGHT':hr<15?'DAY':'EVE';
+  var backupKey=today+'-'+window;
   var lastAuto=localStorage.getItem('hub-last-auto-backup');
-  if(lastAuto===today){
+  if(lastAuto===backupKey){
     if(statusEl){statusEl.textContent='Current';statusEl.style.color='var(--teal)';}
     return;
   }
@@ -2602,7 +2598,7 @@ async function hubAutoBackup(){
   try{
     var data=buildHubBackup();
     await uploadHubBackupToSP(data);
-    localStorage.setItem('hub-last-auto-backup',today);
+    localStorage.setItem('hub-last-auto-backup',backupKey);
     if(statusEl){statusEl.textContent='Current';statusEl.style.color='var(--teal)';}
     var lastEl=$('hub-bk-last');
     if(lastEl)lastEl.textContent='Auto-backed up today';
@@ -3679,7 +3675,8 @@ function dlF(c,n,t){var a=document.createElement('a');a.href=URL.createObjectURL
 // === AUTO-BACKUP ===
 var lastSyncTime=null;
 async function runAutoBackup(){
-  if(!me||!me.isAdmin)return;
+  // Wait for auth to complete (me to be set)
+  if(!me){setTimeout(runAutoBackup,5000);return;}
   // Wait for data load to settle
   await new Promise(function(r){setTimeout(r,3000);});
   // Resolve library name FIRST, then run backup and history in sequence
@@ -3722,7 +3719,6 @@ var _tutStep=0,_tutSteps=[],_tutActive=false;
 // GUIDED TUTORIAL SYSTEM v3
 // ═══════════════════════════════════════════
 var _tutStep=0,_tutSteps=[],_tutActive=false;
-function isMobile(){return window.innerWidth<=600;}
 
 // === STEP DEFINITIONS ===
 // target: CSS selector, function returning selector, or 'center'
@@ -3903,6 +3899,7 @@ function positionTutStep(s){
   var textContent=typeof s.text==='function'?s.text():s.text;
   var isModalStep=!!s.modal;
 
+  // Update content
   $('tutNum').textContent=_tutStep+1;
   $('tutBadge').textContent='Step '+(_tutStep+1)+' of '+_tutSteps.length;
   $('tutTitle').textContent=s.title;
@@ -3917,37 +3914,53 @@ function positionTutStep(s){
   if(el){
     var r=el.getBoundingClientRect();
     if(r.width===0&&r.height===0)el=null;
-    // Skip spotlight for oversized targets
     if(el&&r.height>window.innerHeight*0.6)el=null;
   }
-
-  // Modal steps: always center tooltip (modal is visible above/behind)
   if(isModalStep)el=null;
 
-  // Reset all positioning
-  tip.style.top='auto';tip.style.bottom='auto';tip.style.left='auto';
-  tip.style.right='auto';tip.style.transform='none';
+  // Hide tooltip immediately to prevent flash at old position
+  tip.style.opacity='0';
+  tip.style.animation='none';
   spot.style.display='none';
 
+  // Helper to place and reveal the tooltip
+  function reveal(){
+    tip.style.opacity='';
+    tip.style.animation='tutTipIn var(--dur-long) var(--me-spring) both';
+  }
+
+  // Helper to clamp tooltip within viewport on desktop
+  function clampDesktop(){
+    requestAnimationFrame(function(){
+      var tr=tip.getBoundingClientRect();
+      if(tr.bottom>window.innerHeight-12){
+        tip.style.top=(window.innerHeight-tr.height-12)+'px';
+        tip.style.bottom='auto';
+      }
+      if(tr.right>window.innerWidth-12){
+        tip.style.left=(window.innerWidth-tr.width-12)+'px';
+      }
+    });
+  }
+
   if(!el){
-    // === CENTERED / BOTTOM TOOLTIP (no spotlight) ===
+    // === NO SPOTLIGHT ===
+    // Reset position properties
+    tip.style.top='auto';tip.style.bottom='auto';
+    tip.style.left='auto';tip.style.right='auto';
+    tip.style.transform='none';tip.style.maxWidth='';
+    tip.style.position='fixed';
+
     if(isMobile()){
-      tip.style.position='fixed';
       tip.style.left='12px';tip.style.right='12px';
       if(isModalStep){
-        // Modal steps: pin tooltip to TOP so the form is visible below
-        tip.style.top='8px';tip.style.bottom='auto';
+        tip.style.top='8px';
       }else{
-        // Non-modal centered: pin above bottom nav
-        tip.style.bottom='80px';tip.style.top='auto';
+        tip.style.bottom='80px';
       }
-      tip.style.transform='none';
     }else{
-      // Desktop: center vertically, offset right if modal is open
-      tip.style.position='fixed';
       if(isModalStep){
-        // Place tooltip to the right of the modal on desktop
-        tip.style.top='50%';tip.style.right='24px';tip.style.left='auto';
+        tip.style.top='50%';tip.style.right='24px';
         tip.style.transform='translateY(-50%)';
         tip.style.maxWidth='320px';
       }else{
@@ -3955,13 +3968,11 @@ function positionTutStep(s){
         tip.style.transform='translate(-50%,-50%)';
       }
     }
-    tip.style.animation='none';
-    requestAnimationFrame(function(){tip.style.animation='tutTipIn var(--dur-long) var(--me-spring) both';});
+    requestAnimationFrame(function(){reveal();if(!isMobile())clampDesktop();});
   }else{
-    // === SPOTLIGHT + POSITIONED TOOLTIP ===
+    // === SPOTLIGHT ===
     el.scrollIntoView({behavior:'smooth',block:'center'});
     setTimeout(function(){
-      // Re-query element after scroll settled (rect may have changed)
       var rect=el.getBoundingClientRect();
       var pad=6;
       spot.style.display='block';
@@ -3970,19 +3981,21 @@ function positionTutStep(s){
       spot.style.width=(rect.width+pad*2)+'px';
       spot.style.height=(rect.height+pad*2)+'px';
 
+      // Reset and reposition tooltip
+      tip.style.top='auto';tip.style.bottom='auto';
+      tip.style.left='auto';tip.style.right='auto';
+      tip.style.transform='none';tip.style.maxWidth='340px';
       tip.style.position='fixed';
-      tip.style.maxWidth='340px';
-      var tipH=220;
+
       var spaceBelow=window.innerHeight-rect.bottom;
       var spaceAbove=rect.top;
       var tipLeft=isMobile()?'12px':Math.max(12,Math.min(rect.left,window.innerWidth-356))+'px';
 
-      if(spaceBelow>tipH+16){
+      if(spaceBelow>240){
         tip.style.top=(rect.bottom+12)+'px';tip.style.left=tipLeft;
-      }else if(spaceAbove>tipH+16){
+      }else if(spaceAbove>240){
         tip.style.bottom=(window.innerHeight-rect.top+12)+'px';tip.style.left=tipLeft;
       }else{
-        // Not enough space: hide spotlight, pin tooltip
         spot.style.display='none';
         if(isMobile()){
           tip.style.bottom='80px';tip.style.left='12px';tip.style.right='12px';
@@ -3990,8 +4003,7 @@ function positionTutStep(s){
           tip.style.top='50%';tip.style.left='50%';tip.style.transform='translate(-50%,-50%)';
         }
       }
-      tip.style.animation='none';
-      requestAnimationFrame(function(){tip.style.animation='tutTipIn var(--dur-long) var(--me-spring) both';});
+      requestAnimationFrame(function(){reveal();if(!isMobile())clampDesktop();});
     },600);
   }
 }

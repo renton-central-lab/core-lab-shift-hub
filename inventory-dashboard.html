@@ -1358,10 +1358,15 @@ async function manualBackup(){
 
 // Auto-backup on load (once per day)
 async function autoBackupCheck(){
-  if(!isAdmin)return;
-  var today=new Date().toISOString().slice(0,10);
+  // Three backups per day aligned with shift handoffs
+  // Night: 12 AM - 6:59 AM | Day: 7 AM - 2:59 PM | Evening: 3 PM - 11:59 PM
+  var now=new Date();
+  var today=now.toISOString().slice(0,10);
+  var hr=now.getHours();
+  var bkWindow=hr<7?'NIGHT':hr<15?'DAY':'EVE';
+  var backupKey=today+'-'+bkWindow;
   var lastAuto=localStorage.getItem('inv-last-auto-backup');
-  if(lastAuto===today){
+  if(lastAuto===backupKey){
     document.getElementById('bk-status').textContent='Current';
     document.getElementById('bk-status').style.color='var(--ok)';
     return;
@@ -1369,11 +1374,11 @@ async function autoBackupCheck(){
   try{
     var data=buildBackupData();
     await uploadBackupToSP(data);
-    localStorage.setItem('inv-last-auto-backup',today);
-    lastBackupInfo={date:today,items:data.counts.inventory+data.counts.log,file:'inventory-backup-'+today+'.json'};
+    localStorage.setItem('inv-last-auto-backup',backupKey);
+    lastBackupInfo={date:today,items:data.counts.inventory+data.counts.log,file:'inventory-backup-'+today+'-'+bkWindow+'.json'};
     document.getElementById('bk-status').textContent='Current';
     document.getElementById('bk-status').style.color='var(--ok)';
-    console.log('Auto-backup completed for '+today);
+    console.log('Auto-backup completed for '+backupKey);
   }catch(e){
     console.warn('Auto-backup failed:',e);
     document.getElementById('bk-status').textContent='Failed';
@@ -1483,7 +1488,7 @@ function hideLoad(){document.getElementById('loading').classList.remove('show');
 window.addEventListener('load',function(){
   initAuth();
   // Resolve doc library name then auto-backup
-  setTimeout(async function(){if(spToken&&isAdmin){await resolveLibName();autoBackupCheck();}},4000);
+  setTimeout(async function(){if(spToken){await resolveLibName();autoBackupCheck();}},4000);
 });
 </script>
 <!-- Bulk action bar — fixed overlay, never affects layout -->
