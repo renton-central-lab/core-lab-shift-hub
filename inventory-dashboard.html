@@ -786,6 +786,12 @@ async function loadAllData(){showLoad('Loading inventory...');allInventory=await
 // VIEWS
 var currentView='stock';var viewTitles={stock:'Stock Overview',trends:'Usage Trends',expiry:'Expiry & Waste Risk',forecast:'Forecasting',log:'Transaction Log',backup:'Backup & Restore'};
 function showView(id){
+  // Toggle sub-nav if clicking the same view
+  if(currentView===id){
+    var sn=document.getElementById(id+'-subnav');
+    if(sn)sn.classList.toggle('show');
+    return;
+  }
   currentView=id;
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
   document.getElementById('view-'+id).classList.add('active');
