@@ -28,7 +28,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --primary:#004D40;--on-primary:#fff;--primary-container:#b2dfdb;--on-primary-container:#1a3a3a;
+  --primary:#00696E;--on-primary:#fff;--primary-container:#C4EEF0;--on-primary-container:#003D40;
   --secondary:#5C6360;--secondary-container:#E0E7E3;--on-secondary-container:#1A2120;
   --surface:#FAFAF5;--surface-low:#F5F3EC;--surface-container:#EFEDE6;--surface-high:#E9E7E0;--surface-highest:#E3E1DA;--surface-lowest:#FFFFFF;
   --on-surface:#1B1C19;--on-surface-variant:#44483E;--outline:#757870;--outline-variant:#C6C8BC;
@@ -49,7 +49,7 @@
 html,body{height:100%;font-family:var(--font-body);background:var(--surface);color:var(--on-surface);font-size:14px;line-height:1.5}
 .app{display:flex;height:100vh;overflow:hidden}
 .sidebar{width:240px;background:var(--surface-container);border-right:1px solid var(--outline-variant);display:flex;flex-direction:column;flex-shrink:0}
-.sidebar-hdr{height:56px;padding:0 20px;background:linear-gradient(135deg,#1a3a3a 0%,#004D40 100%);color:white;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;}.sidebar-hdr h1{font-family:var(--font);font-size:15px;font-weight:700;color:white;line-height:1.3}.sidebar-hdr .sub{font-size:10px;color:rgba(255,255,255,.55);margin-top:1px;font-weight:500}
+.sidebar-hdr{padding:20px 20px 16px}.sidebar-hdr h1{font-family:var(--font);font-size:17px;font-weight:700}.sidebar-hdr .sub{font-size:11px;color:var(--on-surface-variant);margin-top:2px;font-weight:500}
 .sidebar-nav{flex:1;padding:8px 12px;display:flex;flex-direction:column;gap:2px}
 .nav-btn{display:flex;align-items:center;gap:12px;padding:11px 16px;border:none;background:transparent;color:var(--on-surface-variant);font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;border-radius:var(--radius-full);
   transition:background var(--dur-short) var(--me-standard),color var(--dur-short) var(--me-standard);text-align:left;width:100%}
@@ -59,7 +59,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--surface);col
 .nav-btn:hover .material-icons-outlined{transform:scale(1.12)}
 .sidebar-footer{padding:16px 20px;border-top:1px solid var(--outline-variant);font-size:11px;color:var(--on-surface-variant)}.sidebar-footer .name{font-weight:700;color:var(--on-surface);font-size:12px;margin-bottom:2px}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.top-bar{height:56px;background:linear-gradient(135deg,#004D40 0%,#00695C 100%);border-bottom:none;padding:0 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;flex-wrap:wrap;color:var(--on-primary);box-sizing:border-box;}
+.top-bar{background:var(--surface-container);border-bottom:1px solid var(--outline-variant);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;flex-wrap:wrap}
 .top-bar h2{font-family:var(--font);font-size:20px;font-weight:700}.top-bar .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .content{flex:1;overflow-y:auto;padding:24px 28px;position:relative}
 /* ═══════════════════════════════════════════════════════════════
@@ -83,7 +83,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--surface);col
   }
 
   /* ── Top bar ── */
-  .top-bar{height:auto;min-height:48px;padding:10px 14px;gap:8px;}
+  .top-bar{padding:10px 14px;gap:8px;}
   .top-bar h2{font-size:15px;font-weight:700;}
   .top-bar .filters{gap:6px;width:100%;}
 
@@ -153,10 +153,16 @@ html,body{height:100%;font-family:var(--font-body);background:var(--surface);col
 
   /* Save all bar */
   .save-all-bar{
+    position:fixed!important;
+    bottom:var(--mob-nav-h);
+    left:0;right:0;
     padding:10px 14px;
     padding-bottom:calc(10px + var(--mob-safe-b));
+    z-index:50;
+    text-align:center;
   }
-  .save-all-btn{font-size:13px;padding:9px 20px;}
+  .save-all-bar.show{display:block;}
+  .save-all-btn{font-size:13px;padding:12px 20px;width:100%;justify-content:center;}
 
   /* Admin checkall */
   .admin-btn{font-size:10px;padding:5px 10px;}
@@ -302,7 +308,7 @@ select.filter-select:focus{border-color:var(--primary);outline:none}
 .summary-bar{display:flex;gap:12px;margin-bottom:20px;overflow-x:auto}
 .summary-card{background:var(--surface-lowest);border:1.5px solid var(--outline-variant);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:110px;cursor:pointer;user-select:none;
   transition:border-color var(--dur-short) var(--me-standard),background var(--dur-short) var(--me-standard),box-shadow var(--dur-short) var(--me-spring);}
-.summary-card:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(0,77,64,.15),var(--shadow-1)}
+.summary-card:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(0,105,110,.15),var(--shadow-1)}
 .summary-card:active{box-shadow:none}
 .summary-card.active-filter{border-color:var(--primary);background:var(--primary-container);box-shadow:0 4px 16px rgba(0,105,110,.15),var(--shadow-1)}
 .summary-card .val{font-family:var(--font);font-size:28px;font-weight:700;line-height:1;margin-bottom:2px}
@@ -330,6 +336,10 @@ select.filter-select:focus{border-color:var(--primary);outline:none}
 .stock-list{background:var(--surface-lowest);border:1.5px solid var(--outline-variant);border-radius:var(--radius-lg);overflow:hidden}
 .stock-list-hdr{display:grid;grid-template-columns:minmax(180px,2fr) 100px 80px 60px 50px 90px 32px;gap:4px;padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--on-surface-variant);border-bottom:2px solid var(--outline-variant);background:var(--surface-high);font-family:var(--font)}
 .stock-list-hdr.admin-cols{grid-template-columns:28px minmax(180px,2fr) 100px 80px 60px 50px 90px 32px}
+.sort-col{cursor:pointer;user-select:none;display:flex;align-items:center;gap:2px;transition:color var(--dur-short) var(--me-standard);}
+.sort-col:hover{color:var(--primary);}
+.sort-arrow{font-size:10px;opacity:0;transition:opacity var(--dur-short) var(--me-standard);}
+.sort-arrow.active{opacity:1;color:var(--primary);font-weight:800;}
 .stock-row-item{display:grid;grid-template-columns:minmax(180px,2fr) 100px 80px 60px 50px 90px 32px;gap:4px;padding:10px 16px;border-bottom:1px solid var(--outline-variant);align-items:center;font-size:13px;
   transition:background var(--dur-micro) var(--me-standard),transform var(--dur-micro) var(--me-standard);}
 .stock-row-item.admin-cols{grid-template-columns:28px minmax(180px,2fr) 100px 80px 60px 50px 90px 32px}
@@ -376,8 +386,8 @@ select.filter-select:focus{border-color:var(--primary);outline:none}
 .admin-btn{background:var(--secondary-container);border:1px solid var(--outline-variant);color:var(--on-secondary-container);border-radius:var(--radius-full);padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);display:none;align-items:center;gap:4px}.admin-btn.show{display:inline-flex}
 
 /* Sub-nav — slide in */
-.sub-nav{display:none;padding:2px 0 6px 20px;flex-direction:column;gap:1px}
-.sub-nav.show{display:flex;animation:fadeIn var(--dur-short) var(--me-decelerate) both}
+.sub-nav{overflow:hidden;max-height:0;opacity:0;padding:0 0 0 20px;flex-direction:column;gap:1px;display:flex;transition:max-height var(--dur-xl) var(--me-emphasized),opacity var(--dur-med) var(--me-decelerate),padding var(--dur-med) var(--me-decelerate);}
+.sub-nav.show{max-height:500px;opacity:1;padding:2px 0 6px 20px;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 .sub-nav-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--outline);padding:6px 12px 2px;font-family:var(--font)}
 .sub-btn{border:none;background:transparent;text-align:left;padding:5px 12px;font-size:12px;font-weight:500;font-family:var(--font);color:var(--on-surface-variant);cursor:pointer;border-radius:var(--radius-full);
@@ -753,6 +763,7 @@ function iv(r,k){return r[INV[k]||k];}
 var msalInstance=null,spToken=null,spTokenExpiry=0,isAdmin=false,adminMode=false;
 var allInventory=[],allLogs=[],_listTypes={};
 var stockPage=1,ITEMS_PER_PAGE=window.innerWidth<=899?15:25,statusFilter=null,pendingEdits={};
+var stockSort={field:'status',dir:'asc'}; // default: out-of-stock first
 var subDept='',subType='',bulkSelected={};
 var viewDept='';
 var miniCharts={};
@@ -775,12 +786,6 @@ async function loadAllData(){showLoad('Loading inventory...');allInventory=await
 // VIEWS
 var currentView='stock';var viewTitles={stock:'Stock Overview',trends:'Usage Trends',expiry:'Expiry & Waste Risk',forecast:'Forecasting',log:'Transaction Log',backup:'Backup & Restore'};
 function showView(id){
-  // Toggle sub-nav if clicking the same view
-  if(currentView===id){
-    var sn=document.getElementById(id+'-subnav');
-    if(sn)sn.classList.toggle('show');
-    return;
-  }
   currentView=id;
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
   document.getElementById('view-'+id).classList.add('active');
@@ -848,16 +853,40 @@ function renderAll(){renderStock();renderExpiry();renderLogTable();}
 function getStatus(s,p){if(s<=0)return{label:'OUT OF STOCK',cls:'s-out',nc:'stock-out',key:'out',sort:0};if(s<p)return{label:'ORDER NOW',cls:'s-order',nc:'stock-order',key:'order',sort:1};if(p>0&&s<p*1.5)return{label:'WATCH',cls:'s-watch',nc:'stock-watch',key:'watch',sort:2};return{label:'OK',cls:'s-ok',nc:'stock-ok',key:'ok',sort:3};}
 
 // STOCK OVERVIEW
+function toggleStockSort(field){
+  if(stockSort.field===field){stockSort.dir=stockSort.dir==='asc'?'desc':'asc';}
+  else{stockSort.field=field;stockSort.dir='asc';}
+  stockPage=1;
+  renderStock();
+}
+function sortArrow(field){
+  if(stockSort.field!==field)return'<span class="sort-arrow"></span>';
+  return stockSort.dir==='asc'?'<span class="sort-arrow active">&uarr;</span>':'<span class="sort-arrow active">&darr;</span>';
+}
 function renderStock(){
   var items=getFiltered();var counts={total:items.length,ok:0,watch:0,order:0,out:0};
   items.forEach(function(r){counts[getStatus(parseFloat(iv(r,'InStock'))||0,parseFloat(iv(r,'MinPAR'))||0).key]++;});
   document.getElementById('summary-bar').innerHTML=sumCard(counts.total,'Total','var(--on-surface)',null)+sumCard(counts.ok,'In Stock','var(--ok)','ok')+sumCard(counts.watch,'Watch','var(--watch)','watch')+sumCard(counts.order,'Order Now','var(--order)','order')+sumCard(counts.out,'Out of Stock','var(--out)','out');
-  var sorted=items.map(function(r){var s=parseFloat(iv(r,'InStock'))||0,p=parseFloat(iv(r,'MinPAR'))||0;return{row:r,st:getStatus(s,p),stock:s,par:p};}).sort(function(a,b){return a.st.sort!==b.st.sort?a.st.sort-b.st.sort:(a.row.Title||'').localeCompare(b.row.Title||'');});
-  if(statusFilter)sorted=sorted.filter(function(s){return s.st.key===statusFilter;});
-  var tp=Math.ceil(sorted.length/ITEMS_PER_PAGE)||1;if(stockPage>tp)stockPage=tp;
-  var pg=sorted.slice((stockPage-1)*ITEMS_PER_PAGE,stockPage*ITEMS_PER_PAGE);
+  var mapped=items.map(function(r){var s=parseFloat(iv(r,'InStock'))||0,p=parseFloat(iv(r,'MinPAR'))||0;return{row:r,st:getStatus(s,p),stock:s,par:p};});
+  // Sort based on current sort field
+  var sf=stockSort.field,sd=stockSort.dir==='asc'?1:-1;
+  mapped.sort(function(a,b){
+    var cmp=0;
+    if(sf==='item')cmp=(a.row.Title||'').localeCompare(b.row.Title||'');
+    else if(sf==='dept')cmp=(iv(a.row,'Instrument')||'').localeCompare(iv(b.row,'Instrument')||'');
+    else if(sf==='type')cmp=(iv(a.row,'ItemType')||'').localeCompare(iv(b.row,'ItemType')||'');
+    else if(sf==='stock')cmp=a.stock-b.stock;
+    else if(sf==='par')cmp=a.par-b.par;
+    else if(sf==='status')cmp=a.st.sort-b.st.sort;
+    else cmp=a.st.sort-b.st.sort;
+    if(cmp===0)cmp=(a.row.Title||'').localeCompare(b.row.Title||'');
+    return cmp*sd;
+  });
+  if(statusFilter)mapped=mapped.filter(function(s){return s.st.key===statusFilter;});
+  var tp=Math.ceil(mapped.length/ITEMS_PER_PAGE)||1;if(stockPage>tp)stockPage=tp;
+  var pg=mapped.slice((stockPage-1)*ITEMS_PER_PAGE,stockPage*ITEMS_PER_PAGE);
   var listEl=document.getElementById('stock-list');
-  var hdr='<div class="stock-list-hdr'+(isAdmin?' admin-cols':'')+'">'+(isAdmin?'<input type="checkbox" class="sri-check" onchange="toggleSelectAll(this.checked)">':'')+'<span>Item</span><span>Department</span><span>Type</span><span>Stock</span><span>PAR</span><span>Status</span>'+(isAdmin?'<span></span>':'')+'</div>';
+  var hdr='<div class="stock-list-hdr'+(isAdmin?' admin-cols':'')+'">'+(isAdmin?'<input type="checkbox" class="sri-check" onchange="toggleSelectAll(this.checked)">':'')+'<span class="sort-col" onclick="toggleStockSort(\'item\')">Item'+sortArrow('item')+'</span><span class="sort-col" onclick="toggleStockSort(\'dept\')">Department'+sortArrow('dept')+'</span><span class="sort-col" onclick="toggleStockSort(\'type\')">Type'+sortArrow('type')+'</span><span class="sort-col" onclick="toggleStockSort(\'stock\')">Stock'+sortArrow('stock')+'</span><span class="sort-col" onclick="toggleStockSort(\'par\')">PAR'+sortArrow('par')+'</span><span class="sort-col" onclick="toggleStockSort(\'status\')">Status'+sortArrow('status')+'</span>'+(isAdmin?'<span></span>':'')+'</div>';
   listEl.innerHTML='<div class="stock-list">'+hdr+pg.map(function(s){
     var r=s.row,daily=parseFloat(iv(r,'DailyUse'))||0,dept=iv(r,'Instrument')||'',type=iv(r,'ItemType')||'',unit=iv(r,'Unit')||'';
     var expiry=(iv(r,'ExpiryDate')||'').split('T')[0];
@@ -894,9 +923,9 @@ function renderStock(){
   document.getElementById('page-left').disabled=stockPage<=1;document.getElementById('page-right').disabled=stockPage>=tp;
   document.getElementById('page-input').value=stockPage;document.getElementById('page-input').max=tp;
   document.getElementById('page-of').textContent='of '+tp;
-  var showing=Math.min(ITEMS_PER_PAGE,sorted.length-(stockPage-1)*ITEMS_PER_PAGE);
-  document.getElementById('page-info').textContent=sorted.length>0?'Showing '+showing+' of '+sorted.length+' items':'No items found';
-  document.getElementById('page-controls').style.display=sorted.length>ITEMS_PER_PAGE?'flex':'none';
+  var showing=Math.min(ITEMS_PER_PAGE,mapped.length-(stockPage-1)*ITEMS_PER_PAGE);
+  document.getElementById('page-info').textContent=mapped.length>0?'Showing '+showing+' of '+mapped.length+' items':'No items found';
+  document.getElementById('page-controls').style.display=mapped.length>ITEMS_PER_PAGE?'flex':'none';
   updateSaveBar();
 }
 function ief(l,t,v,f,id,full,opts,step){
@@ -1364,15 +1393,10 @@ async function manualBackup(){
 
 // Auto-backup on load (once per day)
 async function autoBackupCheck(){
-  // Three backups per day aligned with shift handoffs
-  // Night: 12 AM - 6:59 AM | Day: 7 AM - 2:59 PM | Evening: 3 PM - 11:59 PM
-  var now=new Date();
-  var today=now.toISOString().slice(0,10);
-  var hr=now.getHours();
-  var bkWindow=hr<7?'NIGHT':hr<15?'DAY':'EVE';
-  var backupKey=today+'-'+bkWindow;
+  if(!isAdmin)return;
+  var today=new Date().toISOString().slice(0,10);
   var lastAuto=localStorage.getItem('inv-last-auto-backup');
-  if(lastAuto===backupKey){
+  if(lastAuto===today){
     document.getElementById('bk-status').textContent='Current';
     document.getElementById('bk-status').style.color='var(--ok)';
     return;
@@ -1380,11 +1404,11 @@ async function autoBackupCheck(){
   try{
     var data=buildBackupData();
     await uploadBackupToSP(data);
-    localStorage.setItem('inv-last-auto-backup',backupKey);
-    lastBackupInfo={date:today,items:data.counts.inventory+data.counts.log,file:'inventory-backup-'+today+'-'+bkWindow+'.json'};
+    localStorage.setItem('inv-last-auto-backup',today);
+    lastBackupInfo={date:today,items:data.counts.inventory+data.counts.log,file:'inventory-backup-'+today+'.json'};
     document.getElementById('bk-status').textContent='Current';
     document.getElementById('bk-status').style.color='var(--ok)';
-    console.log('Auto-backup completed for '+backupKey);
+    console.log('Auto-backup completed for '+today);
   }catch(e){
     console.warn('Auto-backup failed:',e);
     document.getElementById('bk-status').textContent='Failed';
@@ -1494,7 +1518,7 @@ function hideLoad(){document.getElementById('loading').classList.remove('show');
 window.addEventListener('load',function(){
   initAuth();
   // Resolve doc library name then auto-backup
-  setTimeout(async function(){if(spToken){await resolveLibName();autoBackupCheck();}},4000);
+  setTimeout(async function(){if(spToken&&isAdmin){await resolveLibName();autoBackupCheck();}},4000);
 });
 </script>
 <!-- Bulk action bar — fixed overlay, never affects layout -->
