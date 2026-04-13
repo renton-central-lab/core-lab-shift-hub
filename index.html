@@ -2019,8 +2019,10 @@ function isReviewOverdue(){
   var now=new Date();
   var prevMonth=now.getMonth()===0?11:now.getMonth()-1;
   var prevYear=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
+  // No entries for the previous month = nothing to review, not overdue
+  var metrics=getReviewMetrics(prevMonth,prevYear);
+  if(metrics.total===0)return false;
   var reviews=getReviewForMonth(prevMonth,prevYear);
-  // Need at least one lead review
   return reviews.length===0;
 }
 
