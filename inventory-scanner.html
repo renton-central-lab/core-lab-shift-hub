@@ -108,10 +108,10 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   .scan-bottom{padding:0 20px calc(24px + env(safe-area-inset-bottom))}
   .footer{padding:16px 20px calc(16px + env(safe-area-inset-bottom))}
   /* Item screen: compact single-column, no wasted space */
-  #screen-item .body{display:flex;flex-direction:column;gap:12px;padding:16px;}
-  #screen-item .item-card{padding:16px;}
+  #screen-item .body{display:flex;flex-direction:column;gap:12px;padding:16px;flex:0 1 auto;}
+  #screen-item .card{padding:14px;flex:0 0 auto;}
+  #screen-item .item-card{padding:16px;flex:0 0 auto;}
   #screen-item .item-name{font-size:17px;margin-bottom:6px;}
-  #screen-item .card{padding:14px;}
   #screen-item .card-title{font-size:12px;margin-bottom:8px;}
   #screen-item .metrics-grid{gap:8px;}
   #screen-item .metric-box{padding:8px 12px;}
@@ -241,8 +241,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .body::-webkit-scrollbar{width:4px}
 .body::-webkit-scrollbar-thumb{background:var(--md-outline-variant);border-radius:2px}
 
-/* CARD */
-.card{background:var(--md-surface-container-lowest);border:1px solid var(--md-outline-variant);border-radius:var(--radius-lg);padding:20px}
+/* CARD — see enhanced definition below */
 .card-title{font-family:var(--font);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--md-on-surface-variant);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
 
 /* ITEM CARD */
@@ -496,7 +495,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .scan-area .scan-icon-box{animation:scanEnter var(--dur-long) var(--me-spring) both,scanPulse 3s var(--me-standard) var(--dur-long) infinite;}
 
 /* ── Item card — shadow lift only (no translateY — clips border) ── */
-.card{background:var(--md-surface-container-lowest);border:1px solid var(--md-outline-variant);border-radius:var(--radius-lg);padding:18px;
+.card{background:var(--md-surface-container-lowest);border:1px solid var(--md-outline-variant);border-radius:var(--radius-lg);padding:20px;
   transition:box-shadow var(--dur-short) var(--me-spring);
   animation:fadeUp var(--dur-med) var(--me-decelerate) calc(var(--card-i,0)*60ms) both;}
 
