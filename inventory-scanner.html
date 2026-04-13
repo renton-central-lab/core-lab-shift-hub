@@ -496,6 +496,15 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .scan-hint{font-size:14px;color:var(--md-on-surface-variant);text-align:center;line-height:1.6;font-weight:500}
 .scan-bottom{padding:0 20px 24px;display:flex;flex-direction:column;gap:10px}
 .scan-input-row{display:flex;gap:8px;align-items:center}
+.scan-typeahead{display:none;background:var(--md-surface-container-lowest);border:1.5px solid var(--md-outline-variant);border-radius:var(--radius-lg);max-height:240px;overflow-y:auto;margin-top:-4px;box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.scan-typeahead.show{display:block;}
+.scan-ta-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--md-outline-variant);cursor:pointer;transition:background 150ms;}
+.scan-ta-item:last-child{border-bottom:none;}
+.scan-ta-item:hover,.scan-ta-item:active{background:var(--md-primary-container);}
+.scan-ta-name{font-size:14px;font-weight:600;color:var(--md-on-surface);}
+.scan-ta-sub{font-size:11px;color:var(--md-outline);margin-top:1px;}
+.scan-ta-stock{font-size:16px;font-weight:700;text-align:right;min-width:32px;}
+.scan-ta-empty{padding:16px;text-align:center;font-size:12px;color:var(--md-outline);}
 .camera-view{display:none;border-radius:var(--radius-lg);overflow:hidden;position:relative;background:#000;margin:0 20px 10px;box-shadow:var(--shadow-2)}
 .camera-view video{width:100%;max-height:200px;object-fit:cover;display:block}
 .cam-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center}
@@ -594,21 +603,6 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
     <button onclick="toggleAllPanelSections()" id="panel-collapse-btn" title="Collapse all" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--md-outline);display:flex;align-items:center;padding:4px;border-radius:var(--radius-sm)"><span class="material-icons-outlined" style="font-size:18px">unfold_less</span></button>
   </div>
 
-  <!-- Quick Search -->
-  <div class="panel-section" id="ps-search">
-    <div class="panel-title" onclick="togglePanelSection('ps-search')">
-      <span class="material-icons-outlined" style="font-size:16px">search</span>Quick Lookup
-      <span class="material-icons-outlined pt-chevron">expand_more</span>
-    </div>
-    <div class="panel-body">
-      <div class="panel-search-wrap">
-        <span class="material-icons-outlined" style="font-size:18px;color:var(--md-outline)">search</span>
-        <input type="text" class="panel-search" id="panel-search" id="panel-search-input" placeholder="Search items..." oninput="panelSearch(this.value)">
-      </div>
-      <div id="panel-search-results" class="panel-search-results"></div>
-    </div>
-  </div>
-
   <!-- Recent Scans -->
   <div class="panel-section" id="ps-recent">
     <div class="panel-title" onclick="togglePanelSection('ps-recent')">
@@ -669,9 +663,10 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   <input type="file" id="cam-file" accept="image/*" capture="environment" style="display:none" onchange="handleCamFile(this)">
   <div class="scan-bottom">
     <div class="scan-input-row">
-      <input type="text" id="scan-input" placeholder="Scan or type barcode..." autocomplete="off" autocorrect="off" spellcheck="false">
+      <input type="text" id="scan-input" placeholder="Scan barcode or search by name..." autocomplete="off" autocorrect="off" spellcheck="false">
       <button class="cam-btn" id="cam-btn" onclick="startCamera()"><span class="material-icons-outlined">photo_camera</span></button>
     </div>
+    <div class="scan-typeahead" id="scanTypeahead"></div>
     <button class="btn btn-purple" onclick="lookupBarcode()"><span class="material-icons-outlined" style="font-size:20px">search</span>Look Up Item</button>
     <div class="divider">or</div>
     <button class="btn btn-ghost" onclick="resetManual();goScreen('screen-manual')"><span class="material-icons-outlined" style="font-size:20px">edit</span>Enter Manually</button>
@@ -1181,9 +1176,69 @@ var _toastTmr;
 function showToast(msg,isErr){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.className='toast show'+(isErr?' err':'');clearTimeout(_toastTmr);_toastTmr=setTimeout(()=>t.classList.remove('show'),3500);}
 
 var si=document.getElementById('scan-input');
-si.addEventListener('keydown',function(e){if(e.key==='Enter')lookupBarcode();});
+si.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    document.getElementById('scanTypeahead').className='scan-typeahead';
+    lookupBarcode();
+  }
+  if(e.key==='Escape'){document.getElementById('scanTypeahead').className='scan-typeahead';}
+});
 var _scanTmr;
-si.addEventListener('input',function(){clearTimeout(_scanTmr);var v=si.value.trim();if(v.length>=8){_scanTmr=setTimeout(function(){if(/^\d{12,13}$/.test(v)||v.length>=20)lookupBarcode();},300);}});
+si.addEventListener('input',function(){
+  clearTimeout(_scanTmr);
+  var v=si.value.trim();
+  // Barcode auto-lookup (long numeric strings)
+  if(v.length>=8&&(/^\d{12,13}$/.test(v)||v.length>=20)){
+    document.getElementById('scanTypeahead').className='scan-typeahead';
+    _scanTmr=setTimeout(function(){lookupBarcode();},300);
+    return;
+  }
+  // Name typeahead search (2+ chars, contains a letter)
+  if(v.length>=2&&/[a-zA-Z]/.test(v)){
+    _scanTmr=setTimeout(function(){scanTypeaheadSearch(v);},200);
+  }else{
+    document.getElementById('scanTypeahead').className='scan-typeahead';
+  }
+});
+// Hide typeahead when clicking outside
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.scan-input-row')&&!e.target.closest('.scan-typeahead')){
+    document.getElementById('scanTypeahead').className='scan-typeahead';
+  }
+});
+
+function scanTypeaheadSearch(query){
+  var ta=document.getElementById('scanTypeahead');
+  var q=query.toLowerCase();
+  var matches=allInvCache.filter(function(r){return (r.Title||'').toLowerCase().indexOf(q)>=0;}).slice(0,8);
+  if(!matches.length){
+    ta.innerHTML='<div class="scan-ta-empty">No items matching "'+query.replace(/</g,'&lt;')+'"</div>';
+    ta.className='scan-typeahead show';
+    return;
+  }
+  ta.innerHTML=matches.map(function(r){
+    var stock=parseFloat(r[INV.InStock])||0;
+    var par=parseFloat(r[INV.MinPAR])||0;
+    var sc=stock<=0?'color:var(--out)':stock<=par?'color:var(--order)':'color:var(--ok)';
+    var dept=r[INV.Instrument]||'';
+    return '<div class="scan-ta-item" onclick="scanTypeaheadSelect('+r.Id+')"><div><div class="scan-ta-name">'+(r.Title||'').replace(/</g,'&lt;')+'</div><div class="scan-ta-sub">'+dept+' &middot; '+(r[INV.ItemType]||'')+' &middot; '+(r[INV.Unit]||'')+'</div></div><div class="scan-ta-stock" style="'+sc+'">'+stock+'</div></div>';
+  }).join('');
+  ta.className='scan-typeahead show';
+}
+
+function scanTypeaheadSelect(invId){
+  document.getElementById('scanTypeahead').className='scan-typeahead';
+  document.getElementById('scan-input').value='';
+  // Need full item data - do a SP lookup by ID
+  showLoad('Loading item...');
+  var sel='Id,Title,field_1,field_2,field_3,field_4,field_5,field_6,field_7,field_8,field_9,field_10,field_11,field_12,field_13';
+  spFetch(SP.lists.inventory,'?$top=1&$select='+sel+'&$filter=Id eq '+invId).then(function(data){
+    var row=(data.value||[])[0];
+    if(!row){hideLoad();showToast('Item not found');return;}
+    lastEntry={invRow:row,catRow:null,parsed:null};
+    renderItem();hideLoad();goScreen('screen-item');
+  }).catch(function(e){hideLoad();showToast('Error: '+e.message,true);});
+}
 
 // ── Session activity tracking for desktop panel ──
 var sessionScans=[],sessionStats={scans:0,received:0,removed:0,newItems:0};
@@ -1296,7 +1351,7 @@ async function spFetchAll(listName,sel,filter){
 // Load inventory for panel features
 async function loadPanelData(){
   try{
-    var invSel='Id,Title,field_1,field_4,field_5,field_7';// Instrument,InStock,MinPAR,ExpiryDate
+    var invSel='Id,Title,field_1,field_2,field_3,field_4,field_5,field_7';// Instrument,ItemType,Unit,InStock,MinPAR,ExpiryDate
     var data=await spFetch(SP.lists.inventory,'?$top=500&$select='+invSel);
     // spFetch returns {value:[]} shape
     allInvCache=Array.isArray(data)?data:(data.value||[]);
