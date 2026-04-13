@@ -1210,18 +1210,41 @@ document.addEventListener('click',function(e){
 function scanTypeaheadSearch(query){
   var ta=document.getElementById('scanTypeahead');
   var q=query.toLowerCase();
-  var matches=allInvCache.filter(function(r){return (r.Title||'').toLowerCase().indexOf(q)>=0;}).slice(0,8);
+  // Score each item: 0=title starts with query, 1=a word starts with query, 2=substring match
+  var scored=[];
+  allInvCache.forEach(function(r){
+    var t=(r.Title||'').toLowerCase();
+    if(t.indexOf(q)<0)return;
+    var score=2;
+    if(t.indexOf(q)===0)score=0; // title starts with query
+    else{
+      // Check if any word boundary starts with query (after space, dash, parenthesis)
+      var words=t.split(/[\s\-\(\)\/]+/);
+      for(var i=0;i<words.length;i++){if(words[i].indexOf(q)===0){score=1;break;}}
+    }
+    scored.push({row:r,score:score});
+  });
+  scored.sort(function(a,b){
+    if(a.score!==b.score)return a.score-b.score;
+    return (a.row.Title||'').localeCompare(b.row.Title||'');
+  });
+  var matches=scored.slice(0,8);
   if(!matches.length){
     ta.innerHTML='<div class="scan-ta-empty">No items matching "'+query.replace(/</g,'&lt;')+'"</div>';
     ta.className='scan-typeahead show';
     return;
   }
-  ta.innerHTML=matches.map(function(r){
+  ta.innerHTML=matches.map(function(m){
+    var r=m.row;
     var stock=parseFloat(r[INV.InStock])||0;
     var par=parseFloat(r[INV.MinPAR])||0;
     var sc=stock<=0?'color:var(--out)':stock<=par?'color:var(--order)':'color:var(--ok)';
     var dept=r[INV.Instrument]||'';
-    return '<div class="scan-ta-item" onclick="scanTypeaheadSelect('+r.Id+')"><div><div class="scan-ta-name">'+(r.Title||'').replace(/</g,'&lt;')+'</div><div class="scan-ta-sub">'+dept+' &middot; '+(r[INV.ItemType]||'')+' &middot; '+(r[INV.Unit]||'')+'</div></div><div class="scan-ta-stock" style="'+sc+'">'+stock+'</div></div>';
+    // Highlight the matching portion in the name
+    var name=(r.Title||'').replace(/</g,'&lt;');
+    var qi=name.toLowerCase().indexOf(q);
+    if(qi>=0)name=name.slice(0,qi)+'<b>'+name.slice(qi,qi+q.length)+'</b>'+name.slice(qi+q.length);
+    return '<div class="scan-ta-item" onclick="scanTypeaheadSelect('+r.Id+')"><div><div class="scan-ta-name">'+name+'</div><div class="scan-ta-sub">'+dept+' &middot; '+(r[INV.ItemType]||'')+' &middot; '+(r[INV.Unit]||'')+'</div></div><div class="scan-ta-stock" style="'+sc+'">'+stock+'</div></div>';
   }).join('');
   ta.className='scan-typeahead show';
 }
