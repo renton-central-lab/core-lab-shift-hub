@@ -690,6 +690,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
         <div style="display:flex;justify-content:space-between;align-items:center;background:var(--md-surface-container-low);border-radius:var(--radius-md);padding:12px 16px;border:1px solid var(--md-outline-variant)"><span style="font-size:13px;color:var(--md-on-surface-variant);font-weight:500">Open Life</span><span style="font-family:var(--font);font-size:13px;font-weight:700;color:var(--md-on-surface)" id="m-life"></span></div>
       </div>
       <div class="edit-section" id="edit-section">
+        <div class="field"><label>Item Name</label><input type="text" id="e-name" placeholder="Item name"></div>
         <div class="field"><label>Min PAR</label><div class="qty-row"><button onclick="stepF('e-par',-1)">&minus;</button><input type="number" id="e-par" min="0" step="0.5"><button onclick="stepF('e-par',1)">+</button></div></div>
         <div class="field"><label>Daily Use</label><div class="qty-row"><button onclick="stepF('e-daily',-0.1)">&minus;</button><input type="number" id="e-daily" min="0" step="0.1"><button onclick="stepF('e-daily',0.1)">+</button></div></div>
         <div class="field"><label>Open Life (days)</label><div class="qty-row"><button onclick="stepF('e-life',-1)">&minus;</button><input type="number" id="e-life" min="0" step="1"><button onclick="stepF('e-life',1)">+</button></div></div>
@@ -1006,7 +1007,7 @@ function renderItem(){
   if(orderEl){var os,oc,ob;if(stock<=0){os='OUT OF STOCK';oc='var(--out)';ob='var(--out-bg)';}else if(stock<par){os='ORDER NOW';oc='var(--order)';ob='var(--order-bg)';}else if(par>0&&stock<par*1.5){os='WATCH';oc='var(--watch)';ob='var(--watch-bg)';}else{os='OK';oc='var(--ok)';ob='var(--ok-bg)';}orderEl.textContent=os;orderEl.style.color=oc;orderEl.style.background=ob;}
   var wasteEl=document.getElementById('m-waste');
   if(wasteEl){if(life>0&&days!==null){var ratio=days/life;var wr,wc,wb;if(ratio>1.5){wr='HIGH';wc='var(--out)';wb='var(--out-bg)';}else if(ratio>1){wr='MEDIUM';wc='var(--watch)';wb='var(--watch-bg)';}else{wr='LOW';wc='var(--ok)';wb='var(--ok-bg)';}wasteEl.textContent=wr;wasteEl.style.color=wc;wasteEl.style.background=wb;}else{wasteEl.textContent='';wasteEl.style.color='var(--md-on-surface-variant)';wasteEl.style.background='transparent';}}
-  var eb=document.getElementById('edit-btn');if(eb)eb.style.display=isAdmin?'inline-flex':'none';
+  var eb=document.getElementById('edit-btn');if(eb)eb.style.display='inline-flex';
   selectTab(null);
   document.getElementById('q-receive').value=1;document.getElementById('q-remove').value=1;document.getElementById('q-adjust').value=parseFloat(iv(currentItem,'InStock'))||0;
   document.getElementById('lot-receive').value='';document.getElementById('exp-receive').value='';document.getElementById('reason-remove').value='';document.getElementById('reason-adjust').value='';
@@ -1033,12 +1034,13 @@ async function submitAction(action){
   }catch(e){hideLoad();showToast('Submit failed: '+(e.message||'').slice(0,50),true);}
 }
 
-function toggleEdit(){var sec=document.getElementById('edit-section');var eb=document.getElementById('edit-btn');if(!sec)return;var showing=sec.classList.contains('show');if(showing){cancelEdit();return;}document.getElementById('e-par').value=parseFloat(iv(currentItem,'MinPAR'))||0;document.getElementById('e-daily').value=parseFloat(iv(currentItem,'DailyUse'))||0;document.getElementById('e-life').value=parseFloat(iv(currentItem,'OpenLifeDays'))||0;document.getElementById('e-type').value=iv(currentItem,'ItemType')||'Reagent';document.getElementById('e-active').checked=(iv(currentItem,'IsActive')||'Yes')!=='No';sec.classList.add('show');if(eb)eb.innerHTML='<span class="material-icons-outlined" style="font-size:14px">close</span> Done';}
+function toggleEdit(){var sec=document.getElementById('edit-section');var eb=document.getElementById('edit-btn');if(!sec)return;var showing=sec.classList.contains('show');if(showing){cancelEdit();return;}document.getElementById('e-name').value=currentItem.Title||'';document.getElementById('e-par').value=parseFloat(iv(currentItem,'MinPAR'))||0;document.getElementById('e-daily').value=parseFloat(iv(currentItem,'DailyUse'))||0;document.getElementById('e-life').value=parseFloat(iv(currentItem,'OpenLifeDays'))||0;document.getElementById('e-type').value=iv(currentItem,'ItemType')||'Reagent';document.getElementById('e-active').checked=(iv(currentItem,'IsActive')||'Yes')!=='No';sec.classList.add('show');if(eb)eb.innerHTML='<span class="material-icons-outlined" style="font-size:14px">close</span> Done';}
 function cancelEdit(){var sec=document.getElementById('edit-section');if(sec)sec.classList.remove('show');var eb=document.getElementById('edit-btn');if(eb)eb.innerHTML='<span class="material-icons-outlined" style="font-size:14px">edit</span> Edit';}
 async function saveEdits(){
-  if(!currentItem||!isAdmin)return;var par=parseFloat(document.getElementById('e-par').value)||0;var daily=parseFloat(document.getElementById('e-daily').value)||0;var life=parseFloat(document.getElementById('e-life').value)||0;var type=document.getElementById('e-type').value;var active=document.getElementById('e-active').checked?'Yes':'No';
+  if(!currentItem)return;var name=document.getElementById('e-name').value.trim();var par=parseFloat(document.getElementById('e-par').value)||0;var daily=parseFloat(document.getElementById('e-daily').value)||0;var life=parseFloat(document.getElementById('e-life').value)||0;var type=document.getElementById('e-type').value;var active=document.getElementById('e-active').checked?'Yes':'No';
+  if(!name){showToast('Name is required',true);return;}
   showLoad('Saving...');
-  try{var pd=cf({MinPAR:par,DailyUse:daily,OpenLifeDays:life,ItemType:type,IsActive:active},INV);await spPatch(SP.lists.inventory,currentItem.Id,pd);currentItem[INV.MinPAR]=par;currentItem[INV.DailyUse]=daily;currentItem[INV.OpenLifeDays]=life;currentItem[INV.ItemType]=type;currentItem[INV.IsActive]=active;cancelEdit();renderItem();hideLoad();showToast('Saved',false);}catch(e){hideLoad();showToast('Save failed: '+(e.message||'').slice(0,40),true);}
+  try{var pd=cf({MinPAR:par,DailyUse:daily,OpenLifeDays:life,ItemType:type,IsActive:active},INV);pd.Title=name;await spPatch(SP.lists.inventory,currentItem.Id,pd);currentItem.Title=name;currentItem[INV.MinPAR]=par;currentItem[INV.DailyUse]=daily;currentItem[INV.OpenLifeDays]=life;currentItem[INV.ItemType]=type;currentItem[INV.IsActive]=active;cancelEdit();renderItem();hideLoad();showToast('Saved',false);}catch(e){hideLoad();showToast('Save failed: '+(e.message||'').slice(0,40),true);}
 }
 
 function fillManualFromBarcode(parsed,raw){
@@ -1252,13 +1254,12 @@ function scanTypeaheadSearch(query){
 function scanTypeaheadSelect(invId){
   document.getElementById('scanTypeahead').className='scan-typeahead';
   document.getElementById('scan-input').value='';
-  // Need full item data - do a SP lookup by ID
   showLoad('Loading item...');
   var sel='Id,Title,field_1,field_2,field_3,field_4,field_5,field_6,field_7,field_8,field_9,field_10,field_11,field_12,field_13';
   spFetch(SP.lists.inventory,'?$top=1&$select='+sel+'&$filter=Id eq '+invId).then(function(data){
     var row=(data.value||[])[0];
     if(!row){hideLoad();showToast('Item not found');return;}
-    lastEntry={invRow:row,catRow:null,parsed:null};
+    currentItem=row;
     renderItem();hideLoad();goScreen('screen-item');
   }).catch(function(e){hideLoad();showToast('Error: '+e.message,true);});
 }
