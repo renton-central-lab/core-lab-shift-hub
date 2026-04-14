@@ -1048,16 +1048,6 @@ function isInTraining(staff,dateStr){
   return daysSinceStart>=0&&daysSinceStart<30;
 }
 
-// Get the training type: TR if a lead is on the same shift, T otherwise
-function 'T'{
-  var leadsOnShift=STAFF.filter(function(s){return s.active!==false&&ELEVATED_ROLES.indexOf(s.role)>=0&&s.shift===shift&&s.ini!==staff.ini;});
-  // Check if any lead has an assignment (not PTO/CO) that day
-  var leadPresent=leadsOnShift.some(function(l){
-    var a=getAssignment(l.ini,dateStr,shift);
-    return !a||(!a.bench)||(a.bench!=='PTO'&&a.bench!=='SL');
-  });
-  return leadPresent?'TR':'T';
-}
 
 function recommendAssignments(dateStr,shift){
   if(isWeekend(dateStr))return[];
@@ -2554,7 +2544,7 @@ function renderStats(){
     staffStats.push({ini:s.ini,name:s.name,role:s.role,hc:hc,cu:cu,fl:fl,pto:pto,co:co,ot:ot,tr:tr,io:io,total:total});
   });
 
-  // Sort by sick leaves descending for visibility
+  // Sort by sick leave descending for visibility
   staffStats.sort(function(a,b){return b.co-a.co;});
 
   var stHtml='<div class="rec-panel"><h3><span class="mi">person</span> Per-Staff Breakdown <span style="font-size:11px;font-weight:400;color:var(--g400);">(click a row for details)</span></h3>';
@@ -2587,13 +2577,13 @@ function showStaffDetail(userIni){
   var mine=schedEntries.filter(function(e){return e.userIni===userIni&&e.date>=dr.start&&e.date<=dr.end;});
 
   // Sick Leave details
-  var sick leaves=mine.filter(function(e){return e.bench==='SL';}).sort(function(a,b){return a.date.localeCompare(b.date);});
+  var sickLeaves=mine.filter(function(e){return e.bench==='SL';}).sort(function(a,b){return a.date.localeCompare(b.date);});
   var ptos=mine.filter(function(e){return e.bench==='PTO';}).sort(function(a,b){return a.date.localeCompare(b.date);});
 
   // Sick Leave patterns
   var coDays={Mon:0,Tue:0,Wed:0,Thu:0,Fri:0};
   var coShifts={};
-  sick leaves.forEach(function(c){
+  sickLeaves.forEach(function(c){
     var d=new Date(c.date+'T12:00:00');
     var dayName=DAYS[d.getDay()];
     if(coDays.hasOwnProperty(dayName))coDays[dayName]++;
@@ -2612,9 +2602,9 @@ function showStaffDetail(userIni){
   var ideal=benchTotal>0?Math.round(benchTotal/3):0;
 
   // Historical sick leave trend (all time)
-  var allSick Leave=schedEntries.filter(function(e){return e.userIni===userIni&&e.bench==='SL';});
+  var allSickLeave=schedEntries.filter(function(e){return e.userIni===userIni&&e.bench==='SL';});
   var coByMonth={};
-  allSick Leave.forEach(function(c){
+  allSickLeave.forEach(function(c){
     var key=c.date.slice(0,7);// YYYY-MM
     coByMonth[key]=(coByMonth[key]||0)+1;
   });
@@ -2623,8 +2613,8 @@ function showStaffDetail(userIni){
   html+='<h3><span class="mi">person</span> '+esc(staff.name)+' <span style="font-size:11px;font-weight:400;color:var(--g400);">'+esc(staff.role)+' | Seniority #'+getSeniorityRank(userIni)+'</span> <button class="tb-btn" onclick="document.getElementById(\'statsStaffDetail\').innerHTML=\'\'" style="margin-left:auto;"><span class="mi mi-xs">close</span></button></h3>';
 
   // Sick Leave section
-  html+='<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px;"><span class="mi mi-sm">warning</span> Sick Leave ('+sick leaves.length+' in period, '+allSick Leave.length+' all-time)</div>';
-  if(sick leaves.length){
+  html+='<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px;"><span class="mi mi-sm">warning</span> Sick Leave ('+sickLeaves.length+' in period, '+allSickLeave.length+' all-time)</div>';
+  if(sickLeaves.length){
     html+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">';
     html+='<div style="font-size:11px;"><strong>Most frequent day:</strong> '+(maxDay||'N/A')+' ('+maxDayCount+'x)</div>';
     html+='<div style="font-size:11px;"><strong>By shift:</strong> '+Object.keys(coShifts).map(function(s){return s+': '+coShifts[s];}).join(', ')+'</div>';
@@ -2633,7 +2623,7 @@ function showStaffDetail(userIni){
     // Day-of-week distribution
     html+='<div style="display:flex;gap:4px;margin-bottom:8px;">';
     ['Mon','Tue','Wed','Thu','Fri'].forEach(function(d){
-      var pct=sick leaves.length>0?Math.round(coDays[d]/sick leaves.length*100):0;
+      var pct=sickLeaves.length>0?Math.round(coDays[d]/sickLeaves.length*100):0;
       var h=Math.max(pct,4);
       html+='<div style="text-align:center;flex:1;"><div style="height:40px;display:flex;align-items:flex-end;justify-content:center;"><div style="width:100%;max-width:30px;height:'+h+'%;background:'+(coDays[d]===maxDayCount&&maxDayCount>0?'var(--red)':'var(--g200)')+';border-radius:3px 3px 0 0;"></div></div><div style="font-size:9px;font-weight:700;color:var(--g400);margin-top:2px;">'+d+'</div><div style="font-size:9px;font-weight:700;">'+coDays[d]+'</div></div>';
     });
@@ -2641,7 +2631,7 @@ function showStaffDetail(userIni){
 
     // Sick Leave list
     html+='<div style="max-height:150px;overflow-y:auto;">';
-    sick leaves.forEach(function(c){
+    sickLeaves.forEach(function(c){
       var d=new Date(c.date+'T12:00:00');
       html+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--g50);font-size:11px;"><span>'+c.date+' ('+DAYS[d.getDay()]+')</span><span style="color:var(--g400);">'+esc(c.shift)+'</span><span style="color:var(--g400);">'+esc(c.notes||'')+'</span></div>';
     });
@@ -2660,7 +2650,7 @@ function showStaffDetail(userIni){
       html+='</div>';
     }
   }else{
-    html+='<div style="font-size:12px;color:var(--green);">No sick leaves in this period.</div>';
+    html+='<div style="font-size:12px;color:var(--green);">No sick leave in this period.</div>';
   }
   html+='</div>';
 
