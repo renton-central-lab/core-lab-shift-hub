@@ -852,6 +852,7 @@ async function initAuth(){
     if(s){me.initials=s.ini;me.isLead=ELEVATED_ROLES.some(function(r){return s.role&&s.role.indexOf(r)>=0;});}
     hideLoad();
     renderCurrentView();
+    scheduleAutoBackup();// auto-backup 3x daily
     setInterval(async function(){try{await loadAllData();renderCurrentView();}catch(e){}},60000);
   }catch(e){
     hideLoad();console.error('Auth:',e);
@@ -3053,6 +3054,51 @@ function renderAuditLog(){
 }
 
 // ═══════════════════════════════════════════
+// AUTO-BACKUP (3x daily: Night 12-7AM, Day 7AM-3PM, Evening 3PM-12AM)
+// ═══════════════════════════════════════════
+function buildScheduleBackup(){
+  return{
+    version:'1.0',type:'schedule-auto-backup',
+    exported:new Date().toISOString(),
+    exportedBy:me?me.fullName:'auto',
+    scheduleEntries:schedEntries,
+    swapRequests:swapRequests,
+    staff:STAFF,
+    ptoRequests:ptoRequests,
+    holidayAssignments:holidayAssignments
+  };
+}
+
+async function uploadScheduleBackupToSP(data){
+  var json=JSON.stringify(data);
+  var now=new Date();
+  var fileName='schedule-backup-'+fmtDate(now)+'T'+now.toTimeString().slice(0,5).replace(':','')+'.json';
+  var folderUrl=SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('Shared%20Documents')/Files/add(url='"+fileName+"',overwrite=true)";
+  var t=await getToken();
+  var r=await fetch(folderUrl,{method:'POST',headers:{'Authorization':'Bearer '+t,'Accept':'application/json;odata=verbose','Content-Type':'application/json'},body:json});
+  if(!r.ok)throw new Error('SP upload failed: '+r.status);
+  return fileName;
+}
+
+async function scheduleAutoBackup(){
+  var now=new Date();
+  var today=now.toISOString().slice(0,10);
+  var hr=now.getHours();
+  var win=hr<7?'NIGHT':hr<15?'DAY':'EVE';
+  var backupKey=today+'-'+win;
+  var lastAuto=localStorage.getItem('sched-last-auto-backup');
+  if(lastAuto===backupKey){console.log('Schedule auto-backup already done for '+backupKey);return;}
+  try{
+    var data=buildScheduleBackup();
+    var fileName=await uploadScheduleBackupToSP(data);
+    localStorage.setItem('sched-last-auto-backup',backupKey);
+    console.log('Schedule auto-backup completed: '+fileName);
+  }catch(e){
+    console.warn('Schedule auto-backup failed:',e);
+  }
+}
+
+// ═══════════════════════════════════════════
 // ADMIN
 // ═══════════════════════════════════════════
 function renderAdmin(){
@@ -3068,6 +3114,7 @@ function renderAdmin(){
   document.getElementById('adminSpStatus').innerHTML=statusHtml;
 
   // System info
+  var lastAutoBackup=localStorage.getItem('sched-last-auto-backup')||'Never';
   document.getElementById('adminSysInfo').innerHTML=
     '<div>App Version: Schedule 1.0</div>'+
     '<div>MSAL Client ID: '+CLIENT_ID.slice(0,8)+'...</div>'+
@@ -3075,7 +3122,8 @@ function renderAdmin(){
     '<div>Current User: '+(me?me.fullName+' ('+me.initials+')':'Not signed in')+'</div>'+
     '<div>Role: '+(me?STAFF.find(function(s){return s.ini===me.initials;})||{}:{}).role||'Unknown'+'</div>'+
     '<div>Staff Count: '+STAFF.filter(function(s){return s.active!==false;}).length+' active</div>'+
-    '<div>Last Sync: '+(_lastSyncISO?new Date(_lastSyncISO).toLocaleString():'Never')+'</div>';
+    '<div>Last Sync: '+(_lastSyncISO?new Date(_lastSyncISO).toLocaleString():'Never')+'</div>'+
+    '<div>Last Auto-Backup: '+lastAutoBackup+'</div>';
 }
 
 async function forceSync(){
@@ -3107,12 +3155,8 @@ function exportBackup(){
 async function backupToSP(){
   showLoad('Backing up to SharePoint...');
   try{
-    var backup={version:'1.0',exported:new Date().toISOString(),exportedBy:me?me.fullName:'',scheduleEntries:schedEntries,swapRequests:swapRequests,staff:STAFF,ptoRequests:ptoRequests,holidayAssignments:holidayAssignments};
-    var json=JSON.stringify(backup);
-    var fileName='schedule-backup-'+fmtDate(new Date())+'T'+new Date().toTimeString().slice(0,5).replace(':','')+'.json';
-    var folderUrl=SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('Shared%20Documents')/Files/add(url='"+fileName+"',overwrite=true)";
-    var t=await getToken();
-    await fetch(folderUrl,{method:'POST',headers:{'Authorization':'Bearer '+t,'Accept':'application/json;odata=verbose','Content-Type':'application/json'},body:json});
+    var data=buildScheduleBackup();
+    var fileName=await uploadScheduleBackupToSP(data);
     logAudit('add','admin','Backup saved to SharePoint: '+fileName,'');
     document.getElementById('adminBackupStatus').innerHTML='<span style="color:var(--green);font-weight:700;">Backup saved: '+fileName+'</span>';
   }catch(e){
