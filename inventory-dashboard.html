@@ -783,7 +783,20 @@ async function getDigest(){var t=await getToken();var r=await fetch(SP.siteUrl+'
 async function spPatch(ln,id,f){var dg=await getDigest(),mt=await getItemType(ln);f.__metadata={type:mt};var t=await getToken();await fetch(SP_API+"/getbytitle('"+ln+"')/items("+id+")",{method:'POST',headers:{'Authorization':'Bearer '+t,'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':dg,'IF-MATCH':'*','X-HTTP-Method':'MERGE'},body:JSON.stringify(f)});}
 
 // DATA
-async function loadAllData(){showLoad('Loading inventory...');allInventory=await spFetchAll(SP.lists.inventory,'Id,Title,'+Object.values(INV).join(','));showLoad('Loading transactions...');var lf=Object.values(LOG).filter(function(v,i,a){return a.indexOf(v)===i;});allLogs=await spFetchAll(SP.lists.log,'Id,Title,'+lf.join(','));allLogs.sort(function(a,b){return(b[LOG.Timestamp]||'').localeCompare(a[LOG.Timestamp]||'');});document.getElementById('side-sp').textContent='SharePoint connected';renderAll();}
+// ═══════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════
+
+async function loadAllData(){
+  showLoad('Loading inventory...');
+  allInventory=await spFetchAll(SP.lists.inventory,'Id,Title,'+Object.values(INV).join(','));
+  showLoad('Loading transactions...');
+  var lf=Object.values(LOG).filter(function(v,i,a){return a.indexOf(v)===i;});
+  allLogs=await spFetchAll(SP.lists.log,'Id,Title,'+lf.join(','));
+  allLogs.sort(function(a,b){return(b[LOG.Timestamp]||'').localeCompare(a[LOG.Timestamp]||'');});
+  document.getElementById('side-sp').textContent='SharePoint connected';
+  renderAll();
+}
 
 // VIEWS
 var currentView='stock';var viewTitles={stock:'Stock Overview',trends:'Usage Trends',expiry:'Expiry & Waste Risk',forecast:'Forecasting',log:'Transaction Log',backup:'Backup & Restore'};
@@ -1328,24 +1341,41 @@ async function resolveLibName(){
   console.warn('Could not find document library');
 }
 
-function buildBackupData(){
+async function buildBackupData(){
   var now=new Date();
-  return{
-    version:'1.0',
-    timestamp:now.toISOString(),
-    date:now.toISOString().slice(0,10),
-    site:SP.siteUrl,
-    lists:{
-      ReagentInventory:allInventory.map(function(r){var o={Title:r.Title};for(var k in INV)o[INV[k]]=r[INV[k]];return o;}),
-      InventoryLog:allLogs.map(function(r){var o={Title:r.Title};for(var k in LOG)o[LOG[k]]=r[LOG[k]];return o;}),
-    },
-    counts:{inventory:allInventory.length,log:allLogs.length}
-  };
+  // Backup always fetches full data from SP to ensure completeness
+  try{
+    var fullInv=await spFetchAll(SP.lists.inventory,'Id,Title,'+Object.values(INV).join(','));
+    var lf=Object.values(LOG).filter(function(v,i,a){return a.indexOf(v)===i;});
+    var fullLogs=await spFetchAll(SP.lists.log,'Id,Title,'+lf.join(','));
+    return{
+      version:'1.0',
+      timestamp:now.toISOString(),
+      date:now.toISOString().slice(0,10),
+      site:SP.siteUrl,
+      lists:{
+        ReagentInventory:fullInv.map(function(r){var o={Title:r.Title};for(var k in INV)o[INV[k]]=r[INV[k]];return o;}),
+        InventoryLog:fullLogs.map(function(r){var o={Title:r.Title};for(var k in LOG)o[LOG[k]]=r[LOG[k]];return o;}),
+      },
+      counts:{inventory:fullInv.length,log:fullLogs.length}
+    };
+  }catch(e){
+    console.warn('Full backup fetch failed, using local data:',e);
+    return{
+      version:'1.0',timestamp:now.toISOString(),date:now.toISOString().slice(0,10),
+      site:SP.siteUrl,source:'partial - SP fetch failed',
+      lists:{
+        ReagentInventory:allInventory.map(function(r){var o={Title:r.Title};for(var k in INV)o[INV[k]]=r[INV[k]];return o;}),
+        InventoryLog:allLogs.map(function(r){var o={Title:r.Title};for(var k in LOG)o[LOG[k]]=r[LOG[k]];return o;}),
+      },
+      counts:{inventory:allInventory.length,log:allLogs.length}
+    };
+  }
 }
 
 // Download JSON to local machine
-function downloadBackup(){
-  var data=buildBackupData();
+async function downloadBackup(){
+  var data=await buildBackupData();
   var json=JSON.stringify(data,null,2);
   var blob=new Blob([json],{type:'application/json'});
   var url=URL.createObjectURL(blob);
@@ -1384,7 +1414,7 @@ async function manualBackup(){
   var btn=document.getElementById('bk-manual-btn');
   btn.disabled=true;btn.innerHTML='<span class="material-icons-outlined" style="font-size:18px">hourglass_empty</span>Backing up...';
   try{
-    var data=buildBackupData();
+    var data=await buildBackupData();
     var fn=await uploadBackupToSP(data);
     lastBackupInfo={date:data.date,items:data.counts.inventory+data.counts.log,file:fn};
     btn.innerHTML='<span class="material-icons-outlined" style="font-size:18px">check_circle</span>Backup Complete';
@@ -1410,7 +1440,7 @@ async function autoBackupCheck(){
     return;
   }
   try{
-    var data=buildBackupData();
+    var data=await buildBackupData();
     await uploadBackupToSP(data);
     localStorage.setItem('inv-last-auto-backup',today);
     lastBackupInfo={date:today,items:data.counts.inventory+data.counts.log,file:'inventory-backup-'+today+'.json'};

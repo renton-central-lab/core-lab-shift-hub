@@ -1414,10 +1414,19 @@ async function spGet(listName, filter, select, top) {
   var all = [];
   while (url) {
     var r = await spFetch(url);
+    if (!r.ok) {
+      console.warn('spGet failed ('+r.status+') for '+listName+' filter='+filter);
+      var errText='';try{errText=await r.text();}catch(e){}
+      console.warn('SP error body:', errText.slice(0,200));
+      throw new Error('SP query failed: '+r.status);
+    }
     var d = await r.json();
-    var results = d.d.results || [];
+    // Handle both odata=verbose (d.d.results) and odata=nometadata (d.value) formats
+    var results = (d.d && d.d.results) ? d.d.results : (d.value || []);
     all = all.concat(results);
-    url = (d.d.__next) || null;
+    // Follow pagination link if present
+    var next = (d.d && d.d.__next) ? d.d.__next : (d['odata.nextLink'] || null);
+    url = next || null;
   }
   return all;
 }
@@ -1634,24 +1643,10 @@ function tryParse(s, def) {
 // ═══════════════════════════════════════════
 // OPTIMIZED DATA LOADING
 // ═══════════════════════════════════════════
-var _lastSyncISO=null; // tracks last sync time for delta queries
-var _fullLoadDone=false; // first load always fetches full data
 var _auditLoaded=false; // lazy-load audit only when Audit tab opened
-var _annCached=false; // announcements rarely change, cache after first load
-
-// Build a date filter for entries: current month and previous month
-function _entryDateFilter(){
-  var now=new Date();
-  // Always load at least current and previous month
-  var startMonth=curMonth>0?curMonth-1:11;
-  var startYear=curMonth>0?curYear:curYear-1;
-  var startDate=startYear+'-'+String(startMonth+1).padStart(2,'0')+'-01';
-  return "Date ge '"+startDate+"'";
-}
 
 async function loadAllData() {
   try {
-    // Field discovery is cached in _fieldMaps, so subsequent calls are instant
     var [fmE, fmA, fmU, fmH] = await Promise.all([
       discoverFields('ShiftEntries'),
       discoverFields('Announcements'),
@@ -1659,74 +1654,24 @@ async function loadAllData() {
       discoverFields('AuditLog')
     ]);
     var fmR={};try{fmR=await discoverFields('MonthlyReviews');}catch(e){console.warn('MonthlyReviews list not found yet:',e.message);}
-
-    if(!_fullLoadDone){
-      // === INITIAL LOAD: date-scoped entries, all announcements, users, skip audit ===
-      var [spEntries, spAnns, spUsers] = await Promise.all([
-        spGet('ShiftEntries', _entryDateFilter()),
-        spGet('Announcements'),
-        spGet('HubUsers')
-      ]);
-      var spReviews=[];try{spReviews=await spGet('MonthlyReviews');}catch(e){}
-      entries = spEntries.map(function(i){return spToEntry(i,fmE);});
-      announcements = spAnns.map(function(i){return spToAnn(i,fmA);});
-      monthlyReviews = spReviews.map(function(i){return spToReview(i,fmR);});
-      users = {};
-      spUsers.forEach(function(item) {
-        users[item.Title] = spToUser(item,fmU);
-      });
-      if (!users[ADMIN_INI]) {
-        users[ADMIN_INI] = { fullName: 'Jesus Martinez', role: 'MLS Lead', isAdmin: true, nickname: '', picture: '', password: '' };
-        await spAdd('HubUsers', spSetUser(ADMIN_INI, users[ADMIN_INI]));
-      }
-      users[ADMIN_INI].isAdmin = true;
-      // Audit NOT loaded here; loaded lazily when Audit tab is opened
-      hist=[];
-      _fullLoadDone=true;
-      _annCached=true;
-      _lastSyncISO=new Date().toISOString();
-    }else{
-      // === DELTA SYNC: only fetch items modified since last sync ===
-      var deltaFilter="Modified ge datetime'"+_lastSyncISO+"'";
-      var entryFilter=_entryDateFilter()+" and "+deltaFilter;
-      var promises=[
-        spGet('ShiftEntries', entryFilter),
-        spGet('HubUsers', deltaFilter)
-      ];
-      // Only re-fetch announcements if they were modified
-      if(_annCached){
-        promises.push(spGet('Announcements', deltaFilter));
-      }
-      var results=await Promise.all(promises);
-      var deltaEntries=results[0];
-      var deltaUsers=results[1];
-      var deltaAnns=results[2]||[];
-
-      // Merge delta entries into local array
-      deltaEntries.forEach(function(spItem){
-        var e=spToEntry(spItem,fmE);
-        var idx=entries.findIndex(function(x){return x.id===e.id;});
-        if(idx>=0)entries[idx]=e; else entries.push(e);
-      });
-
-      // Merge delta announcements
-      deltaAnns.forEach(function(spItem){
-        var a=spToAnn(spItem,fmA);
-        var idx=announcements.findIndex(function(x){return x.id===a.id;});
-        if(idx>=0)announcements[idx]=a; else announcements.push(a);
-      });
-
-      // Merge delta users
-      deltaUsers.forEach(function(item){
-        users[item.Title]=spToUser(item,fmU);
-      });
-      users[ADMIN_INI].isAdmin=true;
-
-      // Monthly reviews: re-fetch only if needed (small list)
-      try{var spR=await spGet('MonthlyReviews');monthlyReviews=spR.map(function(i){return spToReview(i,fmR);});}catch(e){}
-
-      _lastSyncISO=new Date().toISOString();
+    var [spEntries, spAnns, spUsers] = await Promise.all([
+      spGet('ShiftEntries'),
+      spGet('Announcements'),
+      spGet('HubUsers')
+    ]);
+    var spReviews=[];try{spReviews=await spGet('MonthlyReviews');}catch(e){}
+    entries = spEntries.map(function(i){return spToEntry(i,fmE);});
+    announcements = spAnns.map(function(i){return spToAnn(i,fmA);});
+    monthlyReviews = spReviews.map(function(i){return spToReview(i,fmR);});
+    users = {};
+    spUsers.forEach(function(item) {
+      users[item.Title] = spToUser(item,fmU);
+    });
+    if (!users[ADMIN_INI]) {
+      users[ADMIN_INI] = { fullName: 'Jesus Martinez', role: 'MLS Lead', isAdmin: true, nickname: '', picture: '', password: '' };
+      await spAdd('HubUsers', spSetUser(ADMIN_INI, users[ADMIN_INI]));
     }
+    users[ADMIN_INI].isAdmin = true;
     return true;
   } catch (e) {
     console.error('Failed to load SP data:', e);
@@ -1735,37 +1680,15 @@ async function loadAllData() {
   }
 }
 
-// Load entries for a specific month range (when user changes month filter)
-async function loadEntriesForMonth(month,year){
-  try{
-    var fmE=await discoverFields('ShiftEntries');
-    var startDate=year+'-'+String(month+1).padStart(2,'0')+'-01';
-    var endMonth=month<11?month+1:0;
-    var endYear=month<11?year:year+1;
-    var endDate=endYear+'-'+String(endMonth+1).padStart(2,'0')+'-01';
-    var filter="Date ge '"+startDate+"' and Date lt '"+endDate+"'";
-    var spEntries=await spGet('ShiftEntries',filter);
-    var monthEntries=spEntries.map(function(i){return spToEntry(i,fmE);});
-    // Merge into entries array (add new, update existing)
-    monthEntries.forEach(function(e){
-      var idx=entries.findIndex(function(x){return x.id===e.id;});
-      if(idx>=0)entries[idx]=e; else entries.push(e);
-    });
-  }catch(e){console.warn('Failed to load entries for '+month+'/'+year,e);}
-}
-
 // Lazy-load audit trail (only when Audit tab is opened)
 async function loadAuditIfNeeded(){
   if(_auditLoaded)return;
   try{
     var fmH=await discoverFields('AuditLog');
-    // Load last 90 days of audit by default
-    var cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
-    var filter="Modified ge datetime'"+cutoff.toISOString()+"'";
-    var spAudit=await spGet('AuditLog',filter,null,2000);
+    var spAudit=await spGet('AuditLog',null,null,2000);
     hist=spAudit.map(function(i){return spToAudit(i,fmH);});
     _auditLoaded=true;
-    console.log('Audit trail loaded: '+hist.length+' records (last 90 days)');
+    console.log('Audit trail loaded: '+hist.length+' records');
   }catch(e){console.warn('Audit load failed:',e);}
 }
 
@@ -1775,7 +1698,6 @@ async function reloadAnnouncements(){
     var fmA=await discoverFields('Announcements');
     var spAnns=await spGet('Announcements');
     announcements=spAnns.map(function(i){return spToAnn(i,fmA);});
-    _annCached=true;
   }catch(e){console.warn('Announcement reload failed:',e);}
 }
 
@@ -3139,9 +3061,9 @@ function rMT(){
     for(var y=2026;y<=2030;y++){var o=document.createElement('option');o.value=y;o.textContent=y;if(y===curYear)o.selected=true;ySel.appendChild(o);}
   }else if(ySel){ySel.value=curYear;}
 }
-function setM(i){curMonth=i;rMT();loadEntriesForMonth(curMonth,curYear).then(renderLog);}
-function setMonthFromDropdown(v){curMonth=parseInt(v);loadEntriesForMonth(curMonth,curYear).then(renderLog);}
-function setYearFromDropdown(v){curYear=parseInt(v);loadEntriesForMonth(curMonth,curYear).then(renderLog);}
+function setM(i){curMonth=i;rMT();renderLog();}
+function setMonthFromDropdown(v){curMonth=parseInt(v);renderLog();}
+function setYearFromDropdown(v){curYear=parseInt(v);renderLog();}
 function setDept(d){
   curDept=d;
   document.querySelectorAll('.dept-tab').forEach(function(t,i){
