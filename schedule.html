@@ -335,8 +335,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
         <button onclick="navDay(-1)"><span class="mi mi-sm">chevron_left</span></button>
         <div class="week-label" id="dayLabel"></div>
         <button onclick="navDay(1)"><span class="mi mi-sm">chevron_right</span></button>
-        <button onclick="navDay(0)" class="tb-btn" style="margin-left:4px"><span class="mi mi-xs">today</span> Today</button>
       </div>
+      <button onclick="navDay(0)" class="tb-btn"><span class="mi mi-xs">today</span> Today</button>
     </div>
   </div>
   <div id="dayStats" class="stats-row"></div>
@@ -589,8 +589,13 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
       <option>Night</option>
     </select></div>
     <div class="form-row"><label>Format</label><select id="expFmt">
-      <option value="csv">CSV</option>
-      <option value="pdf">PDF (printable)</option>
+      <option value="pdf">PDF Grid (printable)</option>
+      <option value="csv">CSV (data)</option>
+    </select></div>
+    <div class="form-row"><label>Layout</label><select id="expLayout">
+      <option value="week">Weekly Grid</option>
+      <option value="month">Monthly Calendar</option>
+      <option value="list">List View</option>
     </select></div>
     <div id="expPreview" style="font-size:11px;color:var(--g400);padding:4px 0;display:none;"></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
@@ -651,17 +656,17 @@ var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 // Holidays definition
 var MAJOR_HOLIDAYS=['Thanksgiving','Christmas Day','New Year\'s Day'];
-var MINOR_HOLIDAYS=['MLK Day','Presidents\' Day','Memorial Day','Independence Day','Labor Day','Veterans Day','Day After Thanksgiving','Christmas Eve','New Year\'s Eve'];
+var MINOR_HOLIDAYS=['MLK Day','Presidents\' Day','Memorial Day','Juneteenth','Independence Day','Labor Day','Veterans Day','Native American Heritage Day','Christmas Eve','New Year\'s Eve'];
 function getHolidayDates(year){
-  // Returns [{name,date,type}]
   var h=[];
   // Fixed dates
   h.push({name:'New Year\'s Day',date:year+'-01-01',type:'Major'});
+  h.push({name:'Juneteenth',date:year+'-06-19',type:'Minor'});
+  h.push({name:'Independence Day',date:year+'-07-04',type:'Minor'});
+  h.push({name:'Veterans Day',date:year+'-11-11',type:'Minor'});
   h.push({name:'Christmas Eve',date:year+'-12-24',type:'Minor'});
   h.push({name:'Christmas Day',date:year+'-12-25',type:'Major'});
   h.push({name:'New Year\'s Eve',date:year+'-12-31',type:'Minor'});
-  h.push({name:'Independence Day',date:year+'-07-04',type:'Minor'});
-  h.push({name:'Veterans Day',date:year+'-11-11',type:'Minor'});
   // Monday holidays
   h.push({name:'MLK Day',date:nthWeekday(year,0,1,3),type:'Minor'});// 3rd Mon Jan
   h.push({name:'Presidents\' Day',date:nthWeekday(year,1,1,3),type:'Minor'});// 3rd Mon Feb
@@ -670,9 +675,9 @@ function getHolidayDates(year){
   // Thanksgiving (4th Thu Nov)
   var tg=nthWeekday(year,10,4,4);
   h.push({name:'Thanksgiving',date:tg,type:'Major'});
-  // Day after Thanksgiving
+  // Native American Heritage Day (Day after Thanksgiving)
   var tgd=new Date(tg+'T12:00:00');tgd.setDate(tgd.getDate()+1);
-  h.push({name:'Day After Thanksgiving',date:fmtDate(tgd),type:'Minor'});
+  h.push({name:'Native American Heritage Day',date:fmtDate(tgd),type:'Minor'});
   return h.sort(function(a,b){return a.date.localeCompare(b.date);});
 }
 function nthWeekday(year,month,dow,n){
@@ -1984,43 +1989,143 @@ function exportScheduleCSV(data,from,to,scopeLabel,shiftF){
 }
 
 function exportSchedulePDF(data,from,to,scopeLabel,shiftF){
-  // Build a printable HTML document
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Schedule Export</title>';
-  html+='<style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px;color:#333;}';
-  html+='h1{font-size:16px;color:#1a3a3a;margin-bottom:4px;}h2{font-size:12px;color:#666;margin-bottom:12px;}';
-  html+='table{width:100%;border-collapse:collapse;margin-bottom:16px;}';
-  html+='th{background:#1a3a3a;color:#fff;padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;}';
-  html+='td{padding:5px 8px;border-bottom:1px solid #e5e0d6;font-size:11px;}';
-  html+='tr:nth-child(even){background:#f7f4ef;}';
-  html+='.bench{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}';
-  html+='.hc{background:#e8f5e9;color:#1b5e20;}.cu{background:#e3f2fd;color:#0d47a1;}.fl{background:#fff3e0;color:#e65100;}';
-  html+='.pto{background:#fbe9e7;color:#bf360c;}.co{background:#ffebee;color:#b71c1c;}.tr{background:#f3e5f5;color:#4a148c;}';
-  html+='.meta{font-size:10px;color:#999;margin-bottom:8px;}';
-  html+='@media print{body{margin:10px;}}';
+  var layout=(document.getElementById('expLayout')||{}).value||'week';
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Core Lab Schedule</title>';
+  html+='<style>';
+  html+='*{margin:0;padding:0;box-sizing:border-box;}';
+  html+='body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#333;padding:16px;}';
+  html+='h1{font-size:18px;color:#1a3a3a;font-weight:800;margin-bottom:2px;}';
+  html+='h2{font-size:11px;color:#666;margin-bottom:4px;font-weight:400;}';
+  html+='.meta{font-size:9px;color:#999;margin-bottom:12px;}';
+  html+='.shift-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:6px 10px;margin:10px 0 0;border-radius:4px 4px 0 0;}';
+  html+='.shift-morning{background:#e8f5e9;color:#2e7d32;}';
+  html+='.shift-evening{background:#e3f2fd;color:#1565c0;}';
+  html+='.shift-night{background:#ede7f6;color:#4a148c;}';
+  html+='table{width:100%;border-collapse:collapse;margin-bottom:8px;border:1px solid #ddd;}';
+  html+='th{background:#f5f5f0;color:#555;padding:5px 4px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;border:1px solid #ddd;}';
+  html+='th.today{background:#e0f2f1;color:#00796B;}';
+  html+='td{padding:4px 3px;text-align:center;border:1px solid #eee;height:28px;vertical-align:middle;font-size:10px;}';
+  html+='td.name{text-align:left;padding-left:8px;font-weight:700;font-size:10px;background:#fafaf5;min-width:100px;white-space:nowrap;}';
+  html+='td.name.lead{border-left:3px solid #00796B;background:#f0f9f8;}';
+  html+='td.name.mgr{border-left:3px solid #1a3a3a;background:#f0f3f3;}';
+  html+='td.weekend{background:#f5f5f0;color:#ccc;}';
+  html+='.chip{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.02em;}';
+  html+='.c-hc{background:#e8f5e9;color:#1b5e20;}.c-cu{background:#e3f2fd;color:#0d47a1;}.c-fl{background:#fff3e0;color:#e65100;}';
+  html+='.c-t{background:#fce4ec;color:#880e4f;}.c-pto{background:#fbe9e7;color:#bf360c;}.c-sl{background:#ffebee;color:#b71c1c;}';
+  html+='.c-io{background:#e0f2f1;color:#004D40;}.c-wfh{background:#e8eaf6;color:#283593;}.c-ot{background:#fff8e1;color:#f57f17;}';
+  html+='.c-half{background:#fff3e0;color:#e65100;border:1px dashed #e65100;}';
+  html+='.month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:12px;}';
+  html+='.month-hdr{font-size:9px;font-weight:800;text-transform:uppercase;text-align:center;padding:4px;color:#666;}';
+  html+='.month-cell{min-height:60px;border:1px solid #eee;border-radius:3px;padding:3px;font-size:8px;background:#fafaf5;}';
+  html+='.month-cell.weekend{background:#f0f0eb;color:#bbb;}';
+  html+='.month-day{font-size:10px;font-weight:700;margin-bottom:2px;}';
+  html+='.month-entry{display:inline-block;margin:1px;}';
+  html+='.page-break{page-break-before:always;}';
+  html+='@media print{body{padding:8px;margin:0;}@page{size:landscape;margin:10mm;}}';
   html+='</style></head><body>';
   html+='<h1>Core Lab Schedule</h1>';
   html+='<h2>'+scopeLabel+' | '+(shiftF||'All Shifts')+' | '+from+' to '+to+'</h2>';
-  html+='<div class="meta">Generated '+new Date().toLocaleString()+' by '+(me?me.fullName:'')+'</div>';
+  html+='<div class="meta">Generated '+new Date().toLocaleString()+' by '+(me?me.fullName:'')+'  |  Renton Central Lab, UW Medicine DLMP</div>';
 
-  // Group by date
-  var byDate={};data.forEach(function(e){if(!byDate[e.date])byDate[e.date]=[];byDate[e.date].push(e);});
-  var dates=Object.keys(byDate).sort();
+  function chipHtml(bench){
+    if(!bench)return'';
+    var cls=bench==='H/C'?'c-hc':bench==='C/U'?'c-cu':bench==='F'?'c-fl':bench==='T'?'c-t':bench==='PTO'?'c-pto':bench==='SL'?'c-sl':bench==='IO'?'c-io':bench==='WFH'?'c-wfh':bench==='OT'?'c-ot':bench==='HALF'?'c-half':'';
+    var label=bench==='IO'?'X':bench;
+    return'<span class="chip '+cls+'">'+esc(label)+'</span>';
+  }
 
-  html+='<table><thead><tr><th>Date</th><th>Day</th><th>Staff</th><th>Shift</th><th>Assignment</th><th>Notes</th></tr></thead><tbody>';
-  dates.forEach(function(dt){
-    var d=new Date(dt+'T12:00:00');
-    var dayName=DAYS[d.getDay()];
-    var entries=byDate[dt];
-    entries.forEach(function(e,i){
-      var benchCls=e.bench==='H/C'?'hc':e.bench==='C/U'?'cu':e.bench==='F'?'fl':e.bench==='PTO'?'pto':e.bench==='SL'?'sl':'tr';
-      html+='<tr><td>'+(i===0?dt:'')+'</td><td>'+(i===0?dayName:'')+'</td><td>'+esc(e.userName)+'</td><td>'+esc(e.shift)+'</td><td><span class="bench '+benchCls+'">'+esc(e.bench)+'</span></td><td>'+esc(e.notes||'')+'</td></tr>';
-    });
-  });
-  html+='</tbody></table>';
-  html+='<div class="meta">'+data.length+' total entries</div>';
+  var shifts=shiftF?[shiftF]:SHIFTS.filter(function(sh){return STAFF.some(function(s){return s.active!==false&&s.shift===sh;});});
+
+  if(layout==='week'||layout==='list'){
+    // Build weeks
+    var startD=new Date(from+'T12:00:00');
+    var endD=new Date(to+'T12:00:00');
+    // Align to Sunday
+    var weekStart=new Date(startD);weekStart.setDate(weekStart.getDate()-weekStart.getDay());
+    var weekNum=0;
+
+    while(weekStart<=endD){
+      if(weekNum>0)html+='<div class="page-break"></div>';
+      var weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+6);
+      html+='<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:700;color:#1a3a3a;margin-bottom:6px;">'+weekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' - '+weekEnd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</div>';
+
+      // Build dates for this week
+      var wDates=[];
+      for(var di=0;di<7;di++){var dd=new Date(weekStart);dd.setDate(dd.getDate()+di);wDates.push({date:fmtDate(dd),dow:dd.getDay(),label:DAYS[dd.getDay()]+' '+dd.getDate(),isWeekend:dd.getDay()===0||dd.getDay()===6});}
+
+      shifts.forEach(function(shift){
+        var shCls=shift.toLowerCase();
+        var shTime=shift==='Morning'?'0700-1530':shift==='Evening'?'1500-2330':'2300-0730';
+        html+='<div class="shift-title shift-'+shCls+'">'+shift+' | '+shTime+'</div>';
+        html+='<table><thead><tr><th style="text-align:left;padding-left:8px;min-width:100px;">Staff</th>';
+        wDates.forEach(function(d){html+='<th class="'+(d.isWeekend?'weekend':'')+'">'+d.label+'</th>';});
+        html+='</tr></thead><tbody>';
+
+        var shiftStaff=STAFF.filter(function(s){return s.active!==false&&s.shift===shift;}).sort(function(a,b){
+          var aP=ELEVATED_ROLES.some(function(r){return a.role&&a.role.indexOf(r)>=0;})?0:1;
+          var bP=ELEVATED_ROLES.some(function(r){return b.role&&b.role.indexOf(r)>=0;})?0:1;
+          if(aP!==bP)return aP-bP;return a.name.localeCompare(b.name);
+        });
+        shiftStaff.forEach(function(staff){
+          var isLeadRole=ELEVATED_ROLES.some(function(r){return staff.role&&staff.role.indexOf(r)>=0;});
+          var nameCls=staff.role&&staff.role.indexOf('MLS Lead')>=0?'lead':isLeadRole?'mgr':'';
+          html+='<tr><td class="name '+nameCls+'">'+esc(staff.name.split(' ')[0])+'<br><span style="font-size:8px;font-weight:400;color:#999;">'+esc(staff.role)+'</span></td>';
+          wDates.forEach(function(d){
+            if(d.isWeekend){html+='<td class="weekend">OFF</td>';return;}
+            // Find assignment from export data
+            var entry=data.find(function(e){return e.userIni===staff.ini&&e.date===d.date&&e.shift===shift;});
+            html+='<td>'+(entry?chipHtml(entry.bench):'')+'</td>';
+          });
+          html+='</tr>';
+        });
+        html+='</tbody></table>';
+      });
+      html+='</div>';
+      weekStart.setDate(weekStart.getDate()+7);
+      weekNum++;
+    }
+  }else if(layout==='month'){
+    // Monthly calendar grid
+    var mStart=new Date(from+'T12:00:00');
+    var mEnd=new Date(to+'T12:00:00');
+    var curM=mStart.getMonth(),curY=mStart.getFullYear();
+
+    while(new Date(curY,curM,1)<=mEnd){
+      if(curM!==mStart.getMonth()||curY!==mStart.getFullYear())html+='<div class="page-break"></div>';
+      html+='<div style="font-size:13px;font-weight:700;color:#1a3a3a;margin:8px 0 6px;">'+MONTHS[curM]+' '+curY+'</div>';
+      html+='<div class="month-grid">';
+      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(function(d){html+='<div class="month-hdr">'+d+'</div>';});
+
+      var firstDay=new Date(curY,curM,1);
+      var gridStart=new Date(firstDay);gridStart.setDate(gridStart.getDate()-firstDay.getDay());
+      var cur=new Date(gridStart);
+
+      for(var w=0;w<6;w++){
+        for(var d=0;d<7;d++){
+          var ds=fmtDate(cur);
+          var isOther=cur.getMonth()!==curM;
+          var isWE=cur.getDay()===0||cur.getDay()===6;
+          html+='<div class="month-cell'+(isWE?' weekend':'')+'"'+(isOther?' style="opacity:.3;"':'')+'>';
+          html+='<div class="month-day">'+cur.getDate()+'</div>';
+          if(!isWE&&!isOther){
+            var dayEntries=data.filter(function(e){return e.date===ds;});
+            dayEntries.forEach(function(e){
+              html+='<span class="month-entry">'+chipHtml(e.bench)+'</span>';
+            });
+          }
+          html+='</div>';
+          cur.setDate(cur.getDate()+1);
+        }
+        if(cur.getMonth()!==curM&&cur.getDay()===0)break;
+      }
+      html+='</div>';
+      curM++;if(curM>11){curM=0;curY++;}
+    }
+  }
+
+  html+='<div class="meta" style="margin-top:12px;">'+data.length+' total entries</div>';
   html+='</body></html>';
 
-  // Open in new window for print/save as PDF
   var w=window.open('','_blank');
   w.document.write(html);
   w.document.close();
