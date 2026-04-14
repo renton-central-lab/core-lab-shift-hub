@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Core Lab Schedule - Renton Central Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+<script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+<style>
+/* ═══ RESET & TOKENS ═══ */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --navy:#1a3a3a;--navy-l:#224848;--teal:#00796B;--teal-l:#00897B;--teal-bg:#e0f2f1;
+  --surface:#f7f4ef;--white:#fffcf7;
+  --g50:#faf8f4;--g100:#f2efe8;--g200:#e5e0d6;--g300:#d4cec3;--g400:#a09889;--g500:#736b5e;--g600:#564f44;--g700:#3a352d;--g900:#1c1a16;
+  --red:#c62828;--red-bg:#fce8e8;--red-bdr:#f5b8b8;
+  --amber:#e6a000;--amber-bg:#fff8e1;--amber-bdr:#ffe082;
+  --green:#2e7d32;--green-bg:#e8f5e9;--green-bdr:#a5d6a7;
+  --blue:#1565c0;--blue-bg:#e3f2fd;--blue-bdr:#90caf9;
+  --purple:#6a1b9a;--purple-bg:#f3e5f5;--purple-bdr:#ce93d8;
+  --shadow-1:0 1px 4px rgba(28,26,22,.05);--shadow-2:0 4px 16px rgba(28,26,22,.07);--shadow-3:0 16px 40px rgba(28,26,22,.1);
+  --r:12px;--rl:16px;--rr:24px;
+  --font:'Plus Jakarta Sans',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --me-emphasized:cubic-bezier(0.2,0,0,1.0);--me-decelerate:cubic-bezier(0.05,0.7,0.1,1.0);
+  --me-accelerate:cubic-bezier(0.3,0,0.8,0.15);--me-spring:cubic-bezier(0.34,1.4,0.64,1);
+  --me-standard:cubic-bezier(0.2,0,0,1.0);
+  --dur-micro:80ms;--dur-short:200ms;--dur-med:300ms;--dur-long:400ms;--dur-xl:500ms;
+  --hc-bg:#e8f5e9;--hc-c:#1b5e20;--cu-bg:#e3f2fd;--cu-c:#0d47a1;--fl-bg:#fff3e0;--fl-c:#e65100;
+  --tr-bg:#f3e5f5;--tr-c:#4a148c;--t-bg:#fce4ec;--t-c:#880e4f;
+  --pto-bg:#fbe9e7;--pto-c:#bf360c;--co-bg:#ffebee;--co-c:#b71c1c;
+  --ot-bg:#fff8e1;--ot-c:#f57f17;
+}
+
+body{font-family:var(--font);background:var(--surface);color:var(--g900);min-height:100vh;-webkit-font-smoothing:antialiased;}
+.mi{font-family:'Material Icons Outlined';font-style:normal;font-weight:normal;font-size:20px;vertical-align:middle;}
+.mi-sm{font-size:18px;}.mi-xs{font-size:14px;}.mi-lg{font-size:28px;}
+
+/* ═══ AUTH SCREEN ═══ */
+.auth-screen{display:none;position:fixed;inset:0;z-index:1000;background:linear-gradient(160deg,#1a3a3a 0%,#004D40 40%,#00695C 100%);align-items:center;justify-content:center;flex-direction:column;gap:20px;}
+.auth-logo{width:72px;height:72px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3);}
+.auth-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.02em;}
+.auth-sub{font-size:13px;color:rgba(255,255,255,.7);}
+.auth-btn{background:#fff;color:var(--navy);border:none;padding:14px 36px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);transition:transform var(--dur-short) var(--me-spring),box-shadow var(--dur-short) var(--me-emphasized);}
+.btn:active{transform:scale(.96);}
+.auth-btn:active{transform:scale(.97);}
+.auth-btn:hover{transform:scale(1.04);box-shadow:0 6px 24px rgba(0,0,0,.2);}
+
+/* ═══ HEADER ═══ */
+.header{background:linear-gradient(135deg,#1a3a3a 0%,#004D40 50%,#00695C 100%);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(26,58,58,.25);}
+.hdr-left{display:flex;align-items:center;gap:12px;}
+.hdr-logo{width:36px;height:36px;border-radius:8px;}
+.hdr-info h1{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.1;}
+.hdr-info p{font-size:10px;color:rgba(255,255,255,.6);font-weight:500;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.hdr-chip{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);padding:5px 12px;border-radius:999px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px;}
+.hdr-avatar{width:34px;transition:transform var(--dur-short) var(--me-spring),background var(--dur-short) var(--me-standard);height:34px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;cursor:pointer;}
+.hdr-avatar:hover{transform:scale(1.1);background:rgba(255,255,255,.25);}
+
+/* ═══ NAV TABS ═══ */
+.nav{display:flex;gap:0;background:var(--white);border-bottom:1px solid var(--g200);position:sticky;top:60px;z-index:90;overflow-x:auto;}
+.nav-tab{padding:12px 20px;font-size:13px;font-weight:600;color:var(--g500);cursor:pointer;display:flex;align-items:center;gap:6px;border-bottom:2px solid transparent;white-space:nowrap;transition:color var(--dur-short) var(--me-standard),border-color var(--dur-short) var(--me-standard);}
+.nav-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+.nav-tab:hover{color:var(--navy);}
+
+/* ═══ MAIN CONTENT ═══ */
+.main{max-width:1400px;margin:0 auto;padding:20px 24px 80px;}
+.page{display:none;}.page.active{display:block;animation:pageIn var(--dur-med) var(--me-decelerate);}
+
+/* ═══ TOOLBAR ═══ */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.toolbar h2{font-size:18px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px;}
+.tb-controls{display:flex;align-items:center;gap:8px;}
+.tb-btn{background:var(--white);border:1px solid var(--g200);padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);color:var(--g600);display:flex;align-items:center;gap:4px;transition:background var(--dur-short) var(--me-standard),border-color var(--dur-short) var(--me-standard);}
+.btn:active{transform:scale(.96);}
+.tb-btn:active{transform:scale(.95);}
+.tb-btn:hover{background:var(--teal-bg);border-color:var(--teal);color:var(--teal);}
+.tb-btn.primary{background:var(--teal);color:#fff;border-color:var(--teal);}
+.tb-btn.primary:hover{background:var(--teal-l);}
+.week-nav{display:flex;align-items:center;gap:4px;}
+.week-nav button{width:32px;transition:background var(--dur-short) var(--me-standard),transform var(--dur-micro) var(--me-spring);height:32px;border-radius:50%;border:1px solid var(--g200);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background var(--dur-short) var(--me-standard);}
+.week-nav button:active{transform:scale(.9);}
+.week-nav button:hover{background:var(--teal-bg);}
+.week-label{font-size:13px;font-weight:700;color:var(--navy);min-width:200px;text-align:center;}
+
+/* ═══ WEEKLY GRID ═══ */
+.sched-grid{background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-2);overflow:hidden;border:1px solid var(--g200);}
+.shift-section{border-bottom:1px solid var(--g200);}
+.shift-section:last-child{border-bottom:none;}
+.shift-hdr{padding:10px 16px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background var(--dur-short) var(--me-standard);}
+.shift-hdr:hover{filter:brightness(.97);}
+.shift-hdr.morning{background:linear-gradient(90deg,#e8f5e9,#f1f8e9);color:#2e7d32;}
+.shift-hdr.evening{background:linear-gradient(90deg,#e3f2fd,#e8eaf6);color:#1565c0;}
+.shift-hdr.night{background:linear-gradient(90deg,#ede7f6,#e8eaf6);color:#4a148c;}
+.shift-hdr .mi{font-size:16px;}
+.shift-body{overflow-x:auto;transition:opacity var(--dur-med) var(--me-decelerate);}
+.sched-table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:700px;}
+.sched-table th{font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.04em;padding:6px 4px;text-align:center;border-bottom:1px solid var(--g100);position:sticky;top:0;background:var(--white);}
+.sched-table th.today{color:var(--teal);background:var(--teal-bg);}
+.sched-table th.weekend{color:var(--g300);background:var(--g50);}
+.sched-table td{padding:4px 2px;text-align:center;border-bottom:1px solid var(--g50);height:40px;vertical-align:middle;}
+.sched-table td.name-cell{text-align:left;padding-left:12px;font-size:12px;font-weight:700;color:var(--g700);white-space:nowrap;min-width:130px;position:sticky;left:0;background:var(--white);z-index:2;border-right:1px solid var(--g100);}
+.sched-table td.weekend{background:var(--g50);}
+.sched-table td.today-col{background:rgba(0,121,107,.04);}
+.sched-table tr:hover td{background:rgba(0,121,107,.02);}
+.sched-table tr:hover td.weekend{background:var(--g50);}
+
+/* ═══ BENCH ASSIGNMENT CHIPS ═══ */
+.bench-chip{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:26px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;transition:transform var(--dur-micro) var(--me-spring),box-shadow var(--dur-short) var(--me-standard);}
+.bench-chip:hover{transform:scale(1.1);box-shadow:0 2px 8px rgba(0,0,0,.12);}
+.bench-chip.hc{background:var(--hc-bg);color:var(--hc-c);}
+.bench-chip.cu{background:var(--cu-bg);color:var(--cu-c);}
+.bench-chip.fl{background:var(--fl-bg);color:var(--fl-c);}
+.bench-chip.tr{background:var(--tr-bg);color:var(--tr-c);}
+.bench-chip.t{background:var(--t-bg);color:var(--t-c);}
+.bench-chip.pto{background:var(--pto-bg);color:var(--pto-c);}
+.bench-chip.co{background:var(--co-bg);color:var(--co-c);}
+.bench-chip.ot{background:var(--ot-bg);color:var(--ot-c);border:1px dashed var(--ot-c);}
+.bench-chip.off{background:transparent;color:var(--g300);font-weight:400;font-size:9px;}
+.bench-chip.empty{background:var(--g50);color:var(--g300);border:1px dashed var(--g200);cursor:pointer;}
+.bench-chip.empty:hover{border-color:var(--teal);color:var(--teal);}
+.bench-chip.rec{border:2px solid var(--teal);animation:recPulse 2s infinite;}
+@keyframes recPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,121,107,.2);}50%{box-shadow:0 0 0 4px rgba(0,121,107,0);}}
+
+/* ═══ COVERAGE BAR ═══ */
+.coverage-bar{display:flex;gap:6px;padding:6px 16px;background:var(--g50);border-top:1px solid var(--g100);}
+.cov-item{font-size:10px;transition:transform var(--dur-short) var(--me-spring);font-weight:700;display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;}
+.cov-item:hover{transform:scale(1.08);}
+.cov-ok{background:var(--green-bg);color:var(--green);}
+.cov-warn{background:var(--amber-bg);color:var(--amber);}
+.cov-miss{background:var(--red-bg);color:var(--red);}
+
+/* ═══ DAILY VIEW ═══ */
+.daily-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;}
+.daily-card{background:var(--white);transition:transform var(--dur-short) var(--me-spring),box-shadow var(--dur-short) var(--me-standard);border-radius:var(--rl);box-shadow:var(--shadow-1);border:1px solid var(--g200);overflow:hidden;}
+.daily-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);}
+.daily-card-hdr{padding:14px 16px;font-size:14px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.daily-card-body{padding:0 16px 16px;}
+.daily-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--g50);}
+.daily-row:last-child{border-bottom:none;}
+.daily-name{font-size:13px;font-weight:600;color:var(--g700);}
+.daily-role{font-size:10px;color:var(--g400);}
+
+/* ═══ MONTHLY VIEW ═══ */
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-1);border:1px solid var(--g200);overflow:hidden;padding:2px;}
+.month-hdr{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--g400);text-align:center;padding:8px 0;}
+.month-cell{min-height:80px;transition:background var(--dur-short) var(--me-standard),transform var(--dur-micro) var(--me-spring);background:var(--g50);border-radius:8px;padding:4px;display:flex;flex-direction:column;transition:background var(--dur-short) var(--me-standard);}
+.month-cell:hover{background:var(--teal-bg);}
+.month-cell:active{transform:scale(.97);}
+.month-cell.today{background:rgba(0,121,107,.08);border:2px solid var(--teal);}
+.month-cell.other-month{opacity:.4;}
+.month-day{font-size:11px;font-weight:700;color:var(--g700);padding:2px 4px;}
+.month-cell.weekend .month-day{color:var(--g300);}
+.month-chips{display:flex;flex-wrap:wrap;gap:1px;padding:2px;}
+.month-mini{font-size:7px;font-weight:800;padding:1px 3px;border-radius:3px;}
+.month-cov{font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;margin-top:auto;}
+
+/* ═══ SWAP REQUESTS ═══ */
+.swap-card{background:var(--white);transition:border-color var(--dur-short) var(--me-standard),transform var(--dur-short) var(--me-spring);border-radius:var(--rl);box-shadow:var(--shadow-1);border:1px solid var(--g200);padding:16px;margin-bottom:12px;transition:border-color var(--dur-short) var(--me-standard);}
+.swap-card.pending{border-left:4px solid var(--amber);}
+.swap-card.approved{border-left:4px solid var(--green);}
+.swap-card.denied{border-left:4px solid var(--red);}
+.swap-card.waitlisted{border-left:4px solid var(--purple);}
+.swap-badge.waitlisted{background:var(--purple-bg);color:var(--purple);}
+.swap-card:hover{transform:translateY(-1px);}
+.swap-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.swap-title{font-size:14px;font-weight:700;color:var(--navy);}
+.swap-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;}
+.swap-badge.pending{background:var(--amber-bg);color:var(--amber);}
+.swap-badge.approved{background:var(--green-bg);color:var(--green);}
+.swap-badge.denied{background:var(--red-bg);color:var(--red);}
+.swap-detail{font-size:12px;color:var(--g500);line-height:1.6;}
+.swap-actions{display:flex;gap:8px;margin-top:10px;}
+
+/* ═══ RECOMMENDATION PANEL ═══ */
+.rec-panel{background:var(--white);animation:modalScaleIn var(--dur-long) var(--me-decelerate);border-radius:var(--rl);box-shadow:var(--shadow-1);border:1px solid var(--g200);padding:16px;margin-bottom:16px;}
+.rec-panel h3{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.rec-row{display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--g50);}
+.rec-row:last-child{border-bottom:none;}
+.rec-name{font-size:12px;font-weight:600;min-width:120px;}
+.rec-assign{font-size:11px;font-weight:700;}
+.rec-reason{font-size:10px;color:var(--g400);flex:1;}
+.rec-accept{border:none;background:var(--teal);color:#fff;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);}
+
+/* ═══ MODALS ═══ */
+.modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(28,26,22,.4);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+.modal-bg.show{display:flex;animation:modalFadeIn var(--dur-med) var(--me-decelerate);}
+.modal{background:var(--white);animation:modalScaleIn var(--dur-med) var(--me-spring);border-radius:var(--rr);box-shadow:var(--shadow-3);width:90%;max-width:440px;max-height:85vh;overflow-y:auto;padding:24px;}
+.modal h3{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.form-row{margin-bottom:12px;}
+.form-row label{display:block;font-size:11px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.form-row select,.form-row input{width:100%;padding:8px 12px;border:1px solid var(--g200);border-radius:var(--r);font-size:13px;font-family:var(--font);background:var(--white);}
+.form-row select:focus,.form-row input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,121,107,.1);}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+.btn{padding:8px 20px;transition:background var(--dur-short) var(--me-standard),transform var(--dur-micro) var(--me-spring);border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--g200);background:var(--white);color:var(--g600);font-family:var(--font);transition:background var(--dur-short) var(--me-standard);}
+.btn:active{transform:scale(.96);}
+.btn:hover{background:var(--g100);}
+.btn.primary{background:var(--teal);color:#fff;border-color:var(--teal);}
+.btn.primary:hover{background:var(--teal-l);}
+.btn.danger{background:var(--red);color:#fff;border-color:var(--red);}
+
+/* ═══ STATS ═══ */
+.stats-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.stat-card{background:var(--white);transition:transform var(--dur-short) var(--me-spring),box-shadow var(--dur-short) var(--me-standard);border-radius:var(--r);box-shadow:var(--shadow-1);border:1px solid var(--g200);padding:12px 16px;min-width:140px;flex:1;}
+.stat-label{font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.04em;}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);}
+.stat-val{font-size:24px;font-weight:800;color:var(--navy);margin-top:2px;}
+
+/* ═══ TOAST ═══ */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 24px;border-radius:999px;font-size:13px;font-weight:600;z-index:900;pointer-events:none;opacity:0;transition:transform var(--dur-med) var(--me-emphasized),opacity var(--dur-med) var(--me-emphasized);}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+/* ═══ LOADING ═══ */
+.loading{display:none;position:fixed;inset:0;z-index:600;background:rgba(247,244,239,.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.loading.show{display:flex;}
+.loading .mi{font-size:32px;color:var(--teal);animation:spin 1.2s linear infinite;}
+@keyframes pageIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes modalFadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes modalScaleIn{from{opacity:0;transform:scale(.92);}to{opacity:1;transform:scale(1);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading p{font-size:13px;font-weight:600;color:var(--g500);}
+
+/* ═══ EMPTY STATE ═══ */
+.empty{text-align:center;padding:48px 20px;color:var(--g400);}
+.empty .mi{font-size:48px;color:var(--g300);margin-bottom:8px;}
+.empty h3{font-size:16px;font-weight:700;color:var(--g600);margin-bottom:4px;}
+.empty p{font-size:12px;}
+
+/* ═══ FAIRNESS METER ═══ */
+.fairness-bar{height:6px;background:var(--g100);border-radius:3px;overflow:hidden;min-width:60px;}
+.fairness-fill{height:100%;border-radius:3px;transition:width var(--dur-med) var(--me-emphasized);}
+.fairness-fill.balanced{background:var(--green);}
+.fairness-fill.slight{background:var(--amber);}
+.fairness-fill.heavy{background:var(--red);}
+
+/* ═══ MOBILE ═══ */
+@media(max-width:600px){
+  .header{padding:0 12px;height:56px;}
+  .hdr-info h1{font-size:14px;}
+  .hdr-chip{display:none;}
+  .main{padding:12px 10px 100px;}
+  .toolbar{flex-direction:column;align-items:stretch;}
+  .toolbar h2{font-size:15px;}
+  .tb-controls{justify-content:center;}
+  .daily-cards{grid-template-columns:1fr;}
+  .stats-row{flex-direction:column;}
+  .month-cell{min-height:50px;}
+  .sched-table td.name-cell{min-width:90px;font-size:10px;}
+}
+</style>
+</head>
+<body>
+<!-- Auth Screen -->
+<div class="auth-screen" id="auth-screen">
+  <img class="auth-logo" src="data:image/png;base64,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" alt="Core Lab">
+  <div class="auth-title">Core Lab Schedule</div>
+  <div class="auth-sub">UW Medicine DLMP - Renton Central Lab</div>
+  <button class="auth-btn" onclick="signIn()"><span class="mi mi-sm">login</span> Sign in with UW NetID</button>
+</div>
+
+<!-- Loading -->
+<div class="loading" id="loading"><span class="mi">hourglass_empty</span><p id="load-text">Loading...</p></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Header -->
+<div class="header" id="app-header" style="display:none">
+  <div class="hdr-left">
+    <img class="hdr-logo" src="data:image/png;base64,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" alt="">
+    <div class="hdr-info"><h1>Core Lab Schedule</h1><p>UW Medicine DLMP - Renton Central Lab</p></div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-chip" id="hdr-date"></div>
+    <div class="hdr-chip" id="hdr-sync"><span class="mi mi-xs">sync</span> Synced</div>
+    <div class="hdr-avatar" id="hdr-avatar" title="User"></div>
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav" id="app-nav" style="display:none">
+  <div class="nav-tab active" id="navWeek" onclick="switchTab('week')"><span class="mi mi-sm">view_week</span> Weekly</div>
+  <div class="nav-tab" id="navDay" onclick="switchTab('day')"><span class="mi mi-sm">today</span> Daily</div>
+  <div class="nav-tab" id="navMonth" onclick="switchTab('month')"><span class="mi mi-sm">calendar_month</span> Monthly</div>
+  <div class="nav-tab" id="navSwap" onclick="switchTab('swap')"><span class="mi mi-sm">swap_horiz</span> Swap Requests</div>
+  <div class="nav-tab" id="navPto" onclick="switchTab('pto')"><span class="mi mi-sm">event_busy</span> PTO</div>
+  <div class="nav-tab" id="navHoliday" onclick="switchTab('holiday')"><span class="mi mi-sm">celebration</span> Holidays</div>
+  <div class="nav-tab" id="navRoster" onclick="switchTab('roster')" style="display:none"><span class="mi mi-sm">groups</span> Staff Roster</div>
+</div>
+
+<!-- Main Content -->
+<div class="main" id="app-main" style="display:none">
+
+<!-- WEEKLY PAGE -->
+<div class="page active" id="pageWeek">
+  <div class="toolbar">
+    <h2><span class="mi">view_week</span> Weekly Schedule</h2>
+    <div class="tb-controls">
+      <div class="week-nav">
+        <button onclick="navWeek(-1)" title="Previous week"><span class="mi mi-sm">chevron_left</span></button>
+        <div class="week-label" id="weekLabel"></div>
+        <button onclick="navWeek(1)" title="Next week"><span class="mi mi-sm">chevron_right</span></button>
+        <button onclick="navWeek(0)" title="This week" class="tb-btn" style="margin-left:4px"><span class="mi mi-xs">today</span> Today</button>
+      </div>
+      <button class="tb-btn" onclick="openRecPanel()"><span class="mi mi-xs">auto_awesome</span> Recommend</button>
+      <button class="tb-btn" onclick="openExportModal()"><span class="mi mi-xs">download</span> Export</button>
+    </div>
+  </div>
+  <div id="recPanelWrap"></div>
+  <div id="weekStats" class="stats-row"></div>
+  <div class="sched-grid" id="weekGrid"></div>
+</div>
+
+<!-- DAILY PAGE -->
+<div class="page" id="pageDay">
+  <div class="toolbar">
+    <h2><span class="mi">today</span> Daily View</h2>
+    <div class="tb-controls">
+      <div class="week-nav">
+        <button onclick="navDay(-1)"><span class="mi mi-sm">chevron_left</span></button>
+        <div class="week-label" id="dayLabel"></div>
+        <button onclick="navDay(1)"><span class="mi mi-sm">chevron_right</span></button>
+        <button onclick="navDay(0)" class="tb-btn" style="margin-left:4px"><span class="mi mi-xs">today</span> Today</button>
+      </div>
+    </div>
+  </div>
+  <div id="dayStats" class="stats-row"></div>
+  <div class="daily-cards" id="dayCards"></div>
+</div>
+
+<!-- MONTHLY PAGE -->
+<div class="page" id="pageMonth">
+  <div class="toolbar">
+    <h2><span class="mi">calendar_month</span> Monthly Overview</h2>
+    <div class="tb-controls">
+      <div class="week-nav">
+        <button onclick="navMonth(-1)"><span class="mi mi-sm">chevron_left</span></button>
+        <div class="week-label" id="monthLabel"></div>
+        <button onclick="navMonth(1)"><span class="mi mi-sm">chevron_right</span></button>
+      </div>
+      <select id="monthShiftFilter" onchange="renderMonth()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
+        <option value="">All Shifts</option>
+        <option value="Morning">Morning</option>
+        <option value="Evening">Evening</option>
+      </select>
+      <button class="tb-btn" onclick="openExportModal()"><span class="mi mi-xs">download</span> Export</button>
+    </div>
+  </div>
+  <div id="monthGrid" class="month-grid"></div>
+</div>
+
+<!-- SWAP REQUESTS PAGE -->
+<div class="page" id="pageSwap">
+  <div class="toolbar">
+    <h2><span class="mi">swap_horiz</span> Swap Requests</h2>
+    <div class="tb-controls">
+      <button class="tb-btn primary" onclick="openSwapModal()"><span class="mi mi-xs">add</span> New Request</button>
+      <select id="swapFilter" onchange="renderSwaps()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
+        <option value="">All</option>
+        <option value="Pending">Pending</option>
+        <option value="Approved">Approved</option>
+        <option value="Denied">Denied</option>
+      </select>
+    </div>
+  </div>
+  <div id="swapList"></div>
+</div>
+
+<!-- PTO REQUESTS PAGE -->
+<div class="page" id="pagePto">
+  <div class="toolbar">
+    <h2><span class="mi">event_busy</span> PTO Requests</h2>
+    <div class="tb-controls">
+      <button class="tb-btn primary" onclick="openPTOModal()"><span class="mi mi-xs">add</span> New Request</button>
+      <select id="ptoFilter" onchange="renderPTO()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
+        <option value="">All</option>
+        <option value="Pending">Pending</option>
+        <option value="Approved">Approved</option>
+        <option value="Denied">Denied</option>
+        <option value="Waitlisted">Waitlisted</option>
+      </select>
+      <select id="ptoTypeFilter" onchange="renderPTO()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
+        <option value="">All Types</option>
+        <option value="General">General PTO</option>
+        <option value="Holiday">Holiday PTO</option>
+      </select>
+    </div>
+  </div>
+  <div id="ptoBidWindow" style="margin-bottom:12px;"></div>
+  <div id="ptoStats" class="stats-row"></div>
+  <div id="ptoList"></div>
+</div>
+
+<!-- HOLIDAY STAFFING PAGE -->
+<div class="page" id="pageHoliday">
+  <div class="toolbar">
+    <h2><span class="mi">celebration</span> Holiday Staffing</h2>
+    <div class="tb-controls">
+      <select id="holYear" onchange="renderHolidays()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
+        <option>2026</option><option>2027</option><option>2028</option>
+      </select>
+      <button class="tb-btn" onclick="autoAssignHolidays()" id="holAutoBtn" style="display:none"><span class="mi mi-xs">auto_awesome</span> Auto-Assign</button>
+    </div>
+  </div>
+  <div id="holSummary" class="stats-row"></div>
+  <div id="holGrid"></div>
+  <div id="holFairness" style="margin-top:16px;"></div>
+</div>
+
+<!-- STAFF ROSTER PAGE (Leads only) -->
+<div class="page" id="pageRoster">
+  <div class="toolbar">
+    <h2><span class="mi">groups</span> Staff Roster</h2>
+    <div class="tb-controls">
+      <button class="tb-btn primary" onclick="openRosterModal()"><span class="mi mi-xs">person_add</span> Add Staff</button>
+    </div>
+  </div>
+  <div id="rosterStats" class="stats-row"></div>
+  <div class="sched-grid" style="overflow-x:auto;">
+    <table class="sched-table" id="rosterTable" style="min-width:900px;">
+      <thead><tr>
+        <th style="text-align:left;padding-left:12px;min-width:50px;">Initials</th>
+        <th style="text-align:left;min-width:150px;">Name</th>
+        <th style="text-align:left;min-width:120px;">Role</th>
+        <th style="text-align:left;min-width:80px;">Shift</th>
+        <th style="text-align:center;min-width:70px;">Bench</th>
+        <th style="text-align:left;min-width:160px;">Default Cycle</th>
+        <th style="text-align:left;min-width:90px;">Start Date</th>
+        <th style="text-align:left;min-width:100px;">Phone</th>
+        <th style="text-align:center;min-width:60px;">Status</th>
+        <th style="text-align:center;min-width:80px;">Actions</th>
+      </tr></thead>
+      <tbody id="rosterBody"></tbody>
+    </table>
+  </div>
+</div>
+</div><!-- end main -->
+
+<!-- ASSIGNMENT MODAL -->
+<div class="modal-bg" id="assignModal" onclick="if(event.target===this)closeModal('assignModal')">
+  <div class="modal">
+    <h3><span class="mi">edit_calendar</span> Edit Assignment</h3>
+    <div class="form-row"><label>Staff Member</label><select id="aStaff"></select></div>
+    <div class="form-row"><label>Date</label><input type="date" id="aDate"></div>
+    <div class="form-row"><label>Shift</label><select id="aShift"><option>Morning</option><option>Evening</option></select></div>
+    <div class="form-row"><label>Assignment</label><select id="aBench">
+      <option value="">-- None --</option>
+      <option value="H/C">H/C (Heme/Coag)</option>
+      <option value="C/U">C/U (Chem/UA)</option>
+      <option value="F">F (Float)</option>
+      <option value="T">T (Training)</option>
+      <option value="TR">TR (Training w/ Lead)</option>
+      <option value="PTO">PTO</option>
+      <option value="CO">Callout</option>
+      <option value="OT">OT (Overtime)</option>
+    </select></div>
+    <div class="form-row"><label>Notes</label><input type="text" id="aNotes" placeholder="Optional notes"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeModal('assignModal')">Cancel</button>
+      <button class="btn primary" onclick="saveAssignment()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- SWAP REQUEST MODAL -->
+<div class="modal-bg" id="swapModal" onclick="if(event.target===this)closeModal('swapModal')">
+  <div class="modal">
+    <h3><span class="mi">swap_horiz</span> Request Shift Swap</h3>
+    <div class="form-row"><label>Your Current Date</label><input type="date" id="swDate"></div>
+    <div class="form-row"><label>Your Current Shift</label><select id="swShift"><option>Morning</option><option>Evening</option></select></div>
+    <div class="form-row"><label>Swap With</label><select id="swWith"></select></div>
+    <div class="form-row"><label>Their Date</label><input type="date" id="swTargetDate"></div>
+    <div class="form-row"><label>Reason</label><input type="text" id="swReason" placeholder="Reason for swap"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeModal('swapModal')">Cancel</button>
+      <button class="btn primary" onclick="submitSwapRequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROSTER ADD/EDIT MODAL -->
+<div class="modal-bg" id="rosterModal" onclick="if(event.target===this)closeModal('rosterModal')">
+  <div class="modal">
+    <h3><span class="mi" id="rosterModalIcon">person_add</span> <span id="rosterModalTitle">Add Staff Member</span></h3>
+    <div class="form-row"><label>Initials (2 letters)</label><input type="text" id="rIni" maxlength="3" placeholder="JM" style="text-transform:uppercase;font-family:var(--mono);font-weight:700;"></div>
+    <div class="form-row"><label>Full Name</label><input type="text" id="rName" placeholder="Jane Smith"></div>
+    <div class="form-row"><label>Role</label><select id="rRole">
+      <option>MLS1</option><option>MLS2</option><option>MLS Lead</option><option>Lab Manager</option><option>Health Services Manager</option>
+    </select></div>
+    <div class="form-row"><label>Default Shift</label><select id="rShift"><option>Morning</option><option>Evening</option></select></div>
+    <div class="form-row"><label>Bench Eligible</label><select id="rBenchElig"><option value="true">Yes</option><option value="false">No</option></select></div>
+    <div class="form-row" id="rCycleRow"><label>Default Bench Cycle (comma-separated: H/C,C/U,F)</label><input type="text" id="rCycle" placeholder="C/U,H/C,F,C/U,H/C" style="font-family:var(--mono);"></div>
+    <div class="form-row"><label>Start Date</label><input type="date" id="rStartDate"></div>
+    <div class="form-row"><label>Phone</label><input type="text" id="rPhone" placeholder="(425) 555-1234"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeModal('rosterModal')">Cancel</button>
+      <button class="btn primary" id="rosterSaveBtn" onclick="saveRosterEntry()">Add Staff</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-bg" id="exportModal" onclick="if(event.target===this)closeModal('exportModal')">
+  <div class="modal">
+    <h3><span class="mi">download</span> Export Schedule</h3>
+    <div class="form-row"><label>From Date</label><input type="date" id="expFrom"></div>
+    <div class="form-row"><label>To Date</label><input type="date" id="expTo"></div>
+    <div class="form-row"><label>Scope</label><select id="expScope">
+      <option value="mine">My Schedule Only</option>
+      <option value="shift">My Shift Only</option>
+      <option value="all" selected>All Staff / All Shifts</option>
+    </select></div>
+    <div class="form-row"><label>Shift Filter</label><select id="expShift">
+      <option value="">All Shifts</option>
+      <option>Morning</option>
+      <option>Evening</option>
+    </select></div>
+    <div class="form-row"><label>Format</label><select id="expFmt">
+      <option value="csv">CSV</option>
+      <option value="pdf">PDF (printable)</option>
+    </select></div>
+    <div id="expPreview" style="font-size:11px;color:var(--g400);padding:4px 0;display:none;"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+      <button class="tb-btn" onclick="setExpPreset('week')">This Week</button>
+      <button class="tb-btn" onclick="setExpPreset('month')">This Month</button>
+      <button class="tb-btn" onclick="setExpPreset('quarter')">This Quarter</button>
+      <button class="tb-btn" onclick="setExpPreset('year')">Full Year</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeModal('exportModal')">Cancel</button>
+      <button class="btn primary" onclick="runScheduleExport()"><span class="mi mi-xs">download</span> Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- PTO REQUEST MODAL -->
+<div class="modal-bg" id="ptoModal" onclick="if(event.target===this)closeModal('ptoModal')">
+  <div class="modal">
+    <h3><span class="mi">event_busy</span> Request PTO</h3>
+    <div class="form-row"><label>Request Type</label><select id="ptoType"><option value="General">General PTO (Jan bidding)</option><option value="Holiday">Holiday PTO (May bidding)</option></select></div>
+    <div class="form-row"><label>Start Date</label><input type="date" id="ptoStart"></div>
+    <div class="form-row"><label>End Date</label><input type="date" id="ptoEnd"></div>
+    <div id="ptoHoursCalc" style="font-size:11px;color:var(--g500);padding:2px 0;"></div>
+    <div class="form-row"><label>Reason</label><input type="text" id="ptoReason" placeholder="Vacation, personal, etc."></div>
+    <div id="ptoConflicts" style="margin:8px 0;"></div>
+    <div id="ptoCoverageImpact" style="margin:8px 0;"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeModal('ptoModal')">Cancel</button>
+      <button class="btn primary" onclick="submitPTORequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CORE CONFIG
+// ═══════════════════════════════════════════
+var SP_SITE='https://uwnetid.sharepoint.com/sites/og_uw_renton_central_laboratory_-_core_lab';
+var SP_API=SP_SITE+'/_api/web/lists';
+var MSAL_CONFIG={auth:{clientId:'24c43cdb-d15a-42ff-9883-cd8c19965a54',authority:'https://login.microsoftonline.com/f6b6dd5b-f02f-441a-99a0-162ac5060bd2',redirectUri:window.location.origin+window.location.pathname},cache:{cacheLocation:'localStorage'}};
+var msalInstance=null;
+var _cachedToken=null,_tokenExpiry=0;
+
+// Staff roster (loaded from SP, seeded with defaults on first run)
+var STAFF=[];
+var DEFAULT_STAFF=[
+  {ini:'JM',name:'Jesus Martinez',role:'MLS Lead',shift:'Morning',benchEligible:false,defaultCycle:[],startDate:'2026-03-16',phone:'(305) 370-4103',active:true},
+  {ini:'RA',name:'Roy Antiquiera',role:'MLS Lead',shift:'Morning',benchEligible:false,defaultCycle:[],startDate:'2026-01-26',phone:'(425) 361-5791',active:true},
+  {ini:'CL',name:'Chris Le',role:'MLS1',shift:'Morning',benchEligible:true,defaultCycle:['C/U','H/C','F','C/U','H/C'],startDate:'2026-04-13',phone:'',active:true},
+  {ini:'JB',name:'Johnathon Bures',role:'MLS1',shift:'Morning',benchEligible:true,defaultCycle:['H/C','C/U','C/U','F','F'],startDate:'2026-04-20',phone:'',active:true}
+];
+var BENCHES=['H/C','C/U','F'];
+var SHIFTS=['Morning','Evening'];
+var ASSIGN_CODES=['H/C','C/U','F','T','TR','PTO','CO','OT'];
+var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// Holidays definition
+var MAJOR_HOLIDAYS=['Thanksgiving','Christmas Day','New Year\'s Day'];
+var MINOR_HOLIDAYS=['MLK Day','Presidents\' Day','Memorial Day','Independence Day','Labor Day','Veterans Day','Day After Thanksgiving','Christmas Eve','New Year\'s Eve'];
+function getHolidayDates(year){
+  // Returns [{name,date,type}]
+  var h=[];
+  // Fixed dates
+  h.push({name:'New Year\'s Day',date:year+'-01-01',type:'Major'});
+  h.push({name:'Christmas Eve',date:year+'-12-24',type:'Minor'});
+  h.push({name:'Christmas Day',date:year+'-12-25',type:'Major'});
+  h.push({name:'New Year\'s Eve',date:year+'-12-31',type:'Minor'});
+  h.push({name:'Independence Day',date:year+'-07-04',type:'Minor'});
+  h.push({name:'Veterans Day',date:year+'-11-11',type:'Minor'});
+  // Monday holidays
+  h.push({name:'MLK Day',date:nthWeekday(year,0,1,3),type:'Minor'});// 3rd Mon Jan
+  h.push({name:'Presidents\' Day',date:nthWeekday(year,1,1,3),type:'Minor'});// 3rd Mon Feb
+  h.push({name:'Memorial Day',date:lastWeekday(year,4,1),type:'Minor'});// Last Mon May
+  h.push({name:'Labor Day',date:nthWeekday(year,8,1,1),type:'Minor'});// 1st Mon Sep
+  // Thanksgiving (4th Thu Nov)
+  var tg=nthWeekday(year,10,4,4);
+  h.push({name:'Thanksgiving',date:tg,type:'Major'});
+  // Day after Thanksgiving
+  var tgd=new Date(tg+'T12:00:00');tgd.setDate(tgd.getDate()+1);
+  h.push({name:'Day After Thanksgiving',date:fmtDate(tgd),type:'Minor'});
+  return h.sort(function(a,b){return a.date.localeCompare(b.date);});
+}
+function nthWeekday(year,month,dow,n){
+  var d=new Date(year,month,1);
+  var count=0;
+  while(count<n){if(d.getDay()===dow)count++;if(count<n)d.setDate(d.getDate()+1);}
+  return fmtDate(d);
+}
+function lastWeekday(year,month,dow){
+  var d=new Date(year,month+1,0);// last day of month
+  while(d.getDay()!==dow)d.setDate(d.getDate()-1);
+  return fmtDate(d);
+}
+
+// PTO bidding windows
+function getBidWindow(){
+  var now=new Date(),m=now.getMonth();
+  if(m===0)return{type:'General',label:'January General PTO Bidding Window',open:true};
+  if(m===4)return{type:'Holiday',label:'May Holiday PTO Bidding Window',open:true};
+  return{type:null,label:'No bidding window currently open',open:false};
+}
+
+// State
+var schedEntries=[];
+var swapRequests=[];
+var ptoRequests=[];// {id,requestBy,requestByName,startDate,endDate,hoursRequested,requestType,reason,status,priority,conflictsWith,coverageImpact,approvedBy,approvedDate,deniedReason}
+var holidayAssignments=[];// {id,year,userIni,userName,holidayName,holidayDate,holidayType,assigned}
+var me=null;
+var curWeekStart=null;
+var curDay=null;
+var curMonth=null;
+var _firstLoadDone=false,_lastSyncISO=null;
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+async function getToken(){
+  if(_cachedToken&&Date.now()<_tokenExpiry-60000)return _cachedToken;
+  var acct=msalInstance.getActiveAccount();
+  if(!acct){var all=msalInstance.getAllAccounts();if(all.length)acct=all[0];else throw new Error('No account');}
+  msalInstance.setActiveAccount(acct);
+  try{
+    var r=await msalInstance.acquireTokenSilent({scopes:['https://uwnetid.sharepoint.com/AllSites.Write'],account:acct});
+    _cachedToken=r.accessToken;_tokenExpiry=r.expiresOn?r.expiresOn.getTime():Date.now()+3600000;
+    return _cachedToken;
+  }catch(e){
+    var r2=await msalInstance.acquireTokenPopup({scopes:['https://uwnetid.sharepoint.com/AllSites.Write']});
+    _cachedToken=r2.accessToken;_tokenExpiry=r2.expiresOn?r2.expiresOn.getTime():Date.now()+3600000;
+    return _cachedToken;
+  }
+}
+async function spFetch(url,opts){
+  var token=await getToken();
+  var headers=Object.assign({'Accept':'application/json;odata=verbose','Authorization':'Bearer '+token},opts&&opts.headers||{});
+  return fetch(url,Object.assign({},opts||{},{headers:headers}));
+}
+async function spGet(listName,filter,select,top){
+  var url=SP_API+"/getbytitle('"+listName+"')/items?$top="+(top||5000);
+  if(filter)url+='&$filter='+encodeURIComponent(filter);
+  if(select)url+='&$select='+select;
+  url+='&$orderby=Id desc';
+  var all=[];
+  while(url){
+    var r=await spFetch(url);
+    if(!r.ok){console.warn('spGet failed',r.status,listName);throw new Error('SP '+r.status);}
+    var d=await r.json();
+    var results=(d.d&&d.d.results)?d.d.results:(d.value||[]);
+    all=all.concat(results);
+    url=(d.d&&d.d.__next)?d.d.__next:null;
+  }
+  return all;
+}
+async function getDigest(){var r=await spFetch(SP_SITE+'/_api/contextinfo',{method:'POST'});var d=await r.json();return d.d.GetContextWebInformation.FormDigestValue;}
+async function getListItemType(ln){var r=await spFetch(SP_API+"/getbytitle('"+ln+"')?$select=ListItemEntityTypeFullName");var d=await r.json();return d.d.ListItemEntityTypeFullName;}
+async function spAdd(ln,data){
+  var digest=await getDigest(),meta=await getListItemType(ln);
+  data.__metadata={type:meta};
+  var r=await spFetch(SP_API+"/getbytitle('"+ln+"')/items",{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':digest},body:JSON.stringify(data)});
+  if(!r.ok){var t=await r.text();console.error('spAdd fail',r.status,t);throw new Error('spAdd '+r.status);}
+  return await r.json();
+}
+async function spUpdate(ln,id,data){
+  var digest=await getDigest(),meta=await getListItemType(ln);
+  data.__metadata={type:meta};
+  await spFetch(SP_API+"/getbytitle('"+ln+"')/items("+id+")",{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':digest,'IF-MATCH':'*','X-HTTP-Method':'MERGE'},body:JSON.stringify(data)});
+}
+async function spDelete(ln,id){
+  var digest=await getDigest();
+  await spFetch(SP_API+"/getbytitle('"+ln+"')/items("+id+")",{method:'POST',headers:{'X-RequestDigest':digest,'IF-MATCH':'*','X-HTTP-Method':'DELETE'}});
+}
+
+function signIn(){msalInstance.loginRedirect({scopes:['https://uwnetid.sharepoint.com/AllSites.Write','User.Read']});}
+async function initAuth(){
+  showLoad('Signing in...');
+  try{
+    msalInstance=new msal.PublicClientApplication(MSAL_CONFIG);
+    try{await msalInstance.handleRedirectPromise();}catch(e){}
+    var accts=msalInstance.getAllAccounts();
+    if(!accts.length){hideLoad();document.getElementById('auth-screen').style.display='flex';return;}
+    msalInstance.setActiveAccount(accts[0]);
+    var acct=accts[0];
+    var ini=getInitials(acct.name||acct.username);
+    me={initials:ini,fullName:acct.name||'',email:acct.username,isLead:false};
+    // Determine role
+    var s=STAFF.find(function(st){return st.name===me.fullName||st.ini===ini;});
+    if(s){me.initials=s.ini;me.isLead=s.role==='MLS Lead';}
+    document.getElementById('hdr-avatar').textContent=me.initials;
+    document.getElementById('hdr-avatar').title=me.fullName;
+    document.getElementById('app-header').style.display='';
+    document.getElementById('app-nav').style.display='';
+    document.getElementById('app-main').style.display='';
+    updateHeaderDate();
+    await loadAllData();
+    hideLoad();
+    initViews();
+    renderWeek();
+    // Auto-refresh every 60 seconds
+    setInterval(async function(){try{await loadAllData();renderCurrentView();}catch(e){}},60000);
+  }catch(e){
+    hideLoad();console.error('Auth:',e);
+    document.getElementById('auth-screen').style.display='flex';
+  }
+}
+function getInitials(name){if(!name)return'??';var p=name.split(' ');return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():name.slice(0,2).toUpperCase();}
+function isLead(){return me&&me.isLead;}
+function updateHeaderDate(){
+  var now=new Date();
+  document.getElementById('hdr-date').textContent=now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+', '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+setInterval(updateHeaderDate,60000);
+
+// ═══════════════════════════════════════════
+// DATA LOADING (with delta sync)
+// ═══════════════════════════════════════════
+var _fieldMaps={};
+async function discoverFields(ln){
+  if(_fieldMaps[ln])return _fieldMaps[ln];
+  try{
+    var r=await spFetch(SP_API+"/getbytitle('"+ln+"')/fields?$filter=Hidden eq false and ReadOnlyField eq false&$select=InternalName,Title,StaticName");
+    var d=await r.json();var map={};
+    (d.d.results||[]).forEach(function(f){if(f.Title!==f.InternalName)map[f.Title]=f.InternalName;});
+    _fieldMaps[ln]=map;console.log('Field map for '+ln+':',JSON.stringify(map));
+    return map;
+  }catch(e){console.error('Field discovery failed for '+ln,e);return {};}
+}
+function spVal(item,displayName,fm){
+  if(item[displayName]!==undefined)return item[displayName];
+  if(fm&&fm[displayName]&&item[fm[displayName]]!==undefined)return item[fm[displayName]];
+  return undefined;
+}
+function spSet(fm,pairs){
+  var obj={};pairs.forEach(function(p){var k=(fm&&fm[p[0]])||p[0];var v=p[1];if(v===null||v===undefined)v='';if(typeof v==='number')v=String(v);obj[k]=v;});return obj;
+}
+
+function spToSched(item,fm){
+  var g=function(n){return spVal(item,n,fm);};
+  return{id:item.Title||'',_spId:item.Id,userIni:g('UserInitials')||'',userName:g('UserName')||'',date:g('Date')||'',shift:g('Shift')||'',bench:g('Bench')||'',notes:g('Notes')||'',status:g('Status')||'Confirmed',createdBy:g('CreatedBy')||''};
+}
+function schedToSP(e){
+  var fm=_fieldMaps['ScheduleEntries']||{};
+  return spSet(fm,[['Title',e.id],['UserInitials',e.userIni],['UserName',e.userName],['Date',e.date],['Shift',e.shift],['Bench',e.bench],['Notes',e.notes],['Status',e.status||'Confirmed'],['CreatedBy',e.createdBy||'']]);
+}
+function spToSwap(item,fm){
+  var g=function(n){return spVal(item,n,fm);};
+  return{id:item.Title||'',_spId:item.Id,requestBy:g('RequestBy')||'',requestByName:g('RequestByName')||'',requestDate:g('RequestDate')||'',requestShift:g('RequestShift')||'',swapWith:g('SwapWith')||'',swapWithName:g('SwapWithName')||'',targetDate:g('TargetDate')||'',reason:g('Reason')||'',status:g('SwapStatus')||'Pending',approvedBy:g('ApprovedBy')||'',approvedDate:g('ApprovedDate')||'',notes:g('SwapNotes')||''};
+}
+function swapToSP(s){
+  var fm=_fieldMaps['SwapRequests']||{};
+  return spSet(fm,[['Title',s.id],['RequestBy',s.requestBy],['RequestByName',s.requestByName],['RequestDate',s.requestDate],['RequestShift',s.requestShift],['SwapWith',s.swapWith],['SwapWithName',s.swapWithName],['TargetDate',s.targetDate],['Reason',s.reason],['SwapStatus',s.status||'Pending'],['ApprovedBy',s.approvedBy||''],['ApprovedDate',s.approvedDate||''],['SwapNotes',s.notes||'']]);
+}
+
+// Roster SP mapping
+function spToRoster(item,fm){
+  var g=function(n){return spVal(item,n,fm);};
+  var cycleStr=g('DefaultCycle')||'';
+  var cycle=cycleStr?cycleStr.split(',').map(function(s){return s.trim();}).filter(Boolean):[];
+  return{ini:item.Title||'',_spId:item.Id,name:g('FullName')||'',role:g('Role')||'MLS1',shift:g('DefaultShift')||'Morning',benchEligible:(g('BenchEligible')||'false')==='true',defaultCycle:cycle,startDate:(g('StartDate')||'').split('T')[0],phone:g('Phone')||'',active:(g('Active')||'true')!=='false'};
+}
+function rosterToSP(s){
+  var fm=_fieldMaps['ScheduleRoster']||{};
+  return spSet(fm,[['Title',s.ini],['FullName',s.name],['Role',s.role],['DefaultShift',s.shift],['BenchEligible',s.benchEligible?'true':'false'],['DefaultCycle',s.defaultCycle.join(',')],['StartDate',s.startDate||''],['Phone',s.phone||''],['Active',s.active?'true':'false']]);
+}
+
+// PTO SP mapping
+function spToPTO(item,fm){
+  var g=function(n){return spVal(item,n,fm);};
+  return{id:item.Title||'',_spId:item.Id,requestBy:g('RequestBy')||'',requestByName:g('RequestByName')||'',startDate:(g('StartDate')||'').split('T')[0],endDate:(g('EndDate')||'').split('T')[0],hoursRequested:g('HoursRequested')||'',requestType:g('RequestType')||'General',reason:g('Reason')||'',status:g('PTOStatus')||'Pending',priority:g('Priority')||'',conflictsWith:g('ConflictsWith')||'',coverageImpact:g('CoverageImpact')||'',approvedBy:g('ApprovedBy')||'',approvedDate:(g('ApprovedDate')||'').split('T')[0],deniedReason:g('DeniedReason')||''};
+}
+function ptoToSP(p){
+  var fm=_fieldMaps['PTORequests']||{};
+  return spSet(fm,[['Title',p.id],['RequestBy',p.requestBy],['RequestByName',p.requestByName],['StartDate',p.startDate],['EndDate',p.endDate],['HoursRequested',p.hoursRequested],['RequestType',p.requestType],['Reason',p.reason],['PTOStatus',p.status],['Priority',p.priority],['ConflictsWith',p.conflictsWith],['CoverageImpact',p.coverageImpact],['ApprovedBy',p.approvedBy],['ApprovedDate',p.approvedDate],['DeniedReason',p.deniedReason]]);
+}
+
+// Holiday SP mapping
+function spToHoliday(item,fm){
+  var g=function(n){return spVal(item,n,fm);};
+  return{id:item.Title||'',_spId:item.Id,year:g('Year')||'',userIni:g('UserInitials')||'',userName:g('UserName')||'',holidayName:g('HolidayName')||'',holidayDate:(g('HolidayDate')||'').split('T')[0],holidayType:g('HolidayType')||'',assigned:(g('Assigned')||'false')==='true'};
+}
+function holidayToSP(h){
+  var fm=_fieldMaps['HolidayRotation']||{};
+  return spSet(fm,[['Title',h.id],['Year',h.year],['UserInitials',h.userIni],['UserName',h.userName],['HolidayName',h.holidayName],['HolidayDate',h.holidayDate],['HolidayType',h.holidayType],['Assigned',h.assigned?'true':'false']]);
+}
+
+// Seniority ranking (lower = more senior, based on start date)
+function getSeniorityRank(userIni){
+  var sorted=STAFF.filter(function(s){return s.active!==false&&s.startDate;}).sort(function(a,b){return(a.startDate||'9999').localeCompare(b.startDate||'9999');});
+  var idx=sorted.findIndex(function(s){return s.ini===userIni;});
+  return idx>=0?idx+1:999;
+}
+
+async function loadAllData(){
+  try{
+    var [fmS,fmW,fmR,fmP,fmH]=await Promise.all([
+      discoverFields('ScheduleEntries'),discoverFields('SwapRequests'),discoverFields('ScheduleRoster'),
+      discoverFields('PTORequests').catch(function(){return{};}),
+      discoverFields('HolidayRotation').catch(function(){return{};})
+    ]);
+    if(!_firstLoadDone){
+      var [spSched,spSwaps,spRoster]=await Promise.all([spGet('ScheduleEntries'),spGet('SwapRequests'),spGet('ScheduleRoster')]);
+      var spPTO=[];try{spPTO=await spGet('PTORequests');}catch(e){}
+      var spHol=[];try{spHol=await spGet('HolidayRotation');}catch(e){}
+      schedEntries=spSched.map(function(i){return spToSched(i,fmS);});
+      swapRequests=spSwaps.map(function(i){return spToSwap(i,fmW);});
+      ptoRequests=spPTO.map(function(i){return spToPTO(i,fmP);});
+      holidayAssignments=spHol.map(function(i){return spToHoliday(i,fmH);});
+      // Load roster from SP; if empty, seed with defaults
+      var rosterItems=spRoster.map(function(i){return spToRoster(i,fmR);});
+      if(rosterItems.length){
+        STAFF=rosterItems;
+      }else{
+        STAFF=DEFAULT_STAFF.slice();
+        // Seed SP with default roster
+        for(var di=0;di<DEFAULT_STAFF.length;di++){
+          try{await spAdd('ScheduleRoster',rosterToSP(DEFAULT_STAFF[di]));}catch(e){console.warn('Seed roster failed for '+DEFAULT_STAFF[di].ini,e);}
+        }
+        console.log('Seeded ScheduleRoster with '+DEFAULT_STAFF.length+' default staff');
+      }
+      _firstLoadDone=true;_lastSyncISO=new Date().toISOString();
+    }else{
+      var mf="Modified ge datetime'"+_lastSyncISO+"'";
+      var deltaPromises=[spGet('ScheduleEntries',mf),spGet('SwapRequests',mf),spGet('ScheduleRoster',mf)];
+      try{deltaPromises.push(spGet('PTORequests',mf));}catch(e){deltaPromises.push(Promise.resolve([]));}
+      try{deltaPromises.push(spGet('HolidayRotation',mf));}catch(e){deltaPromises.push(Promise.resolve([]));}
+      var [dS,dW,dR,dP,dH]=await Promise.all(deltaPromises);
+      dS.forEach(function(sp){var e=spToSched(sp,fmS);var idx=schedEntries.findIndex(function(x){return x.id===e.id;});if(idx>=0)schedEntries[idx]=e;else schedEntries.push(e);});
+      dW.forEach(function(sp){var s=spToSwap(sp,fmW);var idx=swapRequests.findIndex(function(x){return x.id===s.id;});if(idx>=0)swapRequests[idx]=s;else swapRequests.push(s);});
+      dR.forEach(function(sp){var r=spToRoster(sp,fmR);var idx=STAFF.findIndex(function(x){return x.ini===r.ini;});if(idx>=0)STAFF[idx]=r;else STAFF.push(r);});
+      (dP||[]).forEach(function(sp){var p=spToPTO(sp,fmP);var idx=ptoRequests.findIndex(function(x){return x.id===p.id;});if(idx>=0)ptoRequests[idx]=p;else ptoRequests.push(p);});
+      (dH||[]).forEach(function(sp){var h=spToHoliday(sp,fmH);var idx=holidayAssignments.findIndex(function(x){return x.id===h.id;});if(idx>=0)holidayAssignments[idx]=h;else holidayAssignments.push(h);});
+      _lastSyncISO=new Date().toISOString();
+    }
+    // Show roster and holiday auto-assign for leads
+    if(isLead()){document.getElementById('navRoster').style.display='';document.getElementById('holAutoBtn').style.display='';}
+    document.getElementById('hdr-sync').innerHTML='<span class="mi mi-xs">sync</span> Synced '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    return true;
+  }catch(e){
+    console.error('Schedule load failed:',e);
+    if(_firstLoadDone){_firstLoadDone=false;console.warn('Delta failed, full reload next cycle');}
+    else{
+      // If SP lists don't exist yet, use defaults
+      if(!STAFF.length)STAFF=DEFAULT_STAFF.slice();
+      if(isLead())document.getElementById('navRoster').style.display='';
+    }
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// BENCH ASSIGNMENT ENGINE
+// ═══════════════════════════════════════════
+
+// Get assignment for a specific user/date/shift
+function getAssignment(userIni,dateStr,shift){
+  return schedEntries.find(function(e){return e.userIni===userIni&&e.date===dateStr&&e.shift===shift;});
+}
+
+// Get all assignments for a date/shift
+function getShiftAssignments(dateStr,shift){
+  return schedEntries.filter(function(e){return e.date===dateStr&&e.shift===shift;});
+}
+
+// Count bench assignments for a user in a date range
+function countBenches(userIni,startDate,endDate){
+  var counts={'H/C':0,'C/U':0,'F':0,'T':0,'TR':0,'PTO':0,'CO':0,'OT':0};
+  schedEntries.forEach(function(e){
+    if(e.userIni===userIni&&e.date>=startDate&&e.date<=endDate&&counts.hasOwnProperty(e.bench)){
+      counts[e.bench]++;
+    }
+  });
+  return counts;
+}
+
+// Check if a date is a weekend
+function isWeekend(dateStr){var d=new Date(dateStr+'T12:00:00');var dow=d.getDay();return dow===0||dow===6;}
+
+// Count total hours for a user in a week (for OT detection)
+function getWeekHours(userIni,weekStartStr){
+  var start=new Date(weekStartStr+'T00:00:00');
+  var hours=0;
+  for(var i=0;i<7;i++){
+    var d=new Date(start);d.setDate(d.getDate()+i);
+    var ds=fmtDate(d);
+    var assigns=schedEntries.filter(function(e){return e.userIni===userIni&&e.date===ds;});
+    assigns.forEach(function(a){
+      if(a.bench==='PTO'||a.bench==='CO')return;
+      if(a.bench==='OT')hours+=8;// OT shift
+      else hours+=8;// regular shift
+    });
+    // Check if double shift (assigned to both Morning and Evening)
+    var shifts=new Set(assigns.map(function(a){return a.shift;}));
+    if(shifts.size>1)hours+=8;// double shift adds 8 more
+  }
+  return hours;
+}
+
+// Get fairness score (0-1, lower = more balanced)
+function getFairness(userIni,bench,startDate,endDate){
+  var counts=countBenches(userIni,startDate,endDate);
+  var total=counts['H/C']+counts['C/U']+counts['F'];
+  if(total===0)return 0.5;// neutral
+  return counts[bench]/total;
+}
+
+// Coverage check for a shift on a date
+function getCoverage(dateStr,shift){
+  var assigns=getShiftAssignments(dateStr,shift);
+  var covered={'H/C':false,'C/U':false,'F':false};
+  var staffOnShift=[];
+  assigns.forEach(function(a){
+    if(a.bench==='PTO'||a.bench==='CO')return;
+    if(covered.hasOwnProperty(a.bench))covered[a.bench]=true;
+    staffOnShift.push(a);
+  });
+  var missing=[];
+  // H/C and C/U are critical, F is nice-to-have
+  if(!covered['H/C'])missing.push('H/C');
+  if(!covered['C/U'])missing.push('C/U');
+  return{covered:covered,missing:missing,staffCount:staffOnShift.length,hasFloat:covered['F']};
+}
+
+// Smart recommendation engine
+function recommendAssignments(dateStr,shift){
+  if(isWeekend(dateStr))return[];
+  var eligible=STAFF.filter(function(s){return s.active!==false&&s.benchEligible&&s.shift===shift;});
+  var recommendations=[];
+  // Get the start of the current week for fairness window
+  var d=new Date(dateStr+'T12:00:00');
+  var dow=d.getDay();
+  var weekStart=new Date(d);weekStart.setDate(weekStart.getDate()-(dow===0?6:dow-1));
+  // Use a 4-week window for fairness
+  var fairStart=new Date(weekStart);fairStart.setDate(fairStart.getDate()-21);
+  var fairStartStr=fmtDate(fairStart);
+  var fairEndStr=dateStr;
+
+  eligible.forEach(function(staff){
+    var existing=getAssignment(staff.ini,dateStr,shift);
+    if(existing&&(existing.bench==='PTO'||existing.bench==='CO'))return;// skip PTO/callout
+    if(existing)return;// already assigned
+
+    // Check OT risk
+    var wkStart=fmtDate(weekStart);
+    var wkHours=getWeekHours(staff.ini,wkStart);
+    if(wkHours>=40){
+      recommendations.push({ini:staff.ini,name:staff.name,bench:'OT risk',reason:'Already at '+wkHours+'h this week',isWarning:true});
+      return;
+    }
+
+    // Find the best bench based on fairness
+    var counts=countBenches(staff.ini,fairStartStr,fairEndStr);
+    var benchScores=BENCHES.map(function(b){
+      var currentCov=getCoverage(dateStr,shift);
+      var needsIt=currentCov.missing.includes(b)||(b==='F'&&!currentCov.hasFloat);
+      var fairnessRatio=getFairness(staff.ini,b,fairStartStr,fairEndStr);
+      // Lower ratio = less assigned = more fair to assign
+      // Higher need = higher priority
+      var score=(needsIt?100:0)+(1-fairnessRatio)*50;
+      return{bench:b,score:score,ratio:fairnessRatio,needed:needsIt};
+    }).sort(function(a,b){return b.score-a.score;});
+
+    // Use default cycle as tiebreaker
+    var cycleDay=0;
+    if(staff.defaultCycle){
+      // Count working days since a reference start
+      var ref=new Date('2026-04-27T12:00:00');// First day Chris has bench assignments
+      var cur=new Date(dateStr+'T12:00:00');
+      var daysDiff=Math.round((cur-ref)/86400000);
+      var workDays=0;
+      for(var i=0;i<Math.abs(daysDiff);i++){
+        var dd=new Date(ref);dd.setDate(dd.getDate()+(daysDiff>0?i:-i));
+        if(!isWeekend(fmtDate(dd)))workDays++;
+      }
+      cycleDay=workDays%staff.defaultCycle.length;
+      var cycleBench=staff.defaultCycle[cycleDay];
+      // Boost the cycle bench score
+      benchScores.forEach(function(bs){if(bs.bench===cycleBench)bs.score+=25;});
+      benchScores.sort(function(a,b){return b.score-a.score;});
+    }
+
+    var best=benchScores[0];
+    var reason='';
+    if(best.needed)reason='Coverage needed';
+    else if(staff.defaultCycle)reason='Cycle day '+(cycleDay+1)+' of '+staff.defaultCycle.length;
+    if(best.ratio>0.45)reason+=(reason?', ':'')+'balance: '+Math.round(best.ratio*100)+'%';
+
+    recommendations.push({ini:staff.ini,name:staff.name,bench:best.bench,reason:reason,isWarning:false,score:best.score});
+  });
+
+  return recommendations.sort(function(a,b){return(a.isWarning?1:0)-(b.isWarning?1:0);});
+}
+
+// ═══════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3000);}
+function showLoad(msg){document.getElementById('load-text').textContent=msg||'Loading...';document.getElementById('loading').classList.add('show');}
+function hideLoad(){document.getElementById('loading').classList.remove('show');}
+function openModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+
+function getMonday(d){var day=d.getDay();var diff=d.getDate()-day+(day===0?-6:1);var m=new Date(d);m.setDate(diff);return m;}
+
+function initViews(){
+  var now=new Date();
+  curWeekStart=getMonday(now);
+  curDay=new Date(now);
+  curMonth={month:now.getMonth(),year:now.getFullYear()};
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('page'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+  document.getElementById('nav'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+  if(tab==='week')renderWeek();
+  else if(tab==='day')renderDay();
+  else if(tab==='month')renderMonth();
+  else if(tab==='swap')renderSwaps();
+  else if(tab==='pto')renderPTO();
+  else if(tab==='holiday')renderHolidays();
+  else if(tab==='roster')renderRoster();
+}
+
+function renderCurrentView(){
+  var active=document.querySelector('.page.active');
+  if(active){
+    if(active.id==='pageWeek')renderWeek();
+    else if(active.id==='pageDay')renderDay();
+    else if(active.id==='pageMonth')renderMonth();
+    else if(active.id==='pageSwap')renderSwaps();
+    else if(active.id==='pagePto')renderPTO();
+    else if(active.id==='pageHoliday')renderHolidays();
+    else if(active.id==='pageRoster')renderRoster();
+  }
+}
+
+function benchChip(bench,isRec){
+  if(!bench)return'<span class="bench-chip empty" title="Click to assign">+</span>';
+  var cls=bench==='H/C'?'hc':bench==='C/U'?'cu':bench==='F'?'fl':bench==='TR'?'tr':bench==='T'?'t':bench==='PTO'?'pto':bench==='CO'?'co':bench==='OT'?'ot':'';
+  var label=bench;
+  return'<span class="bench-chip '+cls+(isRec?' rec':'')+'" title="'+esc(bench)+'">'+esc(label)+'</span>';
+}
+
+// ═══ WEEKLY VIEW ═══
+function renderWeek(){
+  var ws=new Date(curWeekStart);
+  var we=new Date(ws);we.setDate(we.getDate()+6);
+  document.getElementById('weekLabel').textContent=
+    ws.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' - '+
+    we.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+  var today=fmtDate(new Date());
+  // Build dates array for the week
+  var dates=[];
+  for(var i=0;i<7;i++){var dd=new Date(ws);dd.setDate(dd.getDate()+i);dates.push({date:fmtDate(dd),dow:dd.getDay(),label:DAYS[dd.getDay()]+' '+dd.getDate(),isToday:fmtDate(dd)===today,isWeekend:dd.getDay()===0||dd.getDay()===6});}
+
+  // Stats
+  var totalAssigned=0,totalPTO=0,totalCO=0,coverageGaps=0;
+  dates.forEach(function(d){
+    if(d.isWeekend)return;
+    SHIFTS.forEach(function(sh){
+      var cov=getCoverage(d.date,sh);
+      coverageGaps+=cov.missing.length;
+    });
+    var dayAssigns=schedEntries.filter(function(e){return e.date===d.date;});
+    dayAssigns.forEach(function(a){
+      if(a.bench==='PTO')totalPTO++;
+      else if(a.bench==='CO')totalCO++;
+      else totalAssigned++;
+    });
+  });
+  document.getElementById('weekStats').innerHTML=
+    '<div class="stat-card"><div class="stat-label">Assignments</div><div class="stat-val">'+totalAssigned+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">PTO</div><div class="stat-val" style="color:var(--amber)">'+totalPTO+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Callouts</div><div class="stat-val" style="color:var(--red)">'+totalCO+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Coverage Gaps</div><div class="stat-val" style="color:'+(coverageGaps>0?'var(--red)':'var(--green)')+'">'+coverageGaps+'</div></div>';
+
+  // Build grid
+  var html='';
+  SHIFTS.forEach(function(shift){
+    var shClass=shift.toLowerCase();
+    var shIcon=shift==='Morning'?'light_mode':'dark_mode';
+    var shTime=shift==='Morning'?'0700 - 1530':'1500 - 2330';
+    html+='<div class="shift-section"><div class="shift-hdr '+shClass+'"><span class="mi">'+shIcon+'</span> '+shift+' | '+shTime+'</div>';
+    html+='<div class="shift-body"><table class="sched-table"><thead><tr><th style="text-align:left;padding-left:12px;min-width:130px">Staff</th>';
+    dates.forEach(function(d){
+      html+='<th class="'+(d.isToday?'today':'')+(d.isWeekend?' weekend':'')+'">'+d.label+'</th>';
+    });
+    html+='</tr></thead><tbody>';
+
+    // Filter staff for this shift
+    var shiftStaff=STAFF.filter(function(s){return s.active!==false&&s.shift===shift;});
+    shiftStaff.forEach(function(staff){
+      html+='<tr>';
+      html+='<td class="name-cell"><div style="font-weight:700;font-size:12px;">'+esc(staff.name.split(' ')[0])+'</div><div style="font-size:9px;color:var(--g400);">'+esc(staff.role)+'</div></td>';
+      dates.forEach(function(d){
+        var tdClass=(d.isToday?'today-col':'')+(d.isWeekend?' weekend':'');
+        if(d.isWeekend){
+          html+='<td class="'+tdClass+'"><span class="bench-chip off">OFF</span></td>';
+          return;
+        }
+        var assign=getAssignment(staff.ini,d.date,shift);
+        var chip=assign?benchChip(assign.bench,false):benchChip(null,false);
+        html+='<td class="'+tdClass+'" onclick="openAssignModal(\''+staff.ini+'\',\''+d.date+'\',\''+shift+'\')" style="cursor:pointer">'+chip+'</td>';
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+
+    // Coverage bar for weekdays
+    html+='<div class="coverage-bar">';
+    dates.forEach(function(d){
+      if(d.isWeekend)return;
+      var cov=getCoverage(d.date,shift);
+      var cls=cov.missing.length===0?'cov-ok':cov.missing.length===1?'cov-warn':'cov-miss';
+      var label=cov.missing.length===0?'OK':cov.missing.join(', ');
+      html+='<span class="cov-item '+cls+'" title="'+d.label+': '+(cov.missing.length?'Missing '+label:'All covered')+'"><span class="mi mi-xs">'+(cov.missing.length===0?'check_circle':'warning')+'</span> '+d.label.split(' ')[1]+'</span>';
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('weekGrid').innerHTML=html;
+}
+
+function navWeek(dir){
+  if(dir===0){curWeekStart=getMonday(new Date());}
+  else{curWeekStart.setDate(curWeekStart.getDate()+(dir*7));}
+  renderWeek();
+}
+
+// ═══ DAILY VIEW ═══
+function renderDay(){
+  var ds=fmtDate(curDay);
+  document.getElementById('dayLabel').textContent=curDay.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+  var isWE=curDay.getDay()===0||curDay.getDay()===6;
+  if(isWE){
+    document.getElementById('dayStats').innerHTML='';
+    document.getElementById('dayCards').innerHTML='<div class="empty"><span class="mi">weekend</span><h3>Weekend</h3><p>No shifts scheduled</p></div>';
+    return;
+  }
+
+  var html='';
+  SHIFTS.forEach(function(shift){
+    var shClass=shift==='Morning'?'morning':'evening';
+    var shIcon=shift==='Morning'?'light_mode':'dark_mode';
+    var shTime=shift==='Morning'?'0700 - 1530':'1500 - 2330';
+    var cov=getCoverage(ds,shift);
+    var covHtml=cov.missing.length?'<span style="color:var(--red);font-size:10px;font-weight:700;">Missing: '+cov.missing.join(', ')+'</span>':'<span style="color:var(--green);font-size:10px;font-weight:700;">All benches covered</span>';
+
+    html+='<div class="daily-card"><div class="daily-card-hdr '+shClass+'" style="background:var(--'+(shift==='Morning'?'green':'blue')+'-bg);color:var(--'+(shift==='Morning'?'green':'blue')+');"><span class="mi">'+shIcon+'</span> '+shift+' | '+shTime+'</div>';
+    html+='<div class="daily-card-body">';
+
+    var shiftStaff=STAFF.filter(function(s){return s.active!==false&&s.shift===shift;});
+    if(!shiftStaff.length){html+='<div class="empty"><p>No staff assigned to this shift</p></div>';}
+    else{
+      shiftStaff.forEach(function(staff){
+        var assign=getAssignment(staff.ini,ds,shift);
+        var chip=assign?benchChip(assign.bench):benchChip(null);
+        var notes=assign&&assign.notes?'<div style="font-size:10px;color:var(--g400);margin-top:2px;">'+esc(assign.notes)+'</div>':'';
+        html+='<div class="daily-row" onclick="openAssignModal(\''+staff.ini+'\',\''+ds+'\',\''+shift+'\')" style="cursor:pointer"><div><div class="daily-name">'+esc(staff.name)+'</div><div class="daily-role">'+esc(staff.role)+notes+'</div></div>'+chip+'</div>';
+      });
+    }
+    html+='<div style="padding:8px 0;border-top:1px solid var(--g100);margin-top:4px;">'+covHtml+'</div>';
+    html+='</div></div>';
+  });
+
+  // Recommendations
+  var recs=recommendAssignments(ds,'Morning');
+  if(recs.length){
+    html+='<div class="daily-card"><div class="daily-card-hdr" style="background:var(--teal-bg);color:var(--teal);"><span class="mi">auto_awesome</span> Recommended Assignments</div><div class="daily-card-body">';
+    recs.forEach(function(r){
+      if(r.isWarning){
+        html+='<div class="daily-row"><div><div class="daily-name" style="color:var(--amber);">'+esc(r.name)+'</div><div class="daily-role" style="color:var(--red);">'+esc(r.reason)+'</div></div><span class="mi" style="color:var(--amber)">warning</span></div>';
+      }else{
+        html+='<div class="daily-row"><div><div class="daily-name">'+esc(r.name)+'</div><div class="daily-role">'+esc(r.reason)+'</div></div>'+benchChip(r.bench,true)+'</div>';
+      }
+    });
+    html+='</div></div>';
+  }
+
+  document.getElementById('dayStats').innerHTML='';
+  document.getElementById('dayCards').innerHTML=html;
+}
+
+function navDay(dir){
+  if(dir===0){curDay=new Date();}
+  else{curDay.setDate(curDay.getDate()+dir);}
+  renderDay();
+}
+
+// ═══ MONTHLY VIEW (lazy-loaded) ═══
+var _monthDataLoaded=false;
+function renderMonth(){
+  var m=curMonth.month,y=curMonth.year;
+  document.getElementById('monthLabel').textContent=MONTHS[m]+' '+y;
+  var shiftFilter=document.getElementById('monthShiftFilter').value;
+
+  var firstDay=new Date(y,m,1);
+  var lastDay=new Date(y,m+1,0);
+  var startDow=firstDay.getDay();
+  var gridStart=new Date(firstDay);gridStart.setDate(gridStart.getDate()-(startDow===0?6:startDow-1));// Monday
+
+  var today=fmtDate(new Date());
+  var html='';
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function(d){html+='<div class="month-hdr">'+d+'</div>';});
+
+  var cur=new Date(gridStart);
+  for(var w=0;w<6;w++){
+    for(var d=0;d<7;d++){
+      var ds=fmtDate(cur);
+      var isOther=cur.getMonth()!==m;
+      var isWE=cur.getDay()===0||cur.getDay()===6;
+      var isTod=ds===today;
+      var cls='month-cell'+(isOther?' other-month':'')+(isWE?' weekend':'')+(isTod?' today':'');
+
+      html+='<div class="'+cls+'" onclick="jumpToDay(\''+ds+'\')" style="cursor:pointer"><div class="month-day">'+cur.getDate()+'</div>';
+
+      if(!isWE&&!isOther){
+        var shifts=shiftFilter?[shiftFilter]:SHIFTS;
+        html+='<div class="month-chips">';
+        shifts.forEach(function(sh){
+          var assigns=getShiftAssignments(ds,sh);
+          assigns.forEach(function(a){
+            var mcls=a.bench==='H/C'?'hc':a.bench==='C/U'?'cu':a.bench==='F'?'fl':a.bench==='PTO'?'pto':a.bench==='CO'?'co':'tr';
+            html+='<span class="month-mini bench-chip '+mcls+'" title="'+esc(a.userName)+': '+esc(a.bench)+'">'+esc(a.userIni)+'</span>';
+          });
+        });
+        html+='</div>';
+        // Coverage indicator
+        shifts.forEach(function(sh){
+          var cov=getCoverage(ds,sh);
+          if(cov.missing.length>0){
+            html+='<span class="month-cov" style="background:var(--red-bg);color:var(--red);">'+cov.missing.length+' gap</span>';
+          }
+        });
+      }
+      html+='</div>';
+      cur.setDate(cur.getDate()+1);
+    }
+    if(cur.getMonth()!==m&&cur.getDay()===1)break;// stop if we've passed the month
+  }
+  document.getElementById('monthGrid').innerHTML=html;
+}
+
+function navMonth(dir){
+  curMonth.month+=dir;
+  if(curMonth.month<0){curMonth.month=11;curMonth.year--;}
+  if(curMonth.month>11){curMonth.month=0;curMonth.year++;}
+  renderMonth();
+}
+
+function jumpToDay(ds){
+  curDay=new Date(ds+'T12:00:00');
+  switchTab('day');
+}
+
+// ═══════════════════════════════════════════
+// SWAP REQUESTS
+// ═══════════════════════════════════════════
+function renderSwaps(){
+  var filter=document.getElementById('swapFilter').value;
+  var filtered=swapRequests.slice();
+  if(filter)filtered=filtered.filter(function(s){return s.status===filter;});
+  filtered.sort(function(a,b){return(b.requestDate||'').localeCompare(a.requestDate||'');});
+
+  if(!filtered.length){
+    document.getElementById('swapList').innerHTML='<div class="empty"><span class="mi">swap_horiz</span><h3>No Swap Requests</h3><p>'+(filter?'No '+filter.toLowerCase()+' requests':'No swap requests yet')+'</p></div>';
+    return;
+  }
+
+  var html='';
+  filtered.forEach(function(s){
+    var sc=s.status.toLowerCase();
+    html+='<div class="swap-card '+sc+'">';
+    html+='<div class="swap-hdr"><div class="swap-title">'+esc(s.requestByName)+' &harr; '+esc(s.swapWithName)+'</div><span class="swap-badge '+sc+'">'+esc(s.status)+'</span></div>';
+    html+='<div class="swap-detail">';
+    html+='<strong>'+esc(s.requestByName)+':</strong> '+esc(s.requestDate)+' ('+esc(s.requestShift)+')<br>';
+    html+='<strong>'+esc(s.swapWithName)+':</strong> '+esc(s.targetDate)+'<br>';
+    if(s.reason)html+='<strong>Reason:</strong> '+esc(s.reason)+'<br>';
+    if(s.approvedBy)html+='<strong>'+(s.status==='Approved'?'Approved':'Denied')+' by:</strong> '+esc(s.approvedBy)+' on '+esc(s.approvedDate)+'<br>';
+    if(s.notes)html+='<strong>Notes:</strong> '+esc(s.notes);
+    html+='</div>';
+
+    if(s.status==='Pending'&&isLead()){
+      html+='<div class="swap-actions">';
+      html+='<button class="btn primary" onclick="approveSwap(\''+s.id+'\')"><span class="mi mi-xs">check</span> Approve</button>';
+      html+='<button class="btn danger" onclick="denySwap(\''+s.id+'\')"><span class="mi mi-xs">close</span> Deny</button>';
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  document.getElementById('swapList').innerHTML=html;
+}
+
+function openSwapModal(){
+  var sel=document.getElementById('swWith');
+  sel.innerHTML=STAFF.filter(function(s){return s.active!==false&&s.ini!==me.initials;}).map(function(s){return'<option value="'+s.ini+'">'+esc(s.name)+'</option>';}).join('');
+  document.getElementById('swDate').value=fmtDate(new Date());
+  document.getElementById('swTargetDate').value='';
+  document.getElementById('swReason').value='';
+  openModal('swapModal');
+}
+
+async function submitSwapRequest(){
+  var swapWith=document.getElementById('swWith').value;
+  var swapWithStaff=STAFF.find(function(s){return s.ini===swapWith;});
+  var s={
+    id:gid(),requestBy:me.initials,requestByName:me.fullName,
+    requestDate:document.getElementById('swDate').value,
+    requestShift:document.getElementById('swShift').value,
+    swapWith:swapWith,swapWithName:swapWithStaff?swapWithStaff.name:'',
+    targetDate:document.getElementById('swTargetDate').value,
+    reason:document.getElementById('swReason').value,
+    status:'Pending',approvedBy:'',approvedDate:'',notes:''
+  };
+  swapRequests.unshift(s);
+  closeModal('swapModal');
+  renderSwaps();
+  toast('Swap request submitted');
+  try{await spAdd('SwapRequests',swapToSP(s));}catch(e){console.error('Swap save failed:',e);toast('Failed to save');}
+}
+
+async function approveSwap(id){
+  var s=swapRequests.find(function(x){return x.id===id;});
+  if(!s||!confirm('Approve this swap request?'))return;
+  s.status='Approved';s.approvedBy=me.fullName;s.approvedDate=fmtDate(new Date());
+
+  // Execute the swap: swap bench assignments between the two staff
+  var a1=getAssignment(s.requestBy,s.requestDate,s.requestShift);
+  var a2=getAssignment(s.swapWith,s.targetDate,s.requestShift);
+  if(a1&&a2){
+    var tempBench=a1.bench;a1.bench=a2.bench;a2.bench=tempBench;
+    var tempNotes=a1.notes;a1.notes=a2.notes;a2.notes=tempNotes;
+    try{
+      var existing1=await spGet('ScheduleEntries',"Title eq '"+a1.id+"'");
+      if(existing1.length)await spUpdate('ScheduleEntries',existing1[0].Id,schedToSP(a1));
+      var existing2=await spGet('ScheduleEntries',"Title eq '"+a2.id+"'");
+      if(existing2.length)await spUpdate('ScheduleEntries',existing2[0].Id,schedToSP(a2));
+    }catch(e){console.error('Swap execute failed:',e);}
+  }
+
+  renderSwaps();renderCurrentView();toast('Swap approved and executed');
+  try{
+    var existing=await spGet('SwapRequests',"Title eq '"+s.id+"'");
+    if(existing.length)await spUpdate('SwapRequests',existing[0].Id,swapToSP(s));
+  }catch(e){console.error('Swap status update failed:',e);}
+}
+
+async function denySwap(id){
+  var s=swapRequests.find(function(x){return x.id===id;});
+  if(!s)return;
+  var reason=prompt('Reason for denial (optional):');
+  s.status='Denied';s.approvedBy=me.fullName;s.approvedDate=fmtDate(new Date());
+  if(reason)s.notes=reason;
+  renderSwaps();toast('Swap denied');
+  try{
+    var existing=await spGet('SwapRequests',"Title eq '"+s.id+"'");
+    if(existing.length)await spUpdate('SwapRequests',existing[0].Id,swapToSP(s));
+  }catch(e){console.error('Swap status update failed:',e);}
+}
+
+// ═══════════════════════════════════════════
+// ASSIGNMENT EDITING
+// ═══════════════════════════════════════════
+var _editCtx=null;
+function openAssignModal(userIni,dateStr,shift){
+  if(!isLead()&&userIni!==me.initials){toast('Only leads can edit other staff assignments');return;}
+  _editCtx={userIni:userIni,date:dateStr,shift:shift};
+  var sel=document.getElementById('aStaff');
+  sel.innerHTML=STAFF.filter(function(s){return s.active!==false;}).map(function(s){return'<option value="'+s.ini+'"'+(s.ini===userIni?' selected':'')+'>'+esc(s.name)+'</option>';}).join('');
+  if(!isLead())sel.disabled=true;else sel.disabled=false;
+  document.getElementById('aDate').value=dateStr;
+  document.getElementById('aShift').value=shift;
+  var existing=getAssignment(userIni,dateStr,shift);
+  document.getElementById('aBench').value=existing?existing.bench:'';
+  document.getElementById('aNotes').value=existing?existing.notes:'';
+  openModal('assignModal');
+}
+
+async function saveAssignment(){
+  var userIni=document.getElementById('aStaff').value;
+  var dateStr=document.getElementById('aDate').value;
+  var shift=document.getElementById('aShift').value;
+  var bench=document.getElementById('aBench').value;
+  var notes=document.getElementById('aNotes').value;
+  var staff=STAFF.find(function(s){return s.ini===userIni;});
+
+  // Check if this would create a double shift (OT warning)
+  var otherShift=shift==='Morning'?'Evening':'Morning';
+  var otherAssign=getAssignment(userIni,dateStr,otherShift);
+  if(otherAssign&&otherAssign.bench&&otherAssign.bench!=='PTO'&&otherAssign.bench!=='CO'){
+    if(!confirm(staff.name+' already has a '+otherShift+' shift on this date. This creates a double shift (OT). Continue?'))return;
+  }
+
+  var existing=getAssignment(userIni,dateStr,shift);
+  if(existing){
+    existing.bench=bench;existing.notes=notes;existing.status=bench?'Confirmed':'';
+    closeModal('assignModal');renderCurrentView();toast('Updated');
+    try{
+      var sp=await spGet('ScheduleEntries',"Title eq '"+existing.id+"'");
+      if(sp.length)await spUpdate('ScheduleEntries',sp[0].Id,schedToSP(existing));
+    }catch(e){console.error('Update failed:',e);}
+  }else if(bench){
+    var entry={id:gid(),userIni:userIni,userName:staff?staff.name:'',date:dateStr,shift:shift,bench:bench,notes:notes,status:'Confirmed',createdBy:me.initials};
+    schedEntries.push(entry);
+    closeModal('assignModal');renderCurrentView();toast('Assigned');
+    try{await spAdd('ScheduleEntries',schedToSP(entry));}catch(e){console.error('Add failed:',e);}
+  }else{
+    closeModal('assignModal');
+  }
+}
+
+// ═══ RECOMMENDATION PANEL ═══
+function openRecPanel(){
+  var ws=new Date(curWeekStart);
+  var html='<div class="rec-panel"><h3><span class="mi">auto_awesome</span> Weekly Recommendations</h3>';
+  var anyRec=false;
+  for(var i=0;i<7;i++){
+    var dd=new Date(ws);dd.setDate(dd.getDate()+i);
+    var ds=fmtDate(dd);
+    if(isWeekend(ds))continue;
+    var dayLabel=dd.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    SHIFTS.forEach(function(shift){
+      var recs=recommendAssignments(ds,shift);
+      var unassigned=recs.filter(function(r){return!r.isWarning;});
+      if(!unassigned.length)return;
+      anyRec=true;
+      html+='<div style="font-size:11px;font-weight:800;color:var(--g500);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.04em;">'+dayLabel+' - '+shift+'</div>';
+      unassigned.forEach(function(r){
+        html+='<div class="rec-row"><span class="rec-name">'+esc(r.name)+'</span><span class="rec-assign">'+benchChip(r.bench,true)+'</span><span class="rec-reason">'+esc(r.reason)+'</span><button class="rec-accept" onclick="applyRec(\''+r.ini+'\',\''+ds+'\',\''+shift+'\',\''+r.bench+'\')">Apply</button></div>';
+      });
+      // Show warnings
+      recs.filter(function(r){return r.isWarning;}).forEach(function(r){
+        html+='<div class="rec-row" style="background:var(--amber-bg);border-radius:6px;padding:4px 8px;"><span class="rec-name" style="color:var(--amber);">'+esc(r.name)+'</span><span class="rec-reason" style="color:var(--red);">'+esc(r.reason)+'</span></div>';
+      });
+    });
+  }
+  if(!anyRec)html+='<div class="empty"><span class="mi">check_circle</span><h3>All Set</h3><p>All positions are filled for this week</p></div>';
+  html+='</div>';
+  document.getElementById('recPanelWrap').innerHTML=html;
+}
+
+async function applyRec(userIni,dateStr,shift,bench){
+  var staff=STAFF.find(function(s){return s.ini===userIni;});
+  var existing=getAssignment(userIni,dateStr,shift);
+  if(existing){
+    existing.bench=bench;existing.status='Confirmed';
+    try{var sp=await spGet('ScheduleEntries',"Title eq '"+existing.id+"'");if(sp.length)await spUpdate('ScheduleEntries',sp[0].Id,schedToSP(existing));}catch(e){}
+  }else{
+    var entry={id:gid(),userIni:userIni,userName:staff?staff.name:'',date:dateStr,shift:shift,bench:bench,notes:'Auto-recommended',status:'Confirmed',createdBy:'SYS'};
+    schedEntries.push(entry);
+    try{await spAdd('ScheduleEntries',schedToSP(entry));}catch(e){}
+  }
+  toast(staff.name+' assigned to '+bench);
+  openRecPanel();// refresh
+  renderWeek();
+}
+
+// ═══════════════════════════════════════════
+// STAFF ROSTER MANAGEMENT (Leads only)
+// ═══════════════════════════════════════════
+var _editRosterIni=null; // null=add, string=edit
+
+function renderRoster(){
+  if(!isLead())return;
+  var active=STAFF.filter(function(s){return s.active!==false;});
+  var inactive=STAFF.filter(function(s){return s.active===false;});
+
+  document.getElementById('rosterStats').innerHTML=
+    '<div class="stat-card"><div class="stat-label">Active Staff</div><div class="stat-val">'+active.length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Leads</div><div class="stat-val">'+active.filter(function(s){return s.role==='MLS Lead'||s.role==='Lab Manager'||s.role==='Health Services Manager';}).length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Bench Techs</div><div class="stat-val">'+active.filter(function(s){return s.benchEligible;}).length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Inactive</div><div class="stat-val" style="color:var(--g400)">'+inactive.length+'</div></div>';
+
+  var allSorted=active.concat(inactive).sort(function(a,b){return a.name.localeCompare(b.name);});
+
+  document.getElementById('rosterBody').innerHTML=allSorted.map(function(s){
+    var statusCls=s.active!==false?'cov-ok':'cov-miss';
+    var statusLabel=s.active!==false?'Active':'Inactive';
+    var cycleHtml=s.defaultCycle&&s.defaultCycle.length?s.defaultCycle.map(function(b){return benchChip(b);}).join(' '):'<span style="font-size:10px;color:var(--g300);">N/A</span>';
+    var rowStyle=s.active===false?'opacity:.5;':'';
+    return'<tr style="'+rowStyle+'">'+
+      '<td style="text-align:left;padding-left:12px;"><span style="font-family:var(--mono);font-weight:800;font-size:13px;background:var(--teal-bg);color:var(--teal);padding:2px 8px;border-radius:4px;">'+esc(s.ini)+'</span></td>'+
+      '<td style="text-align:left;font-weight:700;font-size:12px;">'+esc(s.name)+'</td>'+
+      '<td style="text-align:left;font-size:11px;color:var(--g500);">'+esc(s.role)+'</td>'+
+      '<td style="text-align:left;font-size:11px;">'+esc(s.shift)+'</td>'+
+      '<td style="text-align:center;"><span class="mi mi-xs" style="color:'+(s.benchEligible?'var(--green)':'var(--g300)')+';">'+(s.benchEligible?'check_circle':'remove_circle_outline')+'</span></td>'+
+      '<td style="text-align:left;">'+cycleHtml+'</td>'+
+      '<td style="text-align:left;font-size:11px;color:var(--g500);">'+esc(s.startDate||'')+'</td>'+
+      '<td style="text-align:left;font-size:11px;color:var(--g500);">'+esc(s.phone||'')+'</td>'+
+      '<td style="text-align:center;"><span class="cov-item '+statusCls+'" style="font-size:9px;">'+statusLabel+'</span></td>'+
+      '<td style="text-align:center;">'+
+        '<button class="tb-btn" style="padding:3px 8px;font-size:10px;" onclick="editRoster(\''+esc(s.ini)+'\')"><span class="mi mi-xs">edit</span></button> '+
+        (s.active!==false?'<button class="tb-btn" style="padding:3px 8px;font-size:10px;color:var(--red);" onclick="deactivateRoster(\''+esc(s.ini)+'\')"><span class="mi mi-xs">person_off</span></button>':'<button class="tb-btn" style="padding:3px 8px;font-size:10px;color:var(--green);" onclick="reactivateRoster(\''+esc(s.ini)+'\')"><span class="mi mi-xs">person</span></button>')+
+      '</td></tr>';
+  }).join('');
+}
+
+function openRosterModal(editIni){
+  _editRosterIni=editIni||null;
+  if(_editRosterIni){
+    var s=STAFF.find(function(x){return x.ini===_editRosterIni;});
+    if(!s)return;
+    document.getElementById('rosterModalIcon').textContent='edit';
+    document.getElementById('rosterModalTitle').textContent='Edit Staff Member';
+    document.getElementById('rosterSaveBtn').textContent='Save Changes';
+    document.getElementById('rIni').value=s.ini;
+    document.getElementById('rIni').disabled=true;
+    document.getElementById('rName').value=s.name;
+    document.getElementById('rRole').value=s.role;
+    document.getElementById('rShift').value=s.shift;
+    document.getElementById('rBenchElig').value=s.benchEligible?'true':'false';
+    document.getElementById('rCycle').value=s.defaultCycle?s.defaultCycle.join(','):'';
+    document.getElementById('rStartDate').value=s.startDate||'';
+    document.getElementById('rPhone').value=s.phone||'';
+  }else{
+    document.getElementById('rosterModalIcon').textContent='person_add';
+    document.getElementById('rosterModalTitle').textContent='Add Staff Member';
+    document.getElementById('rosterSaveBtn').textContent='Add Staff';
+    document.getElementById('rIni').value='';
+    document.getElementById('rIni').disabled=false;
+    document.getElementById('rName').value='';
+    document.getElementById('rRole').value='MLS1';
+    document.getElementById('rShift').value='Morning';
+    document.getElementById('rBenchElig').value='true';
+    document.getElementById('rCycle').value='';
+    document.getElementById('rStartDate').value='';
+    document.getElementById('rPhone').value='';
+  }
+  openModal('rosterModal');
+}
+function editRoster(ini){openRosterModal(ini);}
+
+async function saveRosterEntry(){
+  var ini=document.getElementById('rIni').value.toUpperCase().trim();
+  var name=document.getElementById('rName').value.trim();
+  if(!ini||!name){toast('Initials and name are required');return;}
+  if(ini.length<2){toast('Initials must be at least 2 characters');return;}
+
+  var cycleStr=document.getElementById('rCycle').value.trim();
+  var cycle=cycleStr?cycleStr.split(',').map(function(s){return s.trim();}).filter(Boolean):[];
+  var entry={
+    ini:ini,name:name,role:document.getElementById('rRole').value,
+    shift:document.getElementById('rShift').value,
+    benchEligible:document.getElementById('rBenchElig').value==='true',
+    defaultCycle:cycle,startDate:document.getElementById('rStartDate').value,
+    phone:document.getElementById('rPhone').value.trim(),active:true
+  };
+
+  var existing=STAFF.findIndex(function(s){return s.ini===ini;});
+  if(_editRosterIni){
+    // Edit existing
+    if(existing>=0)Object.assign(STAFF[existing],entry);
+    closeModal('rosterModal');renderRoster();renderCurrentView();toast('Updated '+name);
+    try{
+      var sp=await spGet('ScheduleRoster',"Title eq '"+ini+"'");
+      if(sp.length)await spUpdate('ScheduleRoster',sp[0].Id,rosterToSP(entry));
+      else await spAdd('ScheduleRoster',rosterToSP(entry));
+    }catch(e){console.error('Roster save failed:',e);toast('SP save failed');}
+  }else{
+    // Add new
+    if(existing>=0){toast('Initials '+ini+' already exist');return;}
+    STAFF.push(entry);
+    closeModal('rosterModal');renderRoster();toast('Added '+name);
+    try{await spAdd('ScheduleRoster',rosterToSP(entry));}catch(e){console.error('Roster add failed:',e);toast('SP save failed');}
+  }
+}
+
+async function deactivateRoster(ini){
+  var s=STAFF.find(function(x){return x.ini===ini;});
+  if(!s||!confirm('Deactivate '+s.name+'? Their schedule entries will remain but they will not appear in active views.'))return;
+  s.active=false;
+  renderRoster();renderCurrentView();toast(s.name+' deactivated');
+  try{
+    var sp=await spGet('ScheduleRoster',"Title eq '"+ini+"'");
+    if(sp.length)await spUpdate('ScheduleRoster',sp[0].Id,rosterToSP(s));
+  }catch(e){console.error('Deactivate failed:',e);}
+}
+
+async function reactivateRoster(ini){
+  var s=STAFF.find(function(x){return x.ini===ini;});
+  if(!s)return;
+  s.active=true;
+  renderRoster();renderCurrentView();toast(s.name+' reactivated');
+  try{
+    var sp=await spGet('ScheduleRoster',"Title eq '"+ini+"'");
+    if(sp.length)await spUpdate('ScheduleRoster',sp[0].Id,rosterToSP(s));
+  }catch(e){console.error('Reactivate failed:',e);}
+}
+
+// ═══════════════════════════════════════════
+// SCHEDULE EXPORT
+// ═══════════════════════════════════════════
+function openExportModal(){
+  var now=new Date();
+  // Default to current week
+  var ws=getMonday(now);
+  var we=new Date(ws);we.setDate(we.getDate()+6);
+  document.getElementById('expFrom').value=fmtDate(ws);
+  document.getElementById('expTo').value=fmtDate(we);
+  document.getElementById('expScope').value='all';
+  document.getElementById('expShift').value='';
+  document.getElementById('expFmt').value='csv';
+  updateExpPreview();
+  openModal('exportModal');
+}
+
+function setExpPreset(p){
+  var now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  if(p==='week'){var ws=getMonday(now);var we=new Date(ws);we.setDate(we.getDate()+6);document.getElementById('expFrom').value=fmtDate(ws);document.getElementById('expTo').value=fmtDate(we);}
+  else if(p==='month'){document.getElementById('expFrom').value=y+'-'+String(m+1).padStart(2,'0')+'-01';document.getElementById('expTo').value=y+'-'+String(m+1).padStart(2,'0')+'-'+new Date(y,m+1,0).getDate();}
+  else if(p==='quarter'){var qm=Math.floor(m/3)*3;document.getElementById('expFrom').value=y+'-'+String(qm+1).padStart(2,'0')+'-01';var qEnd=qm+2;document.getElementById('expTo').value=y+'-'+String(qEnd+1).padStart(2,'0')+'-'+new Date(y,qEnd+1,0).getDate();}
+  else if(p==='year'){document.getElementById('expFrom').value=y+'-01-01';document.getElementById('expTo').value=y+'-12-31';}
+  updateExpPreview();
+}
+
+function updateExpPreview(){
+  var from=document.getElementById('expFrom').value,to=document.getElementById('expTo').value;
+  var scope=document.getElementById('expScope').value;
+  var shiftF=document.getElementById('expShift').value;
+  var data=getExportData(from,to,scope,shiftF);
+  var el=document.getElementById('expPreview');
+  el.style.display='block';
+  el.textContent=data.length+' assignment entries in selected range';
+}
+
+function getExportData(from,to,scope,shiftF){
+  return schedEntries.filter(function(e){
+    if(e.date<from||e.date>to)return false;
+    if(shiftF&&e.shift!==shiftF)return false;
+    if(scope==='mine'&&me&&e.userIni!==me.initials)return false;
+    if(scope==='shift'&&me){
+      var myStaff=STAFF.find(function(s){return s.ini===me.initials;});
+      if(myStaff&&e.shift!==myStaff.shift)return false;
+    }
+    return true;
+  }).sort(function(a,b){return(a.date+a.shift+a.userName).localeCompare(b.date+b.shift+b.userName);});
+}
+
+function runScheduleExport(){
+  var from=document.getElementById('expFrom').value,to=document.getElementById('expTo').value;
+  var scope=document.getElementById('expScope').value;
+  var shiftF=document.getElementById('expShift').value;
+  var fmt=document.getElementById('expFmt').value;
+  var data=getExportData(from,to,scope,shiftF);
+
+  var scopeLabel=scope==='mine'?'My Schedule':scope==='shift'?'My Shift':'All Staff';
+  var label=from+'_to_'+to;
+
+  if(fmt==='csv'){exportScheduleCSV(data,from,to,scopeLabel,shiftF);}
+  else{exportSchedulePDF(data,from,to,scopeLabel,shiftF);}
+  closeModal('exportModal');
+}
+
+function exportScheduleCSV(data,from,to,scopeLabel,shiftF){
+  var rows=[
+    ['Core Lab Schedule Export'],
+    ['Period',from+' to '+to],
+    ['Scope',scopeLabel],
+    ['Shift',shiftF||'All Shifts'],
+    ['Generated',new Date().toLocaleString()],
+    ['Exported By',me?me.fullName:''],
+    ['Entries',data.length],
+    [],
+    ['Date','Day','Staff','Initials','Role','Shift','Assignment','Notes','Status']
+  ];
+  data.forEach(function(e){
+    var d=new Date(e.date+'T12:00:00');
+    var dayName=DAYS[d.getDay()];
+    rows.push([e.date,dayName,e.userName,e.userIni,'',e.shift,e.bench,e.notes,e.status]);
+  });
+
+  // Summary
+  rows.push([],['SUMMARY']);
+  var byBench={'H/C':0,'C/U':0,'F':0,'T':0,'TR':0,'PTO':0,'CO':0,'OT':0};
+  data.forEach(function(e){if(byBench.hasOwnProperty(e.bench))byBench[e.bench]++;});
+  Object.keys(byBench).forEach(function(b){if(byBench[b])rows.push([b+' assignments',byBench[b]]);});
+
+  // Per-staff breakdown
+  rows.push([],['PER STAFF']);
+  var byStaff={};data.forEach(function(e){if(!byStaff[e.userName])byStaff[e.userName]={total:0,'H/C':0,'C/U':0,'F':0,PTO:0,CO:0};byStaff[e.userName].total++;if(byStaff[e.userName].hasOwnProperty(e.bench))byStaff[e.userName][e.bench]++;});
+  rows.push(['Staff','Total','H/C','C/U','Float','PTO','Callout']);
+  Object.keys(byStaff).sort().forEach(function(name){var s=byStaff[name];rows.push([name,s.total,s['H/C'],s['C/U'],s['F'],s.PTO,s.CO]);});
+
+  var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c==null?'':c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  dlFile(csv,'Schedule_'+scopeLabel.replace(/ /g,'_')+'_'+from+'_to_'+to+'.csv','text/csv');
+  toast('CSV exported');
+}
+
+function exportSchedulePDF(data,from,to,scopeLabel,shiftF){
+  // Build a printable HTML document
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Schedule Export</title>';
+  html+='<style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px;color:#333;}';
+  html+='h1{font-size:16px;color:#1a3a3a;margin-bottom:4px;}h2{font-size:12px;color:#666;margin-bottom:12px;}';
+  html+='table{width:100%;border-collapse:collapse;margin-bottom:16px;}';
+  html+='th{background:#1a3a3a;color:#fff;padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;}';
+  html+='td{padding:5px 8px;border-bottom:1px solid #e5e0d6;font-size:11px;}';
+  html+='tr:nth-child(even){background:#f7f4ef;}';
+  html+='.bench{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}';
+  html+='.hc{background:#e8f5e9;color:#1b5e20;}.cu{background:#e3f2fd;color:#0d47a1;}.fl{background:#fff3e0;color:#e65100;}';
+  html+='.pto{background:#fbe9e7;color:#bf360c;}.co{background:#ffebee;color:#b71c1c;}.tr{background:#f3e5f5;color:#4a148c;}';
+  html+='.meta{font-size:10px;color:#999;margin-bottom:8px;}';
+  html+='@media print{body{margin:10px;}}';
+  html+='</style></head><body>';
+  html+='<h1>Core Lab Schedule</h1>';
+  html+='<h2>'+scopeLabel+' | '+(shiftF||'All Shifts')+' | '+from+' to '+to+'</h2>';
+  html+='<div class="meta">Generated '+new Date().toLocaleString()+' by '+(me?me.fullName:'')+'</div>';
+
+  // Group by date
+  var byDate={};data.forEach(function(e){if(!byDate[e.date])byDate[e.date]=[];byDate[e.date].push(e);});
+  var dates=Object.keys(byDate).sort();
+
+  html+='<table><thead><tr><th>Date</th><th>Day</th><th>Staff</th><th>Shift</th><th>Assignment</th><th>Notes</th></tr></thead><tbody>';
+  dates.forEach(function(dt){
+    var d=new Date(dt+'T12:00:00');
+    var dayName=DAYS[d.getDay()];
+    var entries=byDate[dt];
+    entries.forEach(function(e,i){
+      var benchCls=e.bench==='H/C'?'hc':e.bench==='C/U'?'cu':e.bench==='F'?'fl':e.bench==='PTO'?'pto':e.bench==='CO'?'co':'tr';
+      html+='<tr><td>'+(i===0?dt:'')+'</td><td>'+(i===0?dayName:'')+'</td><td>'+esc(e.userName)+'</td><td>'+esc(e.shift)+'</td><td><span class="bench '+benchCls+'">'+esc(e.bench)+'</span></td><td>'+esc(e.notes||'')+'</td></tr>';
+    });
+  });
+  html+='</tbody></table>';
+  html+='<div class="meta">'+data.length+' total entries</div>';
+  html+='</body></html>';
+
+  // Open in new window for print/save as PDF
+  var w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){w.print();},500);
+  toast('PDF opened for printing');
+}
+
+function dlFile(content,filename,type){
+  var blob=new Blob([content],{type:type});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════
+// PTO REQUEST SYSTEM
+// ═══════════════════════════════════════════
+
+function countWorkdays(startDate,endDate){
+  var s=new Date(startDate+'T12:00:00'),e=new Date(endDate+'T12:00:00'),count=0;
+  var cur=new Date(s);
+  while(cur<=e){if(cur.getDay()!==0&&cur.getDay()!==6)count++;cur.setDate(cur.getDate()+1);}
+  return count;
+}
+
+function getPTOConflicts(startDate,endDate,excludeId){
+  return ptoRequests.filter(function(p){
+    if(p.id===excludeId)return false;
+    if(p.status==='Denied')return false;
+    return p.startDate<=endDate&&p.endDate>=startDate;
+  });
+}
+
+function getPTOCoverageImpact(userIni,startDate,endDate){
+  var gaps=[];
+  var cur=new Date(startDate+'T12:00:00');
+  var end=new Date(endDate+'T12:00:00');
+  while(cur<=end){
+    if(cur.getDay()!==0&&cur.getDay()!==6){
+      var ds=fmtDate(cur);
+      var staff=STAFF.find(function(s){return s.ini===userIni;});
+      var shift=staff?staff.shift:'Morning';
+      // Check how many bench-eligible techs remain if this person is out
+      var available=STAFF.filter(function(s){
+        if(s.ini===userIni||!s.benchEligible||s.active===false||s.shift!==shift)return false;
+        // Check if they also have PTO
+        var theirPTO=ptoRequests.find(function(p){return p.requestBy===s.ini&&p.startDate<=ds&&p.endDate>=ds&&p.status!=='Denied';});
+        return!theirPTO;
+      });
+      if(available.length<2)gaps.push({date:ds,available:available.length,shift:shift});
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+  return gaps;
+}
+
+function renderPTO(){
+  var filter=document.getElementById('ptoFilter').value;
+  var typeF=document.getElementById('ptoTypeFilter').value;
+  var filtered=ptoRequests.slice();
+  if(filter)filtered=filtered.filter(function(p){return p.status===filter;});
+  if(typeF)filtered=filtered.filter(function(p){return p.requestType===typeF;});
+  filtered.sort(function(a,b){return(b.startDate||'').localeCompare(a.startDate||'');});
+
+  // Bidding window banner
+  var bw=getBidWindow();
+  document.getElementById('ptoBidWindow').innerHTML=bw.open?
+    '<div style="background:var(--teal-bg);border:1px solid var(--teal);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:8px;"><span class="mi" style="color:var(--teal);">event_available</span><div><div style="font-size:13px;font-weight:700;color:var(--teal);">'+bw.label+'</div><div style="font-size:11px;color:var(--g500);">Submit your PTO requests now. Priority is based on seniority.</div></div></div>':
+    '<div style="background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:10px 16px;font-size:12px;color:var(--g400);display:flex;align-items:center;gap:6px;"><span class="mi mi-sm">info</span>'+bw.label+'. General PTO bidding opens in January, Holiday PTO in May.</div>';
+
+  // Stats
+  var pending=ptoRequests.filter(function(p){return p.status==='Pending';}).length;
+  var approved=ptoRequests.filter(function(p){return p.status==='Approved';}).length;
+  var myPending=ptoRequests.filter(function(p){return p.requestBy===(me?me.initials:'')&&p.status==='Pending';}).length;
+  document.getElementById('ptoStats').innerHTML=
+    '<div class="stat-card"><div class="stat-label">Pending</div><div class="stat-val" style="color:var(--amber)">'+pending+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Approved</div><div class="stat-val" style="color:var(--green)">'+approved+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">My Pending</div><div class="stat-val">'+myPending+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">My Seniority</div><div class="stat-val">#'+getSeniorityRank(me?me.initials:'')+'</div></div>';
+
+  if(!filtered.length){
+    document.getElementById('ptoList').innerHTML='<div class="empty"><span class="mi">event_busy</span><h3>No PTO Requests</h3><p>Click "New Request" to submit a PTO request</p></div>';
+    return;
+  }
+
+  var html='';
+  filtered.forEach(function(p){
+    var sc=p.status.toLowerCase();
+    var conflicts=getPTOConflicts(p.startDate,p.endDate,p.id);
+    var workdays=countWorkdays(p.startDate,p.endDate);
+    html+='<div class="swap-card '+sc+'">';
+    html+='<div class="swap-hdr"><div class="swap-title">'+esc(p.requestByName)+' <span style="font-size:11px;font-weight:400;color:var(--g400);">(Seniority #'+getSeniorityRank(p.requestBy)+')</span></div><span class="swap-badge '+sc+'">'+esc(p.status)+'</span></div>';
+    html+='<div class="swap-detail">';
+    html+='<strong>Dates:</strong> '+esc(p.startDate)+' to '+esc(p.endDate)+' ('+workdays+' workdays, '+workdays*8+'h)<br>';
+    html+='<strong>Type:</strong> '+esc(p.requestType)+' PTO<br>';
+    if(p.reason)html+='<strong>Reason:</strong> '+esc(p.reason)+'<br>';
+    if(conflicts.length){
+      html+='<div style="margin:6px 0;padding:6px 10px;background:var(--amber-bg);border-radius:6px;font-size:11px;"><strong style="color:var(--amber);">Conflicts with:</strong> ';
+      html+=conflicts.map(function(c){return esc(c.requestByName)+' ('+esc(c.startDate)+' to '+esc(c.endDate)+', '+esc(c.status)+')';}).join(', ');
+      html+='</div>';
+    }
+    if(p.coverageImpact)html+='<div style="margin:4px 0;padding:6px 10px;background:var(--red-bg);border-radius:6px;font-size:11px;color:var(--red);"><strong>Coverage impact:</strong> '+esc(p.coverageImpact)+'</div>';
+    if(p.approvedBy)html+='<strong>'+(p.status==='Approved'?'Approved':'Denied')+' by:</strong> '+esc(p.approvedBy)+' on '+esc(p.approvedDate)+'<br>';
+    if(p.deniedReason)html+='<strong>Reason:</strong> '+esc(p.deniedReason)+'<br>';
+    html+='</div>';
+
+    if(p.status==='Pending'&&isLead()){
+      html+='<div class="swap-actions">';
+      html+='<button class="btn primary" onclick="approvePTO(\''+p.id+'\')"><span class="mi mi-xs">check</span> Approve</button>';
+      html+='<button class="btn danger" onclick="denyPTO(\''+p.id+'\')"><span class="mi mi-xs">close</span> Deny</button>';
+      html+='<button class="btn" onclick="waitlistPTO(\''+p.id+'\')"><span class="mi mi-xs">schedule</span> Waitlist</button>';
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  document.getElementById('ptoList').innerHTML=html;
+}
+
+function openPTOModal(){
+  document.getElementById('ptoStart').value='';
+  document.getElementById('ptoEnd').value='';
+  document.getElementById('ptoReason').value='';
+  document.getElementById('ptoType').value=getBidWindow().type||'General';
+  document.getElementById('ptoConflicts').innerHTML='';
+  document.getElementById('ptoCoverageImpact').innerHTML='';
+  document.getElementById('ptoHoursCalc').textContent='';
+  // Live conflict/coverage check on date change
+  document.getElementById('ptoStart').onchange=document.getElementById('ptoEnd').onchange=function(){checkPTOImpact();};
+  openModal('ptoModal');
+}
+
+function checkPTOImpact(){
+  var s=document.getElementById('ptoStart').value,e=document.getElementById('ptoEnd').value;
+  if(!s||!e)return;
+  var wd=countWorkdays(s,e);
+  document.getElementById('ptoHoursCalc').textContent=wd+' workdays ('+wd*8+' hours)'+(wd>10?' - exceeds standard 80h bidding window':'');
+
+  var conflicts=getPTOConflicts(s,e,'');
+  if(conflicts.length){
+    document.getElementById('ptoConflicts').innerHTML='<div style="padding:8px 12px;background:var(--amber-bg);border-radius:var(--r);font-size:11px;"><span class="mi mi-xs" style="color:var(--amber);">warning</span> <strong>Overlap with:</strong> '+conflicts.map(function(c){return esc(c.requestByName)+' ('+esc(c.status)+')';}).join(', ')+'</div>';
+  }else{document.getElementById('ptoConflicts').innerHTML='';}
+
+  if(me){
+    var gaps=getPTOCoverageImpact(me.initials,s,e);
+    if(gaps.length){
+      document.getElementById('ptoCoverageImpact').innerHTML='<div style="padding:8px 12px;background:var(--red-bg);border-radius:var(--r);font-size:11px;color:var(--red);"><span class="mi mi-xs">error</span> <strong>Short-staffed on '+gaps.length+' day(s):</strong> '+gaps.slice(0,5).map(function(g){return g.date+' ('+g.available+' tech'+(g.available!==1?'s':'')+' remaining)';}).join(', ')+(gaps.length>5?' and '+(gaps.length-5)+' more':'')+'</div>';
+    }else{document.getElementById('ptoCoverageImpact').innerHTML='<div style="padding:8px 12px;background:var(--green-bg);border-radius:var(--r);font-size:11px;color:var(--green);"><span class="mi mi-xs">check_circle</span> No coverage gaps with this PTO</div>';}
+  }
+}
+
+async function submitPTORequest(){
+  var s=document.getElementById('ptoStart').value,e=document.getElementById('ptoEnd').value;
+  if(!s||!e){toast('Select start and end dates');return;}
+  if(s>e){toast('End date must be after start date');return;}
+  var wd=countWorkdays(s,e);
+  if(wd>10&&document.getElementById('ptoType').value==='General'){
+    if(!confirm('This request is '+wd+' workdays ('+wd*8+'h), exceeding the standard 80h bidding window. Continue?'))return;
+  }
+  var conflicts=getPTOConflicts(s,e,'');
+  var gaps=me?getPTOCoverageImpact(me.initials,s,e):[];
+  var p={
+    id:gid(),requestBy:me.initials,requestByName:me.fullName,
+    startDate:s,endDate:e,hoursRequested:String(wd*8),
+    requestType:document.getElementById('ptoType').value,
+    reason:document.getElementById('ptoReason').value,
+    status:'Pending',priority:String(getSeniorityRank(me.initials)),
+    conflictsWith:conflicts.map(function(c){return c.requestByName;}).join(', '),
+    coverageImpact:gaps.length?gaps.length+' day(s) short-staffed':'None',
+    approvedBy:'',approvedDate:'',deniedReason:''
+  };
+  ptoRequests.unshift(p);
+  closeModal('ptoModal');renderPTO();toast('PTO request submitted');
+  try{await spAdd('PTORequests',ptoToSP(p));}catch(er){console.error('PTO save failed:',er);}
+}
+
+async function approvePTO(id){
+  var p=ptoRequests.find(function(x){return x.id===id;});
+  if(!p||!confirm('Approve PTO for '+p.requestByName+'?'))return;
+  p.status='Approved';p.approvedBy=me.fullName;p.approvedDate=fmtDate(new Date());
+  // Auto-create PTO entries in the schedule
+  var cur=new Date(p.startDate+'T12:00:00');
+  var end=new Date(p.endDate+'T12:00:00');
+  var staff=STAFF.find(function(s){return s.ini===p.requestBy;});
+  while(cur<=end){
+    if(cur.getDay()!==0&&cur.getDay()!==6){
+      var ds=fmtDate(cur);
+      var shift=staff?staff.shift:'Morning';
+      var existing=getAssignment(p.requestBy,ds,shift);
+      if(!existing){
+        var entry={id:gid(),userIni:p.requestBy,userName:p.requestByName,date:ds,shift:shift,bench:'PTO',notes:'Approved PTO',status:'Confirmed',createdBy:'SYS'};
+        schedEntries.push(entry);
+        try{await spAdd('ScheduleEntries',schedToSP(entry));}catch(er){}
+      }else if(existing.bench!=='PTO'){
+        existing.bench='PTO';existing.notes='Approved PTO';
+        try{var sp=await spGet('ScheduleEntries',"Title eq '"+existing.id+"'");if(sp.length)await spUpdate('ScheduleEntries',sp[0].Id,schedToSP(existing));}catch(er){}
+      }
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+  renderPTO();renderCurrentView();toast('PTO approved, schedule updated');
+  try{var sp=await spGet('PTORequests',"Title eq '"+id+"'");if(sp.length)await spUpdate('PTORequests',sp[0].Id,ptoToSP(p));}catch(er){}
+}
+
+async function denyPTO(id){
+  var p=ptoRequests.find(function(x){return x.id===id;});if(!p)return;
+  var reason=prompt('Reason for denial:');if(reason===null)return;
+  p.status='Denied';p.approvedBy=me.fullName;p.approvedDate=fmtDate(new Date());p.deniedReason=reason;
+  // Suggest alternate dates
+  var gaps=getPTOCoverageImpact(p.requestBy,p.startDate,p.endDate);
+  if(gaps.length){
+    var altStart=new Date(p.endDate+'T12:00:00');altStart.setDate(altStart.getDate()+7);
+    var altEnd=new Date(altStart);altEnd.setDate(altEnd.getDate()+countWorkdays(p.startDate,p.endDate)-1);
+    toast('Consider suggesting '+fmtDate(altStart)+' to '+fmtDate(altEnd)+' as alternative');
+  }
+  renderPTO();toast('PTO denied');
+  try{var sp=await spGet('PTORequests',"Title eq '"+id+"'");if(sp.length)await spUpdate('PTORequests',sp[0].Id,ptoToSP(p));}catch(er){}
+}
+
+async function waitlistPTO(id){
+  var p=ptoRequests.find(function(x){return x.id===id;});if(!p)return;
+  p.status='Waitlisted';
+  renderPTO();toast('PTO waitlisted');
+  try{var sp=await spGet('PTORequests',"Title eq '"+id+"'");if(sp.length)await spUpdate('PTORequests',sp[0].Id,ptoToSP(p));}catch(er){}
+}
+
+// ═══════════════════════════════════════════
+// HOLIDAY STAFFING & ROTATION
+// ═══════════════════════════════════════════
+
+function renderHolidays(){
+  var year=parseInt(document.getElementById('holYear').value);
+  var holidays=getHolidayDates(year);
+  var activeStaff=STAFF.filter(function(s){return s.active!==false&&s.benchEligible;});
+
+  // Count assignments per staff
+  var staffCounts={};
+  activeStaff.forEach(function(s){staffCounts[s.ini]={major:0,minor:0,total:0};});
+  var yearAssignments=holidayAssignments.filter(function(h){return h.year===String(year)&&h.assigned;});
+  yearAssignments.forEach(function(h){
+    if(staffCounts[h.userIni]){
+      staffCounts[h.userIni].total++;
+      if(h.holidayType==='Major')staffCounts[h.userIni].major++;
+      else staffCounts[h.userIni].minor++;
+    }
+  });
+
+  // Summary stats
+  var totalAssigned=yearAssignments.length;
+  var totalNeeded=holidays.length;// at minimum 1 tech per holiday
+  document.getElementById('holSummary').innerHTML=
+    '<div class="stat-card"><div class="stat-label">Holidays ('+year+')</div><div class="stat-val">'+holidays.length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Major</div><div class="stat-val" style="color:var(--red);">'+holidays.filter(function(h){return h.type==='Major';}).length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Minor</div><div class="stat-val" style="color:var(--amber);">'+holidays.filter(function(h){return h.type==='Minor';}).length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Assigned</div><div class="stat-val" style="color:var(--green);">'+totalAssigned+'</div></div>';
+
+  // Holiday grid
+  var html='';
+  holidays.forEach(function(hol){
+    var assigned=yearAssignments.filter(function(a){return a.holidayName===hol.name;});
+    var typeCls=hol.type==='Major'?'border-left:4px solid var(--red);':'border-left:4px solid var(--amber);';
+    var typeBadge=hol.type==='Major'?'<span style="font-size:9px;font-weight:700;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:999px;">MAJOR</span>':'<span style="font-size:9px;font-weight:700;background:var(--amber-bg);color:var(--amber);padding:2px 6px;border-radius:999px;">MINOR</span>';
+    var d=new Date(hol.date+'T12:00:00');
+    var dayLabel=DAYS[d.getDay()]+', '+MONTHS[d.getMonth()]+' '+d.getDate();
+
+    html+='<div class="swap-card" style="'+typeCls+'">';
+    html+='<div class="swap-hdr"><div class="swap-title">'+esc(hol.name)+' '+typeBadge+'</div><span style="font-size:12px;color:var(--g500);">'+dayLabel+'</span></div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">';
+    if(assigned.length){
+      assigned.forEach(function(a){
+        html+='<span style="display:inline-flex;align-items:center;gap:4px;background:var(--teal-bg);color:var(--teal);padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;">'+esc(a.userName);
+        if(isLead())html+=' <span class="mi mi-xs" style="cursor:pointer;color:var(--red);" onclick="removeHolidayAssignment(\''+a.id+'\')" title="Remove">close</span>';
+        html+='</span>';
+      });
+    }else{
+      html+='<span style="font-size:11px;color:var(--g400);">No one assigned</span>';
+    }
+    if(isLead()){
+      html+='<select onchange="assignHoliday(this.value,\''+esc(hol.name)+'\',\''+hol.date+'\',\''+hol.type+'\',\''+year+'\')" style="padding:3px 8px;border:1px solid var(--g200);border-radius:999px;font-size:10px;font-family:var(--font);">';
+      html+='<option value="">+ Assign</option>';
+      activeStaff.forEach(function(s){
+        var alreadyAssigned=assigned.some(function(a){return a.userIni===s.ini;});
+        if(!alreadyAssigned)html+='<option value="'+s.ini+'">'+esc(s.name)+' ('+staffCounts[s.ini].total+' holidays)</option>';
+      });
+      html+='</select>';
+    }
+    html+='</div></div>';
+  });
+  document.getElementById('holGrid').innerHTML=html;
+
+  // Fairness overview
+  var fairHtml='<div class="rec-panel"><h3><span class="mi">balance</span> Holiday Fairness ('+year+')</h3>';
+  activeStaff.forEach(function(s){
+    var c=staffCounts[s.ini]||{major:0,minor:0,total:0};
+    var target=Math.ceil(holidays.length/activeStaff.length);// ideal per person
+    var pct=target>0?Math.min(c.total/target*100,100):0;
+    var cls=c.total<=target?'balanced':c.total<=target+1?'slight':'heavy';
+    fairHtml+='<div class="rec-row"><span class="rec-name">'+esc(s.name)+'</span><span style="font-size:11px;font-weight:700;min-width:80px;">'+c.major+'M + '+c.minor+'m = '+c.total+'</span><div class="fairness-bar"><div class="fairness-fill '+cls+'" style="width:'+pct+'%"></div></div><span class="rec-reason">Target: ~'+target+'</span></div>';
+  });
+  fairHtml+='</div>';
+  document.getElementById('holFairness').innerHTML=fairHtml;
+}
+
+async function assignHoliday(userIni,holName,holDate,holType,year){
+  if(!userIni)return;
+  var staff=STAFF.find(function(s){return s.ini===userIni;});
+  var h={id:gid(),year:year,userIni:userIni,userName:staff?staff.name:'',holidayName:holName,holidayDate:holDate,holidayType:holType,assigned:true};
+  holidayAssignments.push(h);
+  renderHolidays();toast(staff.name+' assigned to '+holName);
+  try{await spAdd('HolidayRotation',holidayToSP(h));}catch(er){console.error('Holiday assign failed:',er);}
+}
+
+async function removeHolidayAssignment(id){
+  var h=holidayAssignments.find(function(x){return x.id===id;});
+  if(!h||!confirm('Remove '+h.userName+' from '+h.holidayName+'?'))return;
+  holidayAssignments=holidayAssignments.filter(function(x){return x.id!==id;});
+  renderHolidays();toast('Removed');
+  try{var sp=await spGet('HolidayRotation',"Title eq '"+id+"'");if(sp.length)await spDelete('HolidayRotation',sp[0].Id);}catch(er){}
+}
+
+async function autoAssignHolidays(){
+  var year=parseInt(document.getElementById('holYear').value);
+  if(!confirm('Auto-assign holidays for '+year+'? This will distribute holidays fairly among bench-eligible staff, avoiding back-to-back same-holiday repeats from prior years.'))return;
+  var holidays=getHolidayDates(year);
+  var activeStaff=STAFF.filter(function(s){return s.active!==false&&s.benchEligible;}).sort(function(a,b){return(a.startDate||'9999').localeCompare(b.startDate||'9999');});
+  if(!activeStaff.length){toast('No bench-eligible staff');return;}
+
+  // Count existing assignments for this year
+  var counts={};activeStaff.forEach(function(s){counts[s.ini]={major:0,minor:0,total:0};});
+  holidayAssignments.filter(function(h){return h.year===String(year)&&h.assigned;}).forEach(function(h){
+    if(counts[h.userIni]){counts[h.userIni].total++;if(h.holidayType==='Major')counts[h.userIni].major++;else counts[h.userIni].minor++;}
+  });
+
+  // Build prior-year map: which staff worked which named holiday last year
+  var prevYear=String(year-1);
+  var priorMap={};// {holidayName: Set of userIni who worked it last year}
+  holidayAssignments.filter(function(h){return h.year===prevYear&&h.assigned;}).forEach(function(h){
+    if(!priorMap[h.holidayName])priorMap[h.holidayName]=new Set();
+    priorMap[h.holidayName].add(h.userIni);
+  });
+
+  var targetMajor=Math.ceil(MAJOR_HOLIDAYS.length/activeStaff.length);
+  var added=0;
+
+  // Assign major holidays first
+  var majors=holidays.filter(function(h){return h.type==='Major';});
+  majors.forEach(function(hol){
+    var already=holidayAssignments.some(function(a){return a.year===String(year)&&a.holidayName===hol.name&&a.assigned;});
+    if(already)return;
+    var workedLastYear=priorMap[hol.name]||new Set();
+    // Sort: avoid back-to-back repeat, then fewest major, then seniority
+    var best=activeStaff.slice().sort(function(a,b){
+      var aRepeat=workedLastYear.has(a.ini)?1:0;
+      var bRepeat=workedLastYear.has(b.ini)?1:0;
+      if(aRepeat!==bRepeat)return aRepeat-bRepeat;// prefer non-repeats
+      var diff=counts[a.ini].major-counts[b.ini].major;
+      if(diff!==0)return diff;
+      return(a.startDate||'9999').localeCompare(b.startDate||'9999');
+    })[0];
+    if(best&&counts[best.ini].major<targetMajor){
+      var h={id:gid(),year:String(year),userIni:best.ini,userName:best.name,holidayName:hol.name,holidayDate:hol.date,holidayType:'Major',assigned:true};
+      holidayAssignments.push(h);
+      counts[best.ini].major++;counts[best.ini].total++;
+      added++;
+      spAdd('HolidayRotation',holidayToSP(h)).catch(function(er){});
+    }
+  });
+
+  // Then minor holidays
+  var minors=holidays.filter(function(h){return h.type==='Minor';});
+  minors.forEach(function(hol){
+    var already=holidayAssignments.some(function(a){return a.year===String(year)&&a.holidayName===hol.name&&a.assigned;});
+    if(already)return;
+    var workedLastYear=priorMap[hol.name]||new Set();
+    var best=activeStaff.slice().sort(function(a,b){
+      var aRepeat=workedLastYear.has(a.ini)?1:0;
+      var bRepeat=workedLastYear.has(b.ini)?1:0;
+      if(aRepeat!==bRepeat)return aRepeat-bRepeat;
+      var diff=counts[a.ini].total-counts[b.ini].total;
+      if(diff!==0)return diff;
+      return(a.startDate||'9999').localeCompare(b.startDate||'9999');
+    })[0];
+    if(best){
+      var h={id:gid(),year:String(year),userIni:best.ini,userName:best.name,holidayName:hol.name,holidayDate:hol.date,holidayType:'Minor',assigned:true};
+      holidayAssignments.push(h);
+      counts[best.ini].minor++;counts[best.ini].total++;
+      added++;
+      spAdd('HolidayRotation',holidayToSP(h)).catch(function(er){});
+    }
+  });
+
+  renderHolidays();toast('Auto-assigned '+added+' holidays for '+year);
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+window.addEventListener('load',function(){
+  if(typeof msal==='undefined'){setTimeout(function(){initAuth();},200);return;}
+  initAuth();
+});
+</script>
+</body>
+</html>

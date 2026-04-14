@@ -286,7 +286,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 
 /* ACTION TABS */
 .action-tabs{display:flex;gap:0;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--md-outline-variant);background:var(--md-surface-container-low)}
-.action-tab{flex:1;padding:12px 8px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--md-on-surface-variant);border:none;transition:all .2s;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--font)}
+.action-tab{flex:1;padding:12px 8px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--md-on-surface-variant);border:none;transition:color var(--dur-short) var(--me-standard),background var(--dur-short) var(--me-standard);-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--font)}
 .action-tab:not(:last-child){border-right:1px solid var(--md-outline-variant)}
 .action-tab.active-receive{background:var(--receive-surface);color:var(--receive)}
 .action-tab.active-remove{background:var(--remove-surface);color:var(--remove)}
