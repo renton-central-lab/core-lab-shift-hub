@@ -1497,6 +1497,8 @@ function jumpToDay(ds){
 function renderSwaps(){
   var filter=document.getElementById('swapFilter').value;
   var filtered=swapRequests.slice();
+  // Non-leads only see swaps they're involved in
+  if(!isLead()&&me){filtered=filtered.filter(function(s){return s.requestBy===me.initials||s.swapWith===me.initials;});}
   if(filter)filtered=filtered.filter(function(s){return s.status===filter;});
   filtered.sort(function(a,b){return(b.requestDate||'').localeCompare(a.requestDate||'');});
 
@@ -2201,6 +2203,8 @@ function renderPTO(){
   var filter=document.getElementById('ptoFilter').value;
   var typeF=document.getElementById('ptoTypeFilter').value;
   var filtered=ptoRequests.slice();
+  // Non-leads only see their own PTO requests
+  if(!isLead()&&me){filtered=filtered.filter(function(p){return p.requestBy===me.initials;});}
   if(filter)filtered=filtered.filter(function(p){return p.status===filter;});
   if(typeF)filtered=filtered.filter(function(p){return p.requestType===typeF;});
   filtered.sort(function(a,b){return(b.startDate||'').localeCompare(a.startDate||'');});
@@ -2338,13 +2342,17 @@ async function approvePTO(id){
       var ds=fmtDate(cur);
       var shift=staff?staff.shift:'Morning';
       var existing=getAssignment(p.requestBy,ds,shift);
-      if(!existing||!existing.bench){
+      if(existing){
+        // Update existing record (even if empty bench)
+        if(existing.bench!=='PTO'){
+          existing.bench='PTO';existing.notes='Approved PTO';
+          (function(ex){promises.push(spGet('ScheduleEntries',"Title eq '"+ex.id+"'").then(function(sp){if(sp.length)return spUpdate('ScheduleEntries',sp[0].Id,schedToSP(ex));}).catch(function(e){}));})(existing);
+        }
+      }else{
+        // No record at all, create new
         var entry={id:gid(),userIni:p.requestBy,userName:p.requestByName,date:ds,shift:shift,bench:'PTO',notes:'Approved PTO',status:'Confirmed',createdBy:'SYS'};
         schedEntries.push(entry);
         promises.push(spAdd('ScheduleEntries',schedToSP(entry)).catch(function(e){}));
-      }else if(existing.bench!=='PTO'){
-        existing.bench='PTO';existing.notes='Approved PTO';
-        (function(ex){promises.push(spGet('ScheduleEntries',"Title eq '"+ex.id+"'").then(function(sp){if(sp.length)return spUpdate('ScheduleEntries',sp[0].Id,schedToSP(ex));}).catch(function(e){}));})(existing);
       }
     }
     cur.setDate(cur.getDate()+1);
