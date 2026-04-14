@@ -887,7 +887,7 @@ async function discoverFields(ln){
     var r=await spFetch(SP_API+"/getbytitle('"+ln+"')/fields?$filter=Hidden eq false and ReadOnlyField eq false&$select=InternalName,Title,StaticName");
     var d=await r.json();var map={};
     (d.d.results||[]).forEach(function(f){if(f.Title!==f.InternalName)map[f.Title]=f.InternalName;});
-    _fieldMaps[ln]=map;console.log('Field map for '+ln+':',JSON.stringify(map));
+    _fieldMaps[ln]=map;
     return map;
   }catch(e){console.error('Field discovery failed for '+ln,e);return {};}
 }
@@ -995,7 +995,6 @@ async function loadAllData(){
       auditLog=spAudit.map(function(i){return spToAuditEntry(i,fmA);});_auditLoaded=true;
       // Load roster from SP; if empty, seed with defaults
       var rosterItems=spRoster.map(function(i){return spToRoster(i,fmR);});
-      console.log('Roster loaded:',rosterItems.map(function(s){return s.ini+':'+s.role+' bench='+s.benchEligible;}));
       if(rosterItems.length){
         STAFF=rosterItems;
         // Check for any default staff missing from SP roster and add them
@@ -3109,7 +3108,7 @@ async function scheduleAutoBackup(){
     console.log('Schedule auto-backup completed: '+fileName);
   }catch(e){
     console.warn('Schedule auto-backup failed:',e);
-    localStorage.setItem('sched-auto-backup-error',e.message||'Unknown error');
+    localStorage.removeItem('sched-last-auto-backup');
   }
 }
 
@@ -3154,25 +3153,29 @@ function renderAdmin(){
   }
 
   // System info
-  var lastAutoBackup=localStorage.getItem('sched-last-auto-backup')||'Never';
-  var myStaff=me?STAFF.find(function(s){return s.ini===me.initials;}):null;
-  var myRole=myStaff?myStaff.role:'Unknown';
-  document.getElementById('adminSysInfo').innerHTML=
-    '<div>App Version: Schedule 1.0</div>'+
-    '<div>MSAL Client ID: '+CLIENT_ID.slice(0,8)+'...</div>'+
-    '<div>SP Site: '+SP_SITE.split('/').pop()+'</div>'+
-    '<div>Current User: '+(me?me.fullName+' ('+me.initials+')':'Not signed in')+'</div>'+
-    '<div>Role: '+myRole+'</div>'+
-    '<div>Staff Count: '+STAFF.filter(function(s){return s.active!==false;}).length+' active</div>'+
-    '<div>Last Sync: '+(_lastSyncISO?new Date(_lastSyncISO).toLocaleString():'Never')+'</div>'+
-    '<div>Last Auto-Backup: '+lastAutoBackup+'</div>';
+  try{
+    var lastAutoBackup=localStorage.getItem('sched-last-auto-backup')||'Never';
+    var myStaff=me?STAFF.find(function(s){return s.ini===me.initials;}):null;
+    var myRole=myStaff?myStaff.role:'Unknown';
+    document.getElementById('adminSysInfo').innerHTML=
+      '<div>App Version: Schedule 1.0</div>'+
+      '<div>MSAL Client ID: '+MSAL_CONFIG.auth.clientId.slice(0,8)+'...</div>'+
+      '<div>SP Site: '+SP_SITE.split('/sites/')[1]+'</div>'+
+      '<div>Current User: '+(me?me.fullName+' ('+me.initials+')':'Not signed in')+'</div>'+
+      '<div>Role: '+myRole+'</div>'+
+      '<div>Staff Count: '+STAFF.filter(function(s){return s.active!==false;}).length+' active</div>'+
+      '<div>Last Sync: '+(_lastSyncISO?new Date(_lastSyncISO).toLocaleString():'Never')+'</div>'+
+      '<div>Last Auto-Backup: '+lastAutoBackup+'</div>';
+  }catch(e){document.getElementById('adminSysInfo').innerHTML='<div style="color:var(--red);">Error loading system info: '+e.message+'</div>';}
 }
 
 async function forceSync(){
   showLoad('Forcing full sync...');
   _firstLoadDone=false;
+  localStorage.removeItem('sched-last-auto-backup');// force re-backup
   try{await loadAllData();renderCurrentView();}catch(e){console.error('Force sync failed:',e);}
   hideLoad();toast('Full sync completed');
+  scheduleAutoBackup();
   renderAdmin();
 }
 
