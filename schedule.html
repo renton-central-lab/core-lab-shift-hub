@@ -516,7 +516,10 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 
   <div class="rec-panel" style="margin-bottom:16px;">
     <h3><span class="mi">cloud_upload</span> Backup &amp; Restore</h3>
-    <p style="font-size:11px;color:var(--g500);margin-bottom:10px;">Export all schedule data as a JSON backup file, or restore from a previous backup.</p>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <span style="font-size:11px;font-weight:700;" id="adminAutoBackupStatus">Checking...</span>
+    </div>
+    <p style="font-size:11px;color:var(--g500);margin-bottom:10px;">Auto-backup runs 3x daily (Night: 12-7AM, Day: 7AM-3PM, Evening: 3PM-12AM). Manual options below.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
       <button class="btn primary" onclick="exportBackup()"><span class="mi mi-xs">download</span> Export Backup</button>
       <button class="btn" onclick="backupToSP()"><span class="mi mi-xs">cloud_upload</span> Backup to SharePoint</button>
@@ -3073,7 +3076,13 @@ async function uploadScheduleBackupToSP(data){
   var json=JSON.stringify(data);
   var now=new Date();
   var fileName='schedule-backup-'+fmtDate(now)+'T'+now.toTimeString().slice(0,5).replace(':','')+'.json';
-  var folderUrl=SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('Shared%20Documents')/Files/add(url='"+fileName+"',overwrite=true)";
+  var folderPath='Shared%20Documents/_schedule_backups';
+  // Ensure folder exists
+  try{
+    var t=await getToken();
+    await fetch(SP_SITE+"/_api/web/folders",{method:'POST',headers:{'Authorization':'Bearer '+t,'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose'},body:JSON.stringify({__metadata:{type:'SP.Folder'},ServerRelativeUrl:'/sites/og_uw_renton_central_laboratory_-_core_lab/Shared Documents/_schedule_backups'})});
+  }catch(e){}// folder may already exist
+  var folderUrl=SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderPath+"')/Files/add(url='"+fileName+"',overwrite=true)";
   var t=await getToken();
   var r=await fetch(folderUrl,{method:'POST',headers:{'Authorization':'Bearer '+t,'Accept':'application/json;odata=verbose','Content-Type':'application/json'},body:json});
   if(!r.ok)throw new Error('SP upload failed: '+r.status);
@@ -3088,6 +3097,7 @@ async function scheduleAutoBackup(){
   var backupKey=today+'-'+win;
   var lastAuto=localStorage.getItem('sched-last-auto-backup');
   if(lastAuto===backupKey){console.log('Schedule auto-backup already done for '+backupKey);return;}
+  console.log('Schedule auto-backup starting for '+backupKey+'...');
   try{
     var data=buildScheduleBackup();
     var fileName=await uploadScheduleBackupToSP(data);
@@ -3095,6 +3105,7 @@ async function scheduleAutoBackup(){
     console.log('Schedule auto-backup completed: '+fileName);
   }catch(e){
     console.warn('Schedule auto-backup failed:',e);
+    localStorage.setItem('sched-auto-backup-error',e.message||'Unknown error');
   }
 }
 
@@ -3108,10 +3119,23 @@ function renderAdmin(){
   lists.forEach(function(ln){
     var count=ln==='ScheduleEntries'?schedEntries.length:ln==='SwapRequests'?swapRequests.length:ln==='ScheduleRoster'?STAFF.length:ln==='PTORequests'?ptoRequests.length:ln==='HolidayRotation'?holidayAssignments.length:auditLog.length;
     var fm=_fieldMaps[ln];
-    var status=fm&&Object.keys(fm).length>1?'<span style="color:var(--green);font-weight:700;">Connected</span>':'<span style="color:var(--amber);font-weight:700;">Pending</span>';
+    var isConnected=fm||count>0;
+    var status=isConnected?'<span style="color:var(--green);font-weight:700;">Connected</span>':'<span style="color:var(--amber);font-weight:700;">Pending</span>';
     statusHtml+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--g50);"><span>'+ln+'</span><span>'+count+' items</span>'+status+'</div>';
   });
   document.getElementById('adminSpStatus').innerHTML=statusHtml;
+
+  // Auto-backup status
+  var lastAuto=localStorage.getItem('sched-last-auto-backup')||'';
+  var now=new Date();var today=now.toISOString().slice(0,10);
+  var hr=now.getHours();var curWin=hr<7?'NIGHT':hr<15?'DAY':'EVE';
+  var curKey=today+'-'+curWin;
+  var autoEl=document.getElementById('adminAutoBackupStatus');
+  if(autoEl){
+    if(lastAuto===curKey){autoEl.innerHTML='<span style="color:var(--green);">Current ('+lastAuto+')</span>';}
+    else if(lastAuto){autoEl.innerHTML='<span style="color:var(--amber);">Last: '+lastAuto+' (next window pending)</span>';}
+    else{autoEl.innerHTML='<span style="color:var(--red);">Never run</span>';}
+  }
 
   // System info
   var lastAutoBackup=localStorage.getItem('sched-last-auto-backup')||'Never';
@@ -3169,7 +3193,7 @@ async function backupToSP(){
 async function loadBackupHistory(){
   try{
     var t=await getToken();
-    var url=SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('Shared%20Documents')/Files?$filter=startswith(Name,'schedule-backup')&$orderby=TimeCreated desc&$top=20&$select=Name,TimeCreated,Length";
+    var url=SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('Shared%20Documents/_schedule_backups')/Files?$orderby=TimeCreated desc&$top=20&$select=Name,TimeCreated,Length";
     var r=await fetch(url,{headers:{'Authorization':'Bearer '+t,'Accept':'application/json;odata=verbose'}});
     if(!r.ok){document.getElementById('adminBackupHistory').innerHTML='<span style="color:var(--red);">Could not load history</span>';return;}
     var d=await r.json();
