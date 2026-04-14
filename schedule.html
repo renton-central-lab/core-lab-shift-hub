@@ -132,6 +132,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .blk.wfh{background:#e8eaf6;color:#283593;border:1.5px dashed #283593;}
 .blk.half{background:#fff3e0;color:#e65100;border:1.5px dashed #e65100;}
 .blk.empty{background:var(--white);color:var(--g300);border:1.5px dashed var(--g200);}
+.blk.off{background:var(--g50);color:var(--g400);font-size:9px;font-weight:400;}
 .blk.empty:hover{border-color:var(--teal);color:var(--teal);}
 .blk-sep{grid-column:1/-1;height:0.5px;background:var(--g100);margin:1px 0;}
 .ds-badge{position:absolute;top:-5px;right:-2px;font-size:7px;font-weight:700;background:#f57f17;color:#fff;padding:1px 4px;border-radius:3px;line-height:1;white-space:nowrap;}
@@ -174,7 +175,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 @keyframes recPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,121,107,.2);}50%{box-shadow:0 0 0 4px rgba(0,121,107,0);}}
 
 .blk.holiday{background:#fff3e0;color:#e65100;font-size:8px;font-weight:700;border:1px solid #ffcc80;}
-.holiday-tag{font-size:8px;font-weight:700;color:#e65100;background:#fff3e0;padding:1px 5px;border-radius:4px;display:inline-block;}
+.holiday-tag{font-size:9px;font-weight:700;color:#e65100;background:#fff3e0;padding:2px 5px;border-radius:4px;display:inline-block;margin-top:1px;}
 
 /* ═══ DAILY VIEW ═══ */
 .daily-wrap{background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-2);border:1px solid var(--g200);overflow:hidden;}
@@ -203,11 +204,11 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 /* ═══ MONTHLY VIEW ═══ */
 .month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-1);border:1px solid var(--g200);overflow:hidden;padding:2px;}
 .month-hdr{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--g400);text-align:center;padding:8px 0;}
-.month-cell{min-height:90px;background:var(--g50);border-radius:8px;padding:4px;display:flex;flex-direction:column;cursor:pointer;transition:background var(--dur-short) var(--me-standard);}
+.month-cell{min-height:90px;background:var(--g50);border-radius:8px;padding:6px;display:flex;flex-direction:column;cursor:pointer;transition:background var(--dur-short) var(--me-standard);}
 .month-cell:hover{background:var(--teal-bg);}
 .month-cell.today{background:rgba(0,121,107,.08);border:2px solid var(--teal);}
 .month-cell.other-month{opacity:.35;}
-.month-day{font-size:11px;font-weight:700;color:var(--g700);padding:2px 4px;}
+.month-day{font-size:12px;font-weight:700;color:var(--g700);padding:0 2px;}
 .month-cell.weekend .month-day{color:var(--g300);}
 .month-staff{display:flex;flex-direction:column;gap:1px;padding:2px 2px 0;}
 .month-row{display:flex;align-items:center;gap:2px;}
@@ -357,16 +358,17 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
   .daily-blk{min-width:40px;height:28px;font-size:11px;}
   .daily-shift-hdr{font-size:11px;padding:8px 12px;}
   .daily-list{padding:6px 12px;}
-  /* Monthly mobile: keep grid layout, shrink cells */
+  /* Monthly mobile: keep grid layout, compact but readable */
   .month-grid{grid-template-columns:repeat(7,1fr);gap:1px;padding:1px;}
-  .month-cell{min-height:60px;padding:2px;font-size:6px;}
-  .month-hdr{font-size:7px;padding:3px 0;}
-  .month-day{font-size:8px;}
-  .month-cov{font-size:6px;padding:1px 3px;}
-  .month-mini-blk{height:10px;font-size:5px;border-radius:2px;}
-  .month-ini{font-size:5px;min-width:8px;}
+  .month-cell{min-height:65px;padding:3px;font-size:7px;}
+  .month-hdr{font-size:8px;padding:4px 0;}
+  .month-day{font-size:9px;}
+  .month-cov{font-size:7px;padding:1px 3px;}
+  .month-mini-blk{height:12px;font-size:6px;border-radius:2px;}
+  .month-ini{font-size:6px;min-width:9px;}
   .month-row{gap:1px;}
   .month-staff{gap:0px;}
+  .holiday-tag{font-size:7px;padding:1px 3px;}
   /* Modals */
   .modal-bg{align-items:flex-end;padding:0;}
   .modal{width:100%;max-width:100%;max-height:85vh;border-radius:16px 16px 0 0;margin:0;overflow-y:auto;animation:modalSlideUp var(--dur-med) var(--me-decelerate);}
@@ -1043,6 +1045,33 @@ function isLead(){
 }
 
 // ═══ PROFILE & AVATAR SYSTEM ═══
+// Uses HubUsers SP list (shared with Shift Hub) for nickname + picture
+// Falls back to localStorage if HubUsers unavailable
+
+function loadProfileCache(){
+  // Load cached profiles from localStorage for instant display before SP loads
+  try{
+    var profiles=JSON.parse(localStorage.getItem('sched-profiles')||'{}');
+    STAFF.forEach(function(s){
+      if(profiles[s.ini]){
+        if(profiles[s.ini].picture&&!s.picture)s.picture=profiles[s.ini].picture;
+        if(profiles[s.ini].nickname&&!s.nickname)s.nickname=profiles[s.ini].nickname;
+      }
+    });
+  }catch(e){}
+}
+
+function saveProfileCache(){
+  // Cache all staff profiles to localStorage
+  try{
+    var profiles={};
+    STAFF.forEach(function(s){
+      if(s.picture||s.nickname){profiles[s.ini]={picture:s.picture||'',nickname:s.nickname||''};}
+    });
+    localStorage.setItem('sched-profiles',JSON.stringify(profiles));
+  }catch(e){}
+}
+
 function updateHeaderAvatar(){
   if(!me)return;
   var s=STAFF.find(function(x){return x.ini===me.initials;});
@@ -1115,18 +1144,19 @@ async function saveProfile(){
   var s=STAFF.find(function(x){return x.ini===me.initials;});
   if(s){
     s.nickname=nick;
-    // Save to SP roster
+    // Save to ScheduleRoster (Nickname = single line, PictureData = multi-line)
     try{
       var sp=await spGet('ScheduleRoster',"Title eq '"+me.initials+"'");
       if(sp.length){
         var fm=await discoverFields('ScheduleRoster');
         var payload={};
-        // Check if Nickname and PictureData columns exist in the roster
         if(fm.Nickname)payload[fm.Nickname]=nick;
         if(fm.PictureData)payload[fm.PictureData]=s.picture||'';
         if(Object.keys(payload).length)await spUpdate('ScheduleRoster',sp[0].Id,payload);
       }
     }catch(e){console.warn('Profile save to SP failed:',e);}
+    // Cache to localStorage for instant load next time
+    saveProfileCache();
   }
   updateHeaderAvatar();
   renderCurrentView();
@@ -1292,6 +1322,8 @@ async function loadAllData(){
       (dH||[]).forEach(function(sp){var h=spToHoliday(sp,fmH);var idx=holidayAssignments.findIndex(function(x){return x.id===h.id;});if(idx>=0)holidayAssignments[idx]=h;else holidayAssignments.push(h);});
       _lastSyncISO=new Date().toISOString();
     }
+    loadProfileCache();
+    saveProfileCache();// update cache from SP data
     // Show roster and holiday auto-assign for leads
     if(isLead()){document.getElementById('navRoster').style.display='';document.getElementById('navStats').style.display='';document.getElementById('navAudit').style.display='';document.getElementById('holAutoBtn').style.display='';document.getElementById('holClearBtn').style.display='';document.getElementById('recBtn').style.display='';document.getElementById('monthShiftFilter').style.display='';if(me&&me.initials==='JM'){document.getElementById('auditClearBtn').style.display='';document.getElementById('navAdmin').style.display='';}}else{document.getElementById('monthShiftFilter').style.display='none';}
     document.getElementById('hdr-sync').innerHTML='<span class="mi mi-xs">sync</span> Synced '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -1302,6 +1334,7 @@ async function loadAllData(){
     else{
       // If SP lists don't exist yet, use defaults
       if(!STAFF.length)STAFF=DEFAULT_STAFF.slice();
+      loadProfileCache();
       if(isLead()){document.getElementById('navRoster').style.display='';document.getElementById('navStats').style.display='';document.getElementById('navAudit').style.display='';}
     }
     return false;
@@ -1591,11 +1624,12 @@ function renderLegend(){
     {cls:'sl',label:'SL',desc:'Sick Leave'},
     {cls:'ot',label:'OT',desc:'Overtime'},
     {cls:'wfh',label:'WFH',desc:'Work from Home'},
-    {cls:'half',label:'Half',desc:'Partial Day'}
+    {cls:'half',label:'Half',desc:'Partial Day'},
+    {cls:'off',label:'OFF',desc:'Off'}
   ];
   var html='<div class="assign-legend">';
   items.forEach(function(i){
-    html+='<div class="legend-item"><div class="legend-swatch blk '+i.cls+'">'+i.label+'</div><span>'+i.desc+'</span></div>';
+    html+='<div class="legend-item"><div class="legend-swatch blk '+i.cls+'" style="min-width:28px;padding:0 3px;white-space:nowrap;">'+i.label+'</div><span>'+i.desc+'</span></div>';
   });
   html+='</div>';
   return html;
@@ -2009,7 +2043,7 @@ function renderMonth(){
             html+='<span class="month-cov" style="background:var(--red-bg);color:var(--red);">'+totalGaps+' gap'+(totalGaps>1?'s':'')+'</span>';
           }
         }else{
-          // Techs: show only own assignment
+          // Techs: show only own assignment - use larger blocks since only 1 person
           var a=getAssignment(myIni,ds,myShift);
           var bench='';
           if(a&&a.bench){bench=a.bench;}
@@ -2017,9 +2051,10 @@ function renderMonth(){
           if(bench){
             var blkCls=getBlkClass(bench);
             var label=getBlkLabel(bench);
-            html+='<div class="month-staff"><div class="month-mini-blk blk '+blkCls+'" style="height:18px;font-size:9px;border-radius:4px;margin-top:2px;" title="'+label+'">'+label+'</div></div>';
+            var fullLabel=bench==='H/C'?'Heme/Coag':bench==='C/U'?'Chem/UA':bench==='F'?'Float':bench==='T'?'Training':bench==='PTO'?'PTO':bench==='SL'?'Sick Leave':bench==='IO'?'Office':bench==='OT'?'Overtime':bench==='WFH'?'WFH':bench;
+            html+='<div class="blk '+blkCls+'" style="height:28px;font-size:11px;border-radius:6px;margin-top:4px;" title="'+fullLabel+'">'+label+'</div>';
           }
-          // PTO traffic indicator for non-leads
+          // PTO traffic indicator
           var dayPTOCount=ptoRequests.filter(function(p){return p.status!=='Denied'&&p.startDate<=ds&&p.endDate>=ds;}).length;
           var availTechs=STAFF.filter(function(x){
             if(!x.benchEligible||x.active===false||x.shift!==myShift)return false;
@@ -2027,7 +2062,7 @@ function renderMonth(){
             return!theirPTO;
           }).length;
           if(dayPTOCount>=2||availTechs<2){
-            html+='<span class="month-cov" style="background:#fff3e0;color:#e65100;font-size:6px;" title="'+dayPTOCount+' PTO requests, '+availTechs+' techs available">Busy</span>';
+            html+='<span class="month-cov" style="background:#fff3e0;color:#e65100;font-size:8px;margin-top:2px;" title="'+dayPTOCount+' PTO requests, '+availTechs+' techs available">Busy</span>';
           }
         }
       }
@@ -2089,27 +2124,24 @@ function renderSwaps(){
 
     html+='<div class="swap-actions">';
     if(s.status==='Pending'){
-      // Swap partner can approve
       if(isPartner){
+        // Partner sees Accept/Decline (works for both techs and leads)
         html+='<button class="btn primary" onclick="approveSwap(\''+s.id+'\')"><span class="mi mi-xs">check</span> Accept</button>';
         html+='<button class="btn danger" onclick="denySwap(\''+s.id+'\')"><span class="mi mi-xs">close</span> Decline</button>';
-      }
-      // Leads can also approve/deny
-      if(isLead()){
+      }else if(isLead()&&!isRequester){
+        // Lead who is NOT involved sees Approve/Deny
         html+='<button class="btn primary" onclick="approveSwap(\''+s.id+'\')"><span class="mi mi-xs">check</span> Approve</button>';
         html+='<button class="btn danger" onclick="denySwap(\''+s.id+'\')"><span class="mi mi-xs">close</span> Deny</button>';
       }
-    }
-    // Requester can edit/delete their own pending swaps
-    if(s.status==='Pending'&&isRequester){
-      html+='<button class="btn" onclick="editSwap(\''+s.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
-      html+='<button class="btn" style="color:var(--red);" onclick="deleteSwap(\''+s.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
-    }
-    // Leads can always edit/delete
-    if(isLead()){
-      if(!(s.status==='Pending'&&isRequester)){
+      // Requester can edit/delete their own pending swaps
+      if(isRequester){
         html+='<button class="btn" onclick="editSwap(\''+s.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
+        html+='<button class="btn" style="color:var(--red);" onclick="deleteSwap(\''+s.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
       }
+    }
+    // Leads can always edit/delete (if not already shown as requester)
+    if(isLead()&&!isRequester){
+      html+='<button class="btn" onclick="editSwap(\''+s.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
       html+='<button class="btn" style="color:var(--red);" onclick="deleteSwap(\''+s.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
     }
     html+='</div>';
