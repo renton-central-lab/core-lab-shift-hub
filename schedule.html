@@ -1259,7 +1259,7 @@ function renderWeek(){
         var assign=getAssignment(staff.ini,d.date,shift);
         var chip;
         var isElevated=ELEVATED_ROLES.some(function(r){return staff.role&&staff.role.indexOf(r)>=0;});
-        if(assign){chip=benchChip(assign.bench,false);}
+        if(assign&&assign.bench){chip=benchChip(assign.bench,false);}
         else if(isInTraining(staff,d.date)){chip=benchChip('T',false);}
         else if(isElevated){chip=benchChip('IO',false);}
         else{chip=benchChip(null,false);}
@@ -1343,7 +1343,7 @@ function renderDay(){
       shiftStaff.forEach(function(staff){
         var assign=getAssignment(staff.ini,ds,shift);
         var chip;
-        if(assign){chip=benchChip(assign.bench);}
+        if(assign&&assign.bench){chip=benchChip(assign.bench);}
         else if(isInTraining(staff,ds)){chip=benchChip('T');}
         else if(ELEVATED_ROLES.some(function(r){return staff.role&&staff.role.indexOf(r)>=0;})){chip=benchChip('IO');}
         else{chip=benchChip(null);}
