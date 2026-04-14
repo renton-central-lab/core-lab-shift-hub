@@ -277,27 +277,29 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
   .stat-label{font-size:9px;}
   .stat-val{font-size:18px;}
   .sched-grid{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -8px;padding:0 8px;}
-  .sched-table{min-width:700px;}
+  .sched-table{min-width:600px;}
   .sched-table th{font-size:8px;padding:4px 2px;}
   .sched-table td{padding:3px 2px;}
-  .sched-table td.name-cell{min-width:80px;font-size:10px;padding-left:8px;}
+  .sched-table td.name-cell{min-width:70px;font-size:10px;padding-left:6px;position:relative;z-index:auto;}
   .sched-table td.name-cell div:first-child{font-size:10px;}
   .sched-table td.name-cell div:last-child{font-size:8px;}
-  .bench-chip{font-size:9px;padding:2px 6px;min-width:28px;}
-  .bench-chip.empty{width:24px;height:24px;font-size:14px;}
+  .bench-chip{font-size:9px;padding:2px 5px;min-width:26px;}
+  .bench-chip.empty{width:22px;height:22px;font-size:13px;}
   .shift-hdr{padding:8px 12px;font-size:11px;}
   .shift-hdr .shift-toggle{font-size:12px;}
-  .coverage-bar{padding:4px 8px;flex-wrap:wrap;gap:4px;}
-  .cov-item{font-size:8px;padding:2px 6px;}
+  .coverage-bar{padding:4px 8px;flex-wrap:wrap;gap:3px;}
+  .cov-item{font-size:8px;padding:2px 5px;}
   .daily-cards{grid-template-columns:1fr;}
   .daily-card{margin-bottom:8px;}
   .daily-card-hdr{font-size:11px;padding:8px 12px;}
   .daily-row{padding:6px 10px;font-size:12px;}
   .daily-name{font-size:12px;}
   .daily-role{font-size:9px;}
-  .month-grid{gap:1px;}
-  .month-hdr{font-size:8px;padding:3px 1px;}
-  .month-cell{min-height:50px;padding:2px;font-size:7px;}
+  /* Monthly grid: horizontal scroll on mobile */
+  .month-grid{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .month-grid>.month-hdr,.month-grid>.month-cell{display:inline-block;}
+  .month-hdr{font-size:8px;padding:3px 1px;width:calc(100% / 7);min-width:90px;text-align:center;vertical-align:top;}
+  .month-cell{min-height:70px;padding:3px;font-size:7px;width:calc(100% / 7);min-width:90px;vertical-align:top;}
   .month-day{font-size:9px;}
   .month-mini{font-size:7px;padding:1px 3px;}
   .month-cov{font-size:7px;padding:1px 4px;}
@@ -320,7 +322,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
   .swap-detail{font-size:10px;}
   .swap-actions{flex-wrap:wrap;gap:4px;}
   .swap-actions .btn{font-size:10px;padding:6px 10px;flex:none;}
-  #recPanelWrap{left:6px;right:6px;bottom:10px;max-height:50vh;}
+  #recPanelWrap{left:6px;right:6px;bottom:10px;max-height:50vh;max-width:none;}
   .auth-screen{padding:20px;}
   .auth-btn{font-size:14px;padding:12px 24px;}
   .auth-title{font-size:20px;}
