@@ -1411,9 +1411,15 @@ async function spGet(listName, filter, select, top) {
   if (filter) url += '&$filter=' + encodeURIComponent(filter);
   if (select) url += '&$select=' + select;
   url += '&$orderby=Id desc';
-  var r = await spFetch(url);
-  var d = await r.json();
-  return d.d.results || [];
+  var all = [];
+  while (url) {
+    var r = await spFetch(url);
+    var d = await r.json();
+    var results = d.d.results || [];
+    all = all.concat(results);
+    url = (d.d.__next) || null;
+  }
+  return all;
 }
 
 async function spAdd(listName, data) {
@@ -1625,43 +1631,152 @@ function tryParse(s, def) {
 }
 
 // === SP CRUD OPERATIONS ===
+// ═══════════════════════════════════════════
+// OPTIMIZED DATA LOADING
+// ═══════════════════════════════════════════
+var _lastSyncISO=null; // tracks last sync time for delta queries
+var _fullLoadDone=false; // first load always fetches full data
+var _auditLoaded=false; // lazy-load audit only when Audit tab opened
+var _annCached=false; // announcements rarely change, cache after first load
+
+// Build a date filter for entries: current month and previous month
+function _entryDateFilter(){
+  var now=new Date();
+  // Always load at least current and previous month
+  var startMonth=curMonth>0?curMonth-1:11;
+  var startYear=curMonth>0?curYear:curYear-1;
+  var startDate=startYear+'-'+String(startMonth+1).padStart(2,'0')+'-01';
+  return "Date ge '"+startDate+"'";
+}
+
 async function loadAllData() {
   try {
-    // Discover field names for all lists
+    // Field discovery is cached in _fieldMaps, so subsequent calls are instant
     var [fmE, fmA, fmU, fmH] = await Promise.all([
       discoverFields('ShiftEntries'),
       discoverFields('Announcements'),
       discoverFields('HubUsers'),
       discoverFields('AuditLog')
     ]);
-    // MonthlyReviews may not exist yet, so catch errors gracefully
     var fmR={};try{fmR=await discoverFields('MonthlyReviews');}catch(e){console.warn('MonthlyReviews list not found yet:',e.message);}
-    var [spEntries, spAnns, spUsers, spAudit] = await Promise.all([
-      spGet('ShiftEntries'),
-      spGet('Announcements'),
-      spGet('HubUsers'),
-      spGet('AuditLog', null, null, 2000)
-    ]);
-    var spReviews=[];try{spReviews=await spGet('MonthlyReviews');}catch(e){}
-    entries = spEntries.map(function(i){return spToEntry(i,fmE);});
-    announcements = spAnns.map(function(i){return spToAnn(i,fmA);});
-    hist = spAudit.map(function(i){return spToAudit(i,fmH);});
-    monthlyReviews = spReviews.map(function(i){return spToReview(i,fmR);});
-    users = {};
-    spUsers.forEach(function(item) {
-      users[item.Title] = spToUser(item,fmU);
-    });
-    if (!users[ADMIN_INI]) {
-      users[ADMIN_INI] = { fullName: 'Jesus Martinez', role: 'MLS Lead', isAdmin: true, nickname: '', picture: '', password: '' };
-      await spAdd('HubUsers', spSetUser(ADMIN_INI, users[ADMIN_INI]));
+
+    if(!_fullLoadDone){
+      // === INITIAL LOAD: date-scoped entries, all announcements, users, skip audit ===
+      var [spEntries, spAnns, spUsers] = await Promise.all([
+        spGet('ShiftEntries', _entryDateFilter()),
+        spGet('Announcements'),
+        spGet('HubUsers')
+      ]);
+      var spReviews=[];try{spReviews=await spGet('MonthlyReviews');}catch(e){}
+      entries = spEntries.map(function(i){return spToEntry(i,fmE);});
+      announcements = spAnns.map(function(i){return spToAnn(i,fmA);});
+      monthlyReviews = spReviews.map(function(i){return spToReview(i,fmR);});
+      users = {};
+      spUsers.forEach(function(item) {
+        users[item.Title] = spToUser(item,fmU);
+      });
+      if (!users[ADMIN_INI]) {
+        users[ADMIN_INI] = { fullName: 'Jesus Martinez', role: 'MLS Lead', isAdmin: true, nickname: '', picture: '', password: '' };
+        await spAdd('HubUsers', spSetUser(ADMIN_INI, users[ADMIN_INI]));
+      }
+      users[ADMIN_INI].isAdmin = true;
+      // Audit NOT loaded here; loaded lazily when Audit tab is opened
+      hist=[];
+      _fullLoadDone=true;
+      _annCached=true;
+      _lastSyncISO=new Date().toISOString();
+    }else{
+      // === DELTA SYNC: only fetch items modified since last sync ===
+      var deltaFilter="Modified ge datetime'"+_lastSyncISO+"'";
+      var entryFilter=_entryDateFilter()+" and "+deltaFilter;
+      var promises=[
+        spGet('ShiftEntries', entryFilter),
+        spGet('HubUsers', deltaFilter)
+      ];
+      // Only re-fetch announcements if they were modified
+      if(_annCached){
+        promises.push(spGet('Announcements', deltaFilter));
+      }
+      var results=await Promise.all(promises);
+      var deltaEntries=results[0];
+      var deltaUsers=results[1];
+      var deltaAnns=results[2]||[];
+
+      // Merge delta entries into local array
+      deltaEntries.forEach(function(spItem){
+        var e=spToEntry(spItem,fmE);
+        var idx=entries.findIndex(function(x){return x.id===e.id;});
+        if(idx>=0)entries[idx]=e; else entries.push(e);
+      });
+
+      // Merge delta announcements
+      deltaAnns.forEach(function(spItem){
+        var a=spToAnn(spItem,fmA);
+        var idx=announcements.findIndex(function(x){return x.id===a.id;});
+        if(idx>=0)announcements[idx]=a; else announcements.push(a);
+      });
+
+      // Merge delta users
+      deltaUsers.forEach(function(item){
+        users[item.Title]=spToUser(item,fmU);
+      });
+      users[ADMIN_INI].isAdmin=true;
+
+      // Monthly reviews: re-fetch only if needed (small list)
+      try{var spR=await spGet('MonthlyReviews');monthlyReviews=spR.map(function(i){return spToReview(i,fmR);});}catch(e){}
+
+      _lastSyncISO=new Date().toISOString();
     }
-    users[ADMIN_INI].isAdmin = true;
     return true;
   } catch (e) {
     console.error('Failed to load SP data:', e);
     toast('Failed to load data from SharePoint. Check permissions.');
     return false;
   }
+}
+
+// Load entries for a specific month range (when user changes month filter)
+async function loadEntriesForMonth(month,year){
+  try{
+    var fmE=await discoverFields('ShiftEntries');
+    var startDate=year+'-'+String(month+1).padStart(2,'0')+'-01';
+    var endMonth=month<11?month+1:0;
+    var endYear=month<11?year:year+1;
+    var endDate=endYear+'-'+String(endMonth+1).padStart(2,'0')+'-01';
+    var filter="Date ge '"+startDate+"' and Date lt '"+endDate+"'";
+    var spEntries=await spGet('ShiftEntries',filter);
+    var monthEntries=spEntries.map(function(i){return spToEntry(i,fmE);});
+    // Merge into entries array (add new, update existing)
+    monthEntries.forEach(function(e){
+      var idx=entries.findIndex(function(x){return x.id===e.id;});
+      if(idx>=0)entries[idx]=e; else entries.push(e);
+    });
+  }catch(e){console.warn('Failed to load entries for '+month+'/'+year,e);}
+}
+
+// Lazy-load audit trail (only when Audit tab is opened)
+async function loadAuditIfNeeded(){
+  if(_auditLoaded)return;
+  try{
+    var fmH=await discoverFields('AuditLog');
+    // Load last 90 days of audit by default
+    var cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
+    var filter="Modified ge datetime'"+cutoff.toISOString()+"'";
+    var spAudit=await spGet('AuditLog',filter,null,2000);
+    hist=spAudit.map(function(i){return spToAudit(i,fmH);});
+    _auditLoaded=true;
+    console.log('Audit trail loaded: '+hist.length+' records (last 90 days)');
+  }catch(e){console.warn('Audit load failed:',e);}
+}
+
+// Force reload announcements (called after posting/resolving/deleting)
+async function reloadAnnouncements(){
+  try{
+    var fmA=await discoverFields('Announcements');
+    var spAnns=await spGet('Announcements');
+    announcements=spAnns.map(function(i){return spToAnn(i,fmA);});
+    _annCached=true;
+  }catch(e){console.warn('Announcement reload failed:',e);}
 }
 
 async function spSaveEntry(entry) {
@@ -2503,22 +2618,42 @@ async function manualSync(){
   }
 }
 
-function buildHubBackup(){
-  return{
-    version:'3.0',
-    timestamp:new Date().toISOString(),
-    date:new Date().toISOString().slice(0,10),
-    source:'SharePoint',site:SP_SITE,
-    exportedBy:me?me.fullName:'',
-    entries:entries,
-    announcements:announcements,
-    history:hist,
-    users:users,
-    monthlyReviews:monthlyReviews,
-    notifications:notifs,
-    dismissed:dismissed,
-    counts:{entries:entries.length,announcements:announcements.length,audit:hist.length}
-  };
+async function buildHubBackup(){
+  // Backup always fetches full data from SP to ensure completeness
+  try{
+    var [fmE,fmA,fmH,fmR]= await Promise.all([
+      discoverFields('ShiftEntries'),discoverFields('Announcements'),
+      discoverFields('AuditLog'),discoverFields('MonthlyReviews').catch(function(){return{};})
+    ]);
+    var [allE,allA,allAud]=await Promise.all([
+      spGet('ShiftEntries'),spGet('Announcements'),spGet('AuditLog',null,null,5000)
+    ]);
+    var allR=[];try{allR=await spGet('MonthlyReviews');}catch(e){}
+    return{
+      version:'3.0',
+      timestamp:new Date().toISOString(),
+      date:new Date().toISOString().slice(0,10),
+      source:'SharePoint',site:SP_SITE,
+      exportedBy:me?me.fullName:'',
+      entries:allE.map(function(i){return spToEntry(i,fmE);}),
+      announcements:allA.map(function(i){return spToAnn(i,fmA);}),
+      history:allAud.map(function(i){return spToAudit(i,fmH);}),
+      users:users,
+      monthlyReviews:allR.map(function(i){return spToReview(i,fmR);}),
+      notifications:notifs,
+      dismissed:dismissed,
+      counts:{entries:allE.length,announcements:allA.length,audit:allAud.length}
+    };
+  }catch(e){
+    console.error('Full backup fetch failed, using local data:',e);
+    return{
+      version:'3.0',timestamp:new Date().toISOString(),date:new Date().toISOString().slice(0,10),
+      source:'SharePoint (partial - fetch failed)',site:SP_SITE,exportedBy:me?me.fullName:'',
+      entries:entries,announcements:announcements,history:hist,users:users,
+      monthlyReviews:monthlyReviews,notifications:notifs,dismissed:dismissed,
+      counts:{entries:entries.length,announcements:announcements.length,audit:hist.length}
+    };
+  }
 }
 
 // Upload backup JSON to SP document library
@@ -2566,7 +2701,7 @@ async function hubManualBackup(){
   var btn=$('hub-bk-btn');
   btn.disabled=true;btn.innerHTML='<span class="mi mi-xs">hourglass_empty</span> Backing up...';
   try{
-    var data=buildHubBackup();
+    var data=await buildHubBackup();
     await uploadHubBackupToSP(data);
     btn.innerHTML='<span class="mi mi-xs">check_circle</span> Complete';
     btn.style.background='#2D6B46';btn.style.color='#fff';
@@ -2598,7 +2733,7 @@ async function hubAutoBackup(){
   }
   if(statusEl){statusEl.textContent='Backing up...';statusEl.style.color='var(--g400)';}
   try{
-    var data=buildHubBackup();
+    var data=await buildHubBackup();
     await uploadHubBackupToSP(data);
     localStorage.setItem('hub-last-auto-backup',backupKey);
     if(statusEl){statusEl.textContent='Current';statusEl.style.color='var(--teal)';}
@@ -2766,7 +2901,7 @@ function switchPage(p){
   if(p==='dash'){$('navDash').classList.add('active');renderDash();}
   else if(p==='ann'){$('navAnn').classList.add('active');renderAnn();}
   else if(p==='log'){$('navLog').classList.add('active');renderLog();if(window.innerWidth<=600)setTimeout(renderMobileLog,50);}
-  else if(p==='audit'){$('navAudit').classList.add('active');renderAudit();}
+  else if(p==='audit'){$('navAudit').classList.add('active');loadAuditIfNeeded().then(renderAudit);}
   else if(p==='admin'){$('navAdmin').classList.add('active');renderAdmin();loadHubBackupHistory();}
   // Sync mobile bottom nav
   ['Ann','Dash','Log','Audit','Admin'].forEach(function(n){
@@ -3004,9 +3139,9 @@ function rMT(){
     for(var y=2026;y<=2030;y++){var o=document.createElement('option');o.value=y;o.textContent=y;if(y===curYear)o.selected=true;ySel.appendChild(o);}
   }else if(ySel){ySel.value=curYear;}
 }
-function setM(i){curMonth=i;rMT();renderLog();}
-function setMonthFromDropdown(v){curMonth=parseInt(v);renderLog();}
-function setYearFromDropdown(v){curYear=parseInt(v);renderLog();}
+function setM(i){curMonth=i;rMT();loadEntriesForMonth(curMonth,curYear).then(renderLog);}
+function setMonthFromDropdown(v){curMonth=parseInt(v);loadEntriesForMonth(curMonth,curYear).then(renderLog);}
+function setYearFromDropdown(v){curYear=parseInt(v);loadEntriesForMonth(curMonth,curYear).then(renderLog);}
 function setDept(d){
   curDept=d;
   document.querySelectorAll('.dept-tab').forEach(function(t,i){
@@ -3554,24 +3689,49 @@ function setExportPreset(p){
   updateExportPreview();
 }
 
-function getExportEntries(){
+async function getExportEntries(){
   var from=$('expFrom').value,to=$('expTo').value,dept=$('expDept').value;
   var shift=$('expShift').value,cat=$('expCat').value,pri=$('expPri').value,status=$('expStatus').value;
-  return entries.filter(function(e){
-    if(e.date<from||e.date>to)return false;
-    if(dept&&(e.department||'General')!==dept)return false;
-    if(shift&&e.shift!==shift)return false;
-    if(cat&&e.category!==cat)return false;
-    if(pri&&e.priority!==pri)return false;
-    if(status&&e.status!==status)return false;
-    return true;
-  }).sort(function(a,b){return(a.date+a.time).localeCompare(b.date+b.time);});
+  // Check if requested range extends beyond what's loaded in memory
+  // Fetch directly from SP for the exact range to ensure completeness
+  try{
+    var fmE=await discoverFields('ShiftEntries');
+    var filter="Date ge '"+from+"' and Date le '"+to+"'";
+    var spEntries=await spGet('ShiftEntries',filter);
+    var rangeEntries=spEntries.map(function(i){return spToEntry(i,fmE);});
+    // Also merge into local cache
+    rangeEntries.forEach(function(e){
+      var idx=entries.findIndex(function(x){return x.id===e.id;});
+      if(idx>=0)entries[idx]=e; else entries.push(e);
+    });
+    return rangeEntries.filter(function(e){
+      if(dept&&(e.department||'General')!==dept)return false;
+      if(shift&&e.shift!==shift)return false;
+      if(cat&&e.category!==cat)return false;
+      if(pri&&e.priority!==pri)return false;
+      if(status&&e.status!==status)return false;
+      return true;
+    }).sort(function(a,b){return(a.date+a.time).localeCompare(b.date+b.time);});
+  }catch(e){
+    console.warn('Export SP fetch failed, using local data:',e);
+    // Fallback to local data
+    return entries.filter(function(e){
+      if(e.date<from||e.date>to)return false;
+      if(dept&&(e.department||'General')!==dept)return false;
+      if(shift&&e.shift!==shift)return false;
+      if(cat&&e.category!==cat)return false;
+      if(pri&&e.priority!==pri)return false;
+      if(status&&e.status!==status)return false;
+      return true;
+    }).sort(function(a,b){return(a.date+a.time).localeCompare(b.date+b.time);});
+  }
 }
 
-function updateExportPreview(){
-  var d=getExportEntries();
+async function updateExportPreview(){
   var el=$('expPreview');
-  if(el){el.style.display='block';el.textContent=d.length+' entries in selected range';}
+  if(el){el.style.display='block';el.textContent='Loading...';}
+  var d=await getExportEntries();
+  if(el){el.textContent=d.length+' entries in selected range';}
 }
 
 function buildAnalytics(data){
@@ -3596,8 +3756,10 @@ function buildAnalytics(data){
   return{total:total,byStatus:byStatus,byPriority:byPriority,byDept:byDept,byCat:byCat,byShift:byShift,avgResolutionDays:avgRes,resolutionRate:resRate+'%',pendingFollowUps:data.filter(function(e){return e.followUp==='Yes'&&e.status!=='Resolved';}).length};
 }
 
-function runExport(){
-  var data=getExportEntries();
+async function runExport(){
+  showLoad('Preparing export...');
+  var data=await getExportEntries();
+  hideLoad();
   var format=$('expFormat').value;
   var includeAnalytics=$('expAnalytics').checked;
   var from=$('expFrom').value,to=$('expTo').value;
