@@ -106,10 +106,10 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .sched-table th.weekend{color:var(--g300);background:var(--g50);}
 .sched-table td{padding:4px 2px;text-align:center;border-bottom:1px solid var(--g50);height:40px;vertical-align:middle;}
 .sched-table td.name-cell{text-align:left;padding-left:12px;font-size:12px;font-weight:700;color:var(--g700);white-space:nowrap;min-width:130px;position:sticky;left:0;background:var(--white);z-index:2;border-right:1px solid var(--g100);}
-.sched-table td.name-cell.role-lead{border-left:3px solid var(--teal);background:linear-gradient(90deg,rgba(0,121,107,.04),var(--white));}
-.sched-table td.name-cell.role-manager{border-left:3px solid var(--navy);background:linear-gradient(90deg,rgba(26,58,58,.04),var(--white));}
-.sched-table td.name-cell.role-tech{border-left:3px solid var(--blue);background:var(--white);}
-.sched-table td.name-cell.role-mls2{border-left:3px solid var(--purple);background:linear-gradient(90deg,rgba(106,27,154,.04),var(--white));}
+.sched-table td.name-cell.role-lead{border-left:4px solid var(--teal);background:linear-gradient(90deg,rgba(0,121,107,.1),var(--white));}
+.sched-table td.name-cell.role-manager{border-left:4px solid var(--navy);background:linear-gradient(90deg,rgba(26,58,58,.1),var(--white));}
+.sched-table td.name-cell.role-tech{border-left:4px solid var(--blue);background:var(--white);}
+.sched-table td.name-cell.role-mls2{border-left:4px solid var(--purple);background:linear-gradient(90deg,rgba(106,27,154,.06),var(--white));}
 .sched-table td.weekend{background:var(--g50);}
 .sched-table td.today-col{background:rgba(0,121,107,.04);}
 .sched-table tr:hover td{background:rgba(0,121,107,.02);}
@@ -315,7 +315,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
         <button onclick="navWeek(-1)" title="Previous week"><span class="mi mi-sm">chevron_left</span></button>
         <div class="week-label" id="weekLabel"></div>
         <button onclick="navWeek(1)" title="Next week"><span class="mi mi-sm">chevron_right</span></button>
-        <button onclick="navWeek(0)" title="This week" class="tb-btn" style="margin-left:4px"><span class="mi mi-xs">today</span> Today</button>
+        <button onclick="navWeek(0)" title="This week" class="tb-btn" style="margin-left:8px;padding:6px 16px;"><span class="mi mi-xs">today</span> Today</button>
       </div>
       <button class="tb-btn" onclick="toggleRecPanel()"><span class="mi mi-xs">star</span> Recommend</button>
       <button class="tb-btn" onclick="openExportModal()"><span class="mi mi-xs">download</span> Export</button>
@@ -323,7 +323,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
   </div>
   <div id="weekStats" class="stats-row"></div>
   <div class="sched-grid" id="weekGrid"></div>
-  <div id="recPanelWrap" style="margin-top:16px;"></div>
+  <div id="recPanelWrap" style="position:fixed;bottom:20px;right:20px;left:20px;max-width:600px;margin-left:auto;z-index:80;max-height:60vh;overflow-y:auto;"></div>
 </div>
 
 <!-- DAILY PAGE -->
@@ -927,6 +927,14 @@ async function loadAllData(){
       var rosterItems=spRoster.map(function(i){return spToRoster(i,fmR);});
       if(rosterItems.length){
         STAFF=rosterItems;
+        // Check for any default staff missing from SP roster and add them
+        for(var mi=0;mi<DEFAULT_STAFF.length;mi++){
+          var ds=DEFAULT_STAFF[mi];
+          if(!STAFF.find(function(s){return s.ini===ds.ini;})){
+            STAFF.push(ds);
+            try{await spAdd('ScheduleRoster',rosterToSP(ds));console.log('Added missing default staff: '+ds.name);}catch(e){}
+          }
+        }
       }else{
         STAFF=DEFAULT_STAFF.slice();
         // Seed SP with default roster
@@ -1228,8 +1236,11 @@ function renderWeek(){
     });
     html+='</tr></thead><tbody>';
 
-    // Filter staff for this shift
-    var shiftStaff=STAFF.filter(function(s){return s.active!==false&&s.shift===shift;});
+    // Filter and sort staff: leads/managers first, then techs
+    var shiftStaff=STAFF.filter(function(s){return s.active!==false&&s.shift===shift;}).sort(function(a,b){
+      var aP=ELEVATED_ROLES.indexOf(a.role)>=0?0:1;var bP=ELEVATED_ROLES.indexOf(b.role)>=0?0:1;
+      if(aP!==bP)return aP-bP;return a.name.localeCompare(b.name);
+    });
     shiftStaff.forEach(function(staff){
       html+='<tr>';
       var roleCls=staff.role==='MLS Lead'?'role-lead':ELEVATED_ROLES.indexOf(staff.role)>=0?'role-manager':staff.role==='MLS2'?'role-mls2':'role-tech';
@@ -1317,7 +1328,10 @@ function renderDay(){
     html+='<div class="daily-card"><div class="daily-card-hdr '+shClass+'" style="background:var(--'+(shift==='Morning'?'green':shift==='Evening'?'blue':'purple')+'-bg);color:var(--'+(shift==='Morning'?'green':shift==='Evening'?'blue':'purple')+');"><strong>'+shift.toUpperCase()+'</strong> | '+shTime+'</div>';
     html+='<div class="daily-card-body">';
 
-    var shiftStaff=STAFF.filter(function(s){return s.active!==false&&s.shift===shift;});
+    var shiftStaff=STAFF.filter(function(s){return s.active!==false&&s.shift===shift;}).sort(function(a,b){
+      var aP=ELEVATED_ROLES.indexOf(a.role)>=0?0:1;var bP=ELEVATED_ROLES.indexOf(b.role)>=0?0:1;
+      if(aP!==bP)return aP-bP;return a.name.localeCompare(b.name);
+    });
     if(!shiftStaff.length){html+='<div class="empty"><p>No staff assigned to this shift</p></div>';}
     else{
       shiftStaff.forEach(function(staff){
@@ -1655,7 +1669,7 @@ function toggleRecPanel(){
 }
 function openRecPanel(){
   var ws=new Date(curWeekStart);
-  var html='<div class="rec-panel"><h3><span class="mi">star</span> Weekly Recommendations</h3>';
+  var html='<div class="rec-panel" style="box-shadow:0 8px 32px rgba(0,0,0,.2);border:1px solid var(--g200);"><h3 style="display:flex;align-items:center;justify-content:space-between;"><span><span class="mi">star</span> Weekly Recommendations</span><button onclick="toggleRecPanel()" style="border:none;background:none;cursor:pointer;font-size:18px;color:var(--g400);">&times;</button></h3>';
   var anyRec=false;
   for(var i=0;i<7;i++){
     var dd=new Date(ws);dd.setDate(dd.getDate()+i);
