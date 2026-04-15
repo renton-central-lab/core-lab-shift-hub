@@ -1699,6 +1699,20 @@ function getBlkClass(bench){
 }
 function getBlkLabel(bench){return bench==='IO'?'X':bench||'+';}
 
+function isSwappedAssignment(userIni,dateStr){
+  // Check notes for [SWAP] marker (new swaps)
+  var shifts=SHIFTS;
+  for(var i=0;i<shifts.length;i++){
+    var a=getAssignment(userIni,dateStr,shifts[i]);
+    if(a&&a.notes&&a.notes.indexOf('[SWAP]')>=0)return true;
+  }
+  // Check approved SwapRequests (catches old swaps without [SWAP] marker)
+  return swapRequests.some(function(s){
+    if(s.status!=='Approved')return false;
+    return(s.requestBy===userIni&&s.requestDate===dateStr)||(s.swapWith===userIni&&s.targetDate===dateStr);
+  });
+}
+
 function renderLegend(){
   var items=[
     {cls:'hc',label:'H/C',desc:'Heme/Coag'},
@@ -1918,7 +1932,7 @@ function renderSingleShiftGrid(shift,dates,compact){
       var emptyDisplay=isDoubleShift&&!bench?'-':label;
       // Swap badge
       var swBadge='';
-      if(assign&&assign.notes&&assign.notes.indexOf('[SWAP]')>=0)swBadge='<div class="sw-badge">\u21C4</div>';
+      if(isSwappedAssignment(staff.ini,d.date))swBadge='<div class="sw-badge">\u21C4</div>';
       html+='<div class="blk '+cls+'" onclick="openAssignModal(\''+staff.ini+'\',\''+d.date+'\',\''+shift+'\')" title="'+esc(staff.name)+': '+label+'">'+emptyDisplay+badge+swBadge+'</div>';
     });
   });
@@ -2023,7 +2037,7 @@ function renderDay(){
         else if(isElev){bench='IO';}
         var cls=getBlkClass(bench);
         var label=getBlkLabel(bench);
-        var isSwapped=assign&&assign.notes&&assign.notes.indexOf('[SWAP]')>=0;
+        var isSwapped=isSwappedAssignment(staff.ini,ds);
         var cleanNotes=assign&&assign.notes?assign.notes.replace(/\[SWAP\][^;]*(;|$)/g,'').trim():'';
         var notes=cleanNotes?' - '+esc(cleanNotes):'';
         var trainingNote=(!assign&&isInTraining(staff,ds))?' - Training (auto)':'';
@@ -2145,7 +2159,7 @@ function renderMonth(){
           if(bench){
             var blkCls=getBlkClass(bench);
             var fullLabel=bench==='H/C'?'H/C':bench==='C/U'?'C/U':bench==='F'?'Float':bench==='T'?'Train':bench==='PTO'?'PTO':bench==='SL'?'Sick':bench==='IO'?'Office':bench==='OT'?'OT':bench==='WFH'?'WFH':bench;
-            var monthSwap=a&&a.notes&&a.notes.indexOf('[SWAP]')>=0?' <span style="font-size:8px;">\u21C4</span>':'';
+            var monthSwap=isSwappedAssignment(myIni,ds)?' <span style="font-size:8px;">\u21C4</span>':'';
             html+='<div class="blk '+blkCls+'" style="flex:1;min-height:32px;border-radius:6px;margin-top:3px;font-size:11px;font-weight:700;">'+fullLabel+monthSwap+'</div>';
           }
           // PTO traffic indicator
