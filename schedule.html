@@ -64,6 +64,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .nav-tab{padding:12px 20px;font-size:13px;font-weight:600;color:var(--g500);cursor:pointer;display:flex;align-items:center;gap:6px;border-bottom:2px solid transparent;white-space:nowrap;transition:color var(--dur-short) var(--me-standard),border-color var(--dur-short) var(--me-standard);}
 .nav-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
 .nav-tab:hover{color:var(--navy);}
+.nav-badge{background:var(--red);color:#fff;font-size:9px;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 4px;font-weight:700;margin-left:2px;}
+.nav-badge.show{display:inline-flex;}
 
 /* ═══ MAIN CONTENT ═══ */
 .main{max-width:1400px;margin:0 auto;padding:20px 24px 80px;}
@@ -225,6 +227,14 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .swap-card.pending-partner{border-left:4px solid var(--amber);}
 .swap-card.pending-lead{border-left:4px solid #1565c0;}
 .swap-card:hover{transform:translateY(-1px);}
+.action-tabs{display:flex;gap:0;border-bottom:1px solid var(--g200);margin-bottom:12px;}
+.action-tab{padding:8px 16px;font-size:12px;font-weight:600;color:var(--g400);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+.action-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+.action-tab:hover{color:var(--navy);}
+.staff-group{background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);overflow:hidden;margin-bottom:10px;}
+.staff-group-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--g50);border-bottom:1px solid var(--g100);}
+.staff-group-info{font-size:13px;font-weight:700;color:var(--g700);}
+.staff-group-sub{font-size:10px;color:var(--g400);}
 .swap-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .swap-title{font-size:14px;font-weight:700;color:var(--navy);}
 .swap-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;}
@@ -469,8 +479,8 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
   <div class="nav-tab active" id="navWeek" onclick="switchTab('week')"><span class="mi mi-sm">view_week</span> Weekly</div>
   <div class="nav-tab" id="navDay" onclick="switchTab('day')"><span class="mi mi-sm">today</span> Daily</div>
   <div class="nav-tab" id="navMonth" onclick="switchTab('month')"><span class="mi mi-sm">date_range</span> Monthly</div>
-  <div class="nav-tab" id="navSwap" onclick="switchTab('swap')"><span class="mi mi-sm">compare_arrows</span> Swap Requests</div>
-  <div class="nav-tab" id="navPto" onclick="switchTab('pto')"><span class="mi mi-sm">event</span> PTO</div>
+  <div class="nav-tab" id="navSwap" onclick="switchTab('swap')"><span class="mi mi-sm">compare_arrows</span> Swaps<span class="nav-badge" id="swapNavBadge"></span></div>
+  <div class="nav-tab" id="navPto" onclick="switchTab('pto')"><span class="mi mi-sm">event</span> PTO<span class="nav-badge" id="ptoNavBadge"></span></div>
   <div class="nav-tab" id="navHoliday" onclick="switchTab('holiday')"><span class="mi mi-sm">emoji_events</span> Holidays</div>
   <div class="nav-tab" id="navStats" onclick="switchTab('stats')" style="display:none"><span class="mi mi-sm">assessment</span> Stats</div>
   <div class="nav-tab" id="navAudit" onclick="switchTab('audit')" style="display:none"><span class="mi mi-sm">history</span> Audit</div>
@@ -1647,6 +1657,7 @@ function switchTab(tab){
 }
 
 function renderCurrentView(){
+  updateNavBadges();
   var active=document.querySelector('.page.active');
   if(active){
     if(active.id==='pageWeek')renderWeek();
@@ -1658,6 +1669,16 @@ function renderCurrentView(){
     else if(active.id==='pageStats')renderStats();else if(active.id==='pageAudit')renderAuditLog();else if(active.id==='pageAdmin')renderAdmin();
     else if(active.id==='pageRoster')renderRoster();
   }
+}
+
+function updateNavBadges(){
+  if(!isLead())return;
+  var pendingSwaps=swapRequests.filter(function(s){return s.status==='Pending Lead';}).length;
+  var pendingPTO=ptoRequests.filter(function(p){return p.status==='Pending';}).length;
+  var swBadge=document.getElementById('swapNavBadge');
+  var ptoBadge=document.getElementById('ptoNavBadge');
+  if(swBadge){swBadge.textContent=pendingSwaps;swBadge.classList.toggle('show',pendingSwaps>0);}
+  if(ptoBadge){ptoBadge.textContent=pendingPTO;ptoBadge.classList.toggle('show',pendingPTO>0);}
 }
 
 function benchChip(bench,isRec){
@@ -2166,25 +2187,42 @@ function renderSwaps(){
   }
 
   var today=fmtDate(new Date());
+  var needsAction=filtered.filter(function(s){return s.status==='Pending Lead'||(s.status==='Pending Partner'&&me&&s.swapWith===me.initials);});
   var active=filtered.filter(function(s){
     var lastDate=s.targetDate>s.requestDate?s.targetDate:s.requestDate;
-    return lastDate>=today||s.status==='Pending Partner'||s.status==='Pending Lead';
+    var isPending=s.status==='Pending Partner'||s.status==='Pending Lead';
+    return(lastDate>=today||isPending)&&needsAction.indexOf(s)<0;
   });
   var past=filtered.filter(function(s){
     var lastDate=s.targetDate>s.requestDate?s.targetDate:s.requestDate;
-    return lastDate<today&&s.status!=='Pending Partner'&&s.status!=='Pending Lead';
+    return lastDate<today&&s.status!=='Pending Partner'&&s.status!=='Pending Lead'&&needsAction.indexOf(s)<0;
   });
 
   var html='';
-  if(active.length){
-    active.forEach(function(s){html+=renderSwapCard(s);});
+  if(isLead()||needsAction.length){
+    var curTab=window._swapActionTab||'action';
+    html+='<div class="action-tabs">';
+    html+='<div class="action-tab'+(curTab==='action'?' active':'')+'" onclick="window._swapActionTab=\'action\';renderSwaps();">Needs action ('+needsAction.length+')</div>';
+    html+='<div class="action-tab'+(curTab==='active'?' active':'')+'" onclick="window._swapActionTab=\'active\';renderSwaps();">All active ('+active.length+')</div>';
+    html+='<div class="action-tab'+(curTab==='past'?' active':'')+'" onclick="window._swapActionTab=\'past\';renderSwaps();">Past ('+past.length+')</div>';
+    html+='</div>';
+    var tabItems=curTab==='action'?needsAction:curTab==='active'?active:past;
+    if(!tabItems.length){
+      html+='<div style="padding:20px;text-align:center;font-size:12px;color:var(--g400);">No requests in this category</div>';
+    }else{
+      tabItems.forEach(function(s){html+=renderSwapCard(s);});
+    }
   }else{
-    html+='<div style="padding:16px;font-size:12px;color:var(--g400);text-align:center;">No active swap requests</div>';
-  }
-  if(past.length){
-    html+='<div style="margin-top:16px;"><div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.shift-toggle\').style.transform=this.nextElementSibling.style.display===\'none\'?\'rotate(-90deg)\':\'\'"><span style="font-size:12px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;">Past ('+past.length+')</span><span class="shift-toggle" style="font-size:12px;color:var(--g300);transform:rotate(-90deg);">\u25BC</span></div><div style="display:none;">';
-    past.forEach(function(s){html+=renderSwapCard(s);});
-    html+='</div></div>';
+    // Tech with no pending actions: simple list
+    var allActive=needsAction.concat(active);
+    if(allActive.length){
+      allActive.forEach(function(s){html+=renderSwapCard(s);});
+    }
+    if(past.length){
+      html+='<div style="margin-top:16px;"><div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.shift-toggle\').style.transform=this.nextElementSibling.style.display===\'none\'?\'rotate(-90deg)\':\'\'"><span style="font-size:12px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;">Past ('+past.length+')</span><span class="shift-toggle" style="font-size:12px;color:var(--g300);transform:rotate(-90deg);">\u25BC</span></div><div style="display:none;">';
+      past.forEach(function(s){html+=renderSwapCard(s);});
+      html+='</div></div>';
+    }
   }
   document.getElementById('swapList').innerHTML=html;
 }
@@ -2207,7 +2245,6 @@ function renderSwapCard(s){
   }
   if(s.status==='Pending Lead'&&s.notes)html+='<div style="font-size:10px;color:var(--g400);margin-top:4px;">'+esc(s.notes)+'</div>';
   html+='</div>';
-
   html+='<div class="swap-actions">';
   if(s.status==='Pending Partner'){
     if(isPartner){
@@ -2224,11 +2261,10 @@ function renderSwapCard(s){
     html+='<button class="btn danger" onclick="denySwap(\''+s.id+'\')"><span class="mi mi-xs">close</span> Deny</button>';
   }
   if(isLead()&&(s.status==='Pending Partner'||s.status==='Pending Lead')&&!isRequester){
-    html+='<button class="btn" onclick="editSwap(\''+s.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
-    html+='<button class="btn" style="color:var(--red);" onclick="deleteSwap(\''+s.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
+    html+='<button class="btn" onclick="editSwap(\''+s.id+'\')"><span class="mi mi-xs">edit</span></button>';
+    html+='<button class="btn" style="color:var(--red);" onclick="deleteSwap(\''+s.id+'\')"><span class="mi mi-xs">delete</span></button>';
   }
-  html+='</div>';
-  html+='</div>';
+  html+='</div></div>';
   return html;
 }
 
@@ -3008,21 +3044,65 @@ function renderPTO(){
   }
 
   var today=fmtDate(new Date());
-  var active=filtered.filter(function(p){return p.endDate>=today||p.status==='Pending';});
-  var past=filtered.filter(function(p){return p.endDate<today&&p.status!=='Pending';});
+  var needsAction=filtered.filter(function(p){return p.status==='Pending';});
+  var active=filtered.filter(function(p){return p.status!=='Pending'&&p.endDate>=today;});
+  var past=filtered.filter(function(p){return p.status!=='Pending'&&p.endDate<today;});
 
+  // For leads: show action tabs with grouped cards
+  // For techs: simpler list (no action tab since they can't approve)
   var html='';
-  if(active.length){
-    active.forEach(function(p){html+=renderPTOCard(p);});
+  if(isLead()){
+    var curTab=window._ptoActionTab||'action';
+    html+='<div class="action-tabs">';
+    html+='<div class="action-tab'+(curTab==='action'?' active':'')+'" onclick="window._ptoActionTab=\'action\';renderPTO();">Needs action ('+needsAction.length+')</div>';
+    html+='<div class="action-tab'+(curTab==='active'?' active':'')+'" onclick="window._ptoActionTab=\'active\';renderPTO();">All active ('+active.length+')</div>';
+    html+='<div class="action-tab'+(curTab==='past'?' active':'')+'" onclick="window._ptoActionTab=\'past\';renderPTO();">Past ('+past.length+')</div>';
+    html+='</div>';
+
+    var tabItems=curTab==='action'?needsAction:curTab==='active'?active:past;
+    html+=renderPTOGrouped(tabItems);
   }else{
-    html+='<div style="padding:16px;font-size:12px;color:var(--g400);text-align:center;">No active PTO requests</div>';
-  }
-  if(past.length){
-    html+='<div style="margin-top:16px;"><div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.shift-toggle\').style.transform=this.nextElementSibling.style.display===\'none\'?\'rotate(-90deg)\':\'\'"><span style="font-size:12px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;">Past ('+past.length+')</span><span class="shift-toggle" style="font-size:12px;color:var(--g300);transform:rotate(-90deg);">\u25BC</span></div><div style="display:none;">';
-    past.forEach(function(p){html+=renderPTOCard(p);});
-    html+='</div></div>';
+    // Tech view: simple list, active then collapsed past
+    if(needsAction.length||active.length){
+      needsAction.concat(active).forEach(function(p){html+=renderPTOCard(p);});
+    }
+    if(past.length){
+      html+='<div style="margin-top:16px;"><div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.shift-toggle\').style.transform=this.nextElementSibling.style.display===\'none\'?\'rotate(-90deg)\':\'\'"><span style="font-size:12px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;">Past ('+past.length+')</span><span class="shift-toggle" style="font-size:12px;color:var(--g300);transform:rotate(-90deg);">\u25BC</span></div><div style="display:none;">';
+      past.forEach(function(p){html+=renderPTOCard(p);});
+      html+='</div></div>';
+    }
+    if(!needsAction.length&&!active.length&&!past.length){
+      html+='<div class="empty"><span class="mi">event</span><h3>No PTO requests</h3></div>';
+    }
   }
   document.getElementById('ptoList').innerHTML=html;
+}
+
+function renderPTOGrouped(items){
+  if(!items.length)return'<div style="padding:20px;text-align:center;font-size:12px;color:var(--g400);">No requests in this category</div>';
+  // Group by staff
+  var groups={};var order=[];
+  items.forEach(function(p){
+    if(!groups[p.requestBy]){groups[p.requestBy]={staff:null,items:[]};order.push(p.requestBy);}
+    groups[p.requestBy].items.push(p);
+    if(!groups[p.requestBy].staff)groups[p.requestBy].staff=STAFF.find(function(s){return s.ini===p.requestBy;});
+  });
+  var html='';
+  order.forEach(function(ini){
+    var g=groups[ini];
+    var staff=g.staff||{ini:ini,name:ini,role:'',picture:'',nickname:''};
+    var pendCount=g.items.filter(function(p){return p.status==='Pending';}).length;
+    var appCount=g.items.filter(function(p){return p.status==='Approved';}).length;
+    var summary=[];
+    if(pendCount)summary.push(pendCount+' pending');
+    if(appCount)summary.push(appCount+' approved');
+    if(!summary.length)summary.push(g.items.length+' request'+(g.items.length>1?'s':''));
+    html+='<div class="staff-group">';
+    html+='<div class="staff-group-hdr">'+staffAvatar(staff,28)+'<div><div class="staff-group-info">'+esc(staff.name)+'</div><div class="staff-group-sub">'+summary.join(', ')+'</div></div></div>';
+    g.items.forEach(function(p){html+=renderPTOCard(p);});
+    html+='</div>';
+  });
+  return html;
 }
 
 function renderPTOCard(p){
@@ -3030,25 +3110,23 @@ function renderPTOCard(p){
   var isRequester=me&&p.requestBy===me.initials;
   var conflicts=getPTOConflicts(p.startDate,p.endDate,p.id);
   var workdays=countWorkdays(p.startDate,p.endDate);
-  var html='<div class="swap-card '+sc+'">';
-  html+='<div class="swap-hdr"><div class="swap-title">'+esc(p.requestByName)+(isLead()?' <span style="font-size:11px;font-weight:400;color:var(--g400);">(Seniority #'+getSeniorityRank(p.requestBy)+')</span>':'')+'</div><span class="swap-badge '+sc+'">'+esc(p.status)+'</span></div>';
-  html+='<div class="swap-detail">';
-  html+='<strong>Dates:</strong> '+esc(p.startDate)+' to '+esc(p.endDate)+' ('+workdays+' workdays, '+workdays*8+'h)<br>';
-  html+='<strong>Type:</strong> '+esc(p.requestType)+' PTO<br>';
-  if(p.reason)html+='<strong>Reason:</strong> '+esc(p.reason)+'<br>';
-  if(conflicts.length){
-    html+='<div style="margin:6px 0;padding:6px 10px;background:var(--amber-bg);border-radius:6px;font-size:11px;"><strong style="color:var(--amber);">Conflicts with:</strong> ';
-    html+=conflicts.map(function(c){return esc(c.requestByName)+' ('+esc(c.startDate)+' to '+esc(c.endDate)+', '+esc(c.status)+')';}).join(', ');
+  var html='<div class="swap-card '+sc+'" style="border-radius:0;margin:0;border-left:none;border-right:none;border-top:none;">';
+  html+='<div class="swap-hdr"><div class="swap-title" style="font-size:12px;">'+esc(p.startDate)+' to '+esc(p.endDate)+' <span style="font-weight:400;color:var(--g400);">('+workdays+'d, '+workdays*8+'h) '+esc(p.requestType)+'</span></div><span class="swap-badge '+sc+'">'+esc(p.status)+'</span></div>';
+  if(p.reason||conflicts.length||p.coverageImpact||p.approvedBy){
+    html+='<div class="swap-detail" style="padding-top:4px;">';
+    if(p.reason)html+='<strong>Reason:</strong> '+esc(p.reason)+'<br>';
+    if(conflicts.length){
+      html+='<div style="margin:4px 0;padding:4px 8px;background:var(--amber-bg);border-radius:4px;font-size:10px;"><strong style="color:var(--amber);">Conflicts:</strong> ';
+      html+=conflicts.map(function(c){return esc(c.requestByName)+' ('+esc(c.status)+')';}).join(', ')+'</div>';
+    }
+    if(p.coverageImpact)html+='<div style="margin:4px 0;padding:4px 8px;background:var(--red-bg);border-radius:4px;font-size:10px;color:var(--red);">'+esc(p.coverageImpact)+'</div>';
+    if(p.status==='Approved'&&p.approvedBy)html+='<strong>Approved by:</strong> '+esc(p.approvedBy)+' on '+esc(p.approvedDate)+'<br>';
+    if(p.status==='Denied'&&p.approvedBy){
+      html+='<strong>Denied by:</strong> '+esc(p.approvedBy)+' on '+esc(p.approvedDate)+'<br>';
+      if(p.deniedReason)html+='<strong>Reason:</strong> '+esc(p.deniedReason)+'<br>';
+    }
     html+='</div>';
   }
-  if(p.coverageImpact)html+='<div style="margin:4px 0;padding:6px 10px;background:var(--red-bg);border-radius:6px;font-size:11px;color:var(--red);"><strong>Coverage impact:</strong> '+esc(p.coverageImpact)+'</div>';
-  if(p.status==='Approved'&&p.approvedBy)html+='<strong>Approved by:</strong> '+esc(p.approvedBy)+' on '+esc(p.approvedDate)+'<br>';
-  if(p.status==='Denied'&&p.approvedBy){
-    html+='<strong>Denied by:</strong> '+esc(p.approvedBy)+' on '+esc(p.approvedDate)+'<br>';
-    if(p.deniedReason)html+='<strong>Reason:</strong> '+esc(p.deniedReason)+'<br>';
-  }
-  html+='</div>';
-
   html+='<div class="swap-actions">';
   if(p.status==='Pending'&&isLead()){
     html+='<button class="btn primary" onclick="approvePTO(\''+p.id+'\')"><span class="mi mi-xs">check</span> Approve</button>';
@@ -3059,11 +3137,10 @@ function renderPTOCard(p){
     html+='<button class="btn" style="color:var(--red);" onclick="deletePTO(\''+p.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
   }
   if(isLead()&&!isRequester){
-    html+='<button class="btn" onclick="editPTO(\''+p.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
-    html+='<button class="btn" style="color:var(--red);" onclick="deletePTO(\''+p.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
+    html+='<button class="btn" onclick="editPTO(\''+p.id+'\')"><span class="mi mi-xs">edit</span></button>';
+    html+='<button class="btn" style="color:var(--red);" onclick="deletePTO(\''+p.id+'\')"><span class="mi mi-xs">delete</span></button>';
   }
-  html+='</div>';
-  html+='</div>';
+  html+='</div></div>';
   return html;
 }
 
