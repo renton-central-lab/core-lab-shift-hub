@@ -221,8 +221,9 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .swap-card.pending{border-left:4px solid var(--amber);}
 .swap-card.approved{border-left:4px solid var(--green);}
 .swap-card.denied{border-left:4px solid var(--red);}
-.swap-card.waitlisted{border-left:4px solid var(--purple);}
-.swap-badge.waitlisted{background:var(--purple-bg);color:var(--purple);}
+.swap-card.declined{border-left:4px solid var(--red);}
+.swap-card.pending-partner{border-left:4px solid var(--amber);}
+.swap-card.pending-lead{border-left:4px solid #1565c0;}
 .swap-card:hover{transform:translateY(-1px);}
 .swap-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .swap-title{font-size:14px;font-weight:700;color:var(--navy);}
@@ -300,6 +301,29 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .fairness-fill.slight{background:var(--amber);}
 .fairness-fill.heavy{background:var(--red);}
 
+/* ═══ NOTIFICATION BELL ═══ */
+.notif-bell{position:relative;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background var(--dur-short) var(--me-standard);}
+.notif-bell:hover{background:rgba(255,255,255,.25);}
+.notif-bell .mi{color:#fff;font-size:20px;}
+.notif-badge{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;display:none;}
+.notif-badge.show{display:flex;}
+.notif-panel{position:absolute;top:44px;right:0;width:340px;max-height:420px;background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);box-shadow:var(--shadow-3);overflow:hidden;display:none;z-index:100;}
+.notif-panel.open{display:block;}
+.notif-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--g100);font-size:13px;font-weight:700;color:var(--g700);}
+.notif-list{overflow-y:auto;max-height:360px;}
+.notif-item{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--g50);cursor:pointer;transition:background var(--dur-short) var(--me-standard);}
+.notif-item:hover{background:var(--teal-bg);}
+.notif-item.unread{background:rgba(0,121,107,.04);}
+.notif-item.unread::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:5px;}
+.notif-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.notif-icon.swap{background:#e3f2fd;color:#1565c0;}
+.notif-icon.pto{background:#ffebee;color:#b71c1c;}
+.notif-icon.info{background:var(--teal-bg);color:var(--teal);}
+.notif-body{flex:1;min-width:0;}
+.notif-msg{font-size:11px;color:var(--g700);line-height:1.3;}
+.notif-time{font-size:9px;color:var(--g400);margin-top:2px;}
+.notif-empty{padding:24px 16px;text-align:center;font-size:12px;color:var(--g400);}
+
 /* ═══ PROFILE MODAL ═══ */
 .prof-section{margin:12px 0;padding:8px 0;border-bottom:1px solid var(--g100);}
 .prof-section:last-child{border-bottom:none;}
@@ -316,6 +340,9 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
   .hdr-chip{font-size:8px;padding:3px 6px;}
   .hdr-chip#hdr-date{display:none;}
   .hdr-avatar{width:30px;height:30px;font-size:11px;}
+  .notif-bell{width:30px;height:30px;}
+  .notif-bell .mi{font-size:18px;}
+  .notif-panel{position:fixed;top:auto;bottom:0;left:0;right:0;width:100%;max-height:70vh;border-radius:16px 16px 0 0;animation:modalSlideUp var(--dur-med) var(--me-decelerate);}
   .hdr-logo{width:28px;height:28px;margin-right:8px;}
   .nav{top:50px;-webkit-overflow-scrolling:touch;}
   .nav-tab{font-size:10px;padding:8px 10px;min-width:fit-content;white-space:nowrap;}
@@ -425,6 +452,14 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
   <div class="hdr-right">
     <div class="hdr-chip" id="hdr-date"></div>
     <div class="hdr-chip" id="hdr-sync"><span class="mi mi-xs">sync</span> Synced</div>
+    <div class="notif-bell" id="notif-bell" onclick="toggleNotifPanel()" title="Notifications" style="position:relative;">
+      <span class="mi">notifications</span>
+      <span class="notif-badge" id="notif-badge">0</span>
+      <div class="notif-panel" id="notif-panel">
+        <div class="notif-hdr"><span>Notifications</span><button class="tb-btn" style="font-size:9px;padding:2px 8px;" onclick="markAllRead(event)">Mark all read</button></div>
+        <div class="notif-list" id="notif-list"></div>
+      </div>
+    </div>
     <div class="hdr-avatar" id="hdr-avatar" title="User" onclick="openProfile()"></div>
   </div>
 </div>
@@ -513,8 +548,10 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
       <button class="tb-btn primary" onclick="openSwapModal()"><span class="mi mi-xs">add</span> New Request</button>
       <select id="swapFilter" onchange="renderSwaps();saveUIState()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
         <option value="">All</option>
-        <option value="Pending">Pending</option>
+        <option value="Pending Partner">Pending Partner</option>
+        <option value="Pending Lead">Pending Lead</option>
         <option value="Approved">Approved</option>
+        <option value="Declined">Declined</option>
         <option value="Denied">Denied</option>
       </select>
     </div>
@@ -533,7 +570,6 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
         <option value="Pending">Pending</option>
         <option value="Approved">Approved</option>
         <option value="Denied">Denied</option>
-        <option value="Waitlisted">Waitlisted</option>
       </select>
       <select id="ptoTypeFilter" onchange="renderPTO();saveUIState()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
         <option value="">All Types</option>
@@ -932,6 +968,7 @@ var swapRequests=[];
 var ptoRequests=[];
 var holidayAssignments=[];
 var auditLog=[];
+var notifications=[];
 var _auditLoaded=false;
 var me=null;
 var curWeekStart=null;
@@ -1260,6 +1297,16 @@ function holidayToSP(h){
   return spSet(fm,[['Title',h.id],['Year',h.year],['UserInitials',h.userIni],['UserName',h.userName],['HolidayName',h.holidayName],['HolidayDate',h.holidayDate],['HolidayType',h.holidayType],['Assigned',h.assigned?'true':'false']]);
 }
 
+// Notification SP mapping
+function spToNotif(item,fm){
+  var g=function(n){return spVal(item,n,fm);};
+  return{id:item.Title||'',_spId:item.Id,recipient:g('Recipient')||'',notifType:g('NotifType')||'',message:g('Message')||'',isRead:(g('IsRead')||'No')==='Yes',relatedId:g('RelatedId')||'',relatedTab:g('RelatedTab')||'',created:g('Created')||item.Created||''};
+}
+function notifToSP(n){
+  var fm=_fieldMaps['ScheduleNotifications']||{};
+  return spSet(fm,[['Title',n.id],['Recipient',n.recipient],['NotifType',n.notifType],['Message',n.message],['IsRead',n.isRead?'Yes':'No'],['RelatedId',n.relatedId||''],['RelatedTab',n.relatedTab||'']]);
+}
+
 // Audit SP mapping
 function spToAuditEntry(item,fm){
   var g=function(n){return spVal(item,n,fm);};
@@ -1339,7 +1386,8 @@ async function loadAllData(){
       _lastSyncISO=new Date().toISOString();
     }
     loadProfileCache();
-    saveProfileCache();// update cache from SP data
+    saveProfileCache();
+    loadNotifications();
     // Show roster and holiday auto-assign for leads
     if(isLead()){document.getElementById('navRoster').style.display='';document.getElementById('navStats').style.display='';document.getElementById('navAudit').style.display='';document.getElementById('holAutoBtn').style.display='';document.getElementById('holClearBtn').style.display='';document.getElementById('recBtn').style.display='';document.getElementById('monthShiftFilter').style.display='';if(me&&me.initials==='JM'){document.getElementById('auditClearBtn').style.display='';document.getElementById('navAdmin').style.display='';}}else{document.getElementById('monthShiftFilter').style.display='none';}
     document.getElementById('hdr-sync').innerHTML='<span class="mi mi-xs">sync</span> Synced '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -1724,9 +1772,10 @@ function renderWeek(){
     var hasStaff=STAFF.some(function(s){return s.active!==false&&s.shift===sh;});
     var covOk=true;
     if(hasStaff){dates.forEach(function(d){var cov=getCoverage(d.date,sh);if(cov.missing.length)covOk=false;});}
+    var shTime=sh==='Morning'?'0700-1530':sh==='Evening'?'1500-2330':'2300-0730';
     var active=_activeShiftTab===sh?' active':'';
     html+='<div class="shift-tab '+cls+active+'" onclick="switchShiftTab(\''+sh+'\')">';
-    html+=sh+' <span class="shift-tab-count">'+staffCount+'</span>';
+    html+=sh+' <span class="shift-tab-count">'+shTime+' &middot; '+staffCount+'</span>';
     if(isLead()&&hasStaff)html+=' <span class="cov-dot '+(covOk?'ok':'gap')+'"></span>';
     html+='</div>';
   });
@@ -1740,7 +1789,7 @@ function renderWeek(){
 
   // Lead toggle
   var isElevated=isLead();
-  html+='<div class="lead-toggle" onclick="toggleLeadDisplay()"><div class="lead-tgl'+(_showLeads?' on':'')+'"></div> Show leads/managers</div>';
+  html+='<div class="lead-toggle" onclick="toggleLeadDisplay()"><div class="lead-tgl'+(_showLeads?' on':'')+'"></div> Show leadership</div>';
 
   if(_activeShiftTab==='All'){
     html+=renderAllShiftsView(dates);
@@ -2107,7 +2156,6 @@ function jumpToDay(ds){
 function renderSwaps(){
   var filter=document.getElementById('swapFilter').value;
   var filtered=swapRequests.slice();
-  // Non-leads only see swaps they're involved in
   if(!isLead()&&me){filtered=filtered.filter(function(s){return s.requestBy===me.initials||s.swapWith===me.initials;});}
   if(filter)filtered=filtered.filter(function(s){return s.status===filter;});
   filtered.sort(function(a,b){return(b.requestDate||'').localeCompare(a.requestDate||'');});
@@ -2117,52 +2165,71 @@ function renderSwaps(){
     return;
   }
 
-  var html='';
-  filtered.forEach(function(s){
-    var sc=s.status.toLowerCase();
-    var isRequester=me&&s.requestBy===me.initials;
-    var isPartner=me&&s.swapWith===me.initials;
-    html+='<div class="swap-card '+sc+'">';
-    html+='<div class="swap-hdr"><div class="swap-title">'+esc(s.requestByName)+' &harr; '+esc(s.swapWithName)+'</div><span class="swap-badge '+sc+'">'+esc(s.status)+'</span>';
-    // Partner-approved badge
-    if(s.status==='Approved'&&!isLead()&&s.approvedBy){
-      html+=' <span style="font-size:8px;background:var(--teal-bg);color:var(--teal);padding:2px 6px;border-radius:4px;">Peer approved</span>';
-    }
-    html+='</div>';
-    html+='<div class="swap-detail">';
-    html+='<strong>'+esc(s.requestByName)+':</strong> '+esc(s.requestDate)+' ('+esc(s.requestShift)+')<br>';
-    html+='<strong>'+esc(s.swapWithName)+':</strong> '+esc(s.targetDate)+'<br>';
-    if(s.reason)html+='<strong>Reason:</strong> '+esc(s.reason)+'<br>';
-    if(s.approvedBy)html+='<strong>'+(s.status==='Approved'?'Approved':'Denied')+' by:</strong> '+esc(s.approvedBy)+' on '+esc(s.approvedDate)+'<br>';
-    if(s.notes)html+='<strong>Notes:</strong> '+esc(s.notes);
-    html+='</div>';
+  var today=fmtDate(new Date());
+  var active=filtered.filter(function(s){
+    var lastDate=s.targetDate>s.requestDate?s.targetDate:s.requestDate;
+    return lastDate>=today||s.status==='Pending Partner'||s.status==='Pending Lead';
+  });
+  var past=filtered.filter(function(s){
+    var lastDate=s.targetDate>s.requestDate?s.targetDate:s.requestDate;
+    return lastDate<today&&s.status!=='Pending Partner'&&s.status!=='Pending Lead';
+  });
 
-    html+='<div class="swap-actions">';
-    if(s.status==='Pending'){
-      if(isPartner){
-        // Partner sees Accept/Decline (works for both techs and leads)
-        html+='<button class="btn primary" onclick="approveSwap(\''+s.id+'\')"><span class="mi mi-xs">check</span> Accept</button>';
-        html+='<button class="btn danger" onclick="denySwap(\''+s.id+'\')"><span class="mi mi-xs">close</span> Decline</button>';
-      }else if(isLead()&&!isRequester){
-        // Lead who is NOT involved sees Approve/Deny
-        html+='<button class="btn primary" onclick="approveSwap(\''+s.id+'\')"><span class="mi mi-xs">check</span> Approve</button>';
-        html+='<button class="btn danger" onclick="denySwap(\''+s.id+'\')"><span class="mi mi-xs">close</span> Deny</button>';
-      }
-      // Requester can edit/delete their own pending swaps
-      if(isRequester){
-        html+='<button class="btn" onclick="editSwap(\''+s.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
-        html+='<button class="btn" style="color:var(--red);" onclick="deleteSwap(\''+s.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
-      }
+  var html='';
+  if(active.length){
+    active.forEach(function(s){html+=renderSwapCard(s);});
+  }else{
+    html+='<div style="padding:16px;font-size:12px;color:var(--g400);text-align:center;">No active swap requests</div>';
+  }
+  if(past.length){
+    html+='<div style="margin-top:16px;"><div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.shift-toggle\').style.transform=this.nextElementSibling.style.display===\'none\'?\'rotate(-90deg)\':\'\'"><span style="font-size:12px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;">Past ('+past.length+')</span><span class="shift-toggle" style="font-size:12px;color:var(--g300);transform:rotate(-90deg);">\u25BC</span></div><div style="display:none;">';
+    past.forEach(function(s){html+=renderSwapCard(s);});
+    html+='</div></div>';
+  }
+  document.getElementById('swapList').innerHTML=html;
+}
+
+function renderSwapCard(s){
+  var sc=s.status.toLowerCase().replace(/ /g,'-');
+  var isRequester=me&&s.requestBy===me.initials;
+  var isPartner=me&&s.swapWith===me.initials;
+  var html='<div class="swap-card '+sc+'">';
+  var badgeColor=s.status==='Pending Partner'?'var(--amber)':s.status==='Pending Lead'?'#1565c0':s.status==='Approved'?'var(--green)':s.status==='Denied'||s.status==='Declined'?'var(--red)':'var(--g400)';
+  html+='<div class="swap-hdr"><div class="swap-title">'+esc(s.requestByName)+' &harr; '+esc(s.swapWithName)+'</div><span class="swap-badge" style="background:'+badgeColor+';color:#fff;">'+esc(s.status)+'</span></div>';
+  html+='<div class="swap-detail">';
+  html+='<strong>'+esc(s.requestByName)+':</strong> '+esc(s.requestDate)+' ('+esc(s.requestShift)+')<br>';
+  html+='<strong>'+esc(s.swapWithName)+':</strong> '+esc(s.targetDate)+'<br>';
+  if(s.reason)html+='<strong>Reason:</strong> '+esc(s.reason)+'<br>';
+  if(s.status==='Approved'&&s.approvedBy)html+='<strong>Approved by:</strong> '+esc(s.approvedBy)+' on '+esc(s.approvedDate)+'<br>';
+  if((s.status==='Denied'||s.status==='Declined')&&s.approvedBy){
+    html+='<strong>'+(s.status==='Declined'?'Declined':'Denied')+' by:</strong> '+esc(s.approvedBy)+' on '+esc(s.approvedDate)+'<br>';
+    if(s.notes)html+='<strong>Reason:</strong> '+esc(s.notes)+'<br>';
+  }
+  if(s.status==='Pending Lead'&&s.notes)html+='<div style="font-size:10px;color:var(--g400);margin-top:4px;">'+esc(s.notes)+'</div>';
+  html+='</div>';
+
+  html+='<div class="swap-actions">';
+  if(s.status==='Pending Partner'){
+    if(isPartner){
+      html+='<button class="btn primary" onclick="partnerAcceptSwap(\''+s.id+'\')"><span class="mi mi-xs">check</span> Accept</button>';
+      html+='<button class="btn danger" onclick="partnerDeclineSwap(\''+s.id+'\')"><span class="mi mi-xs">close</span> Decline</button>';
     }
-    // Leads can always edit/delete (if not already shown as requester)
-    if(isLead()&&!isRequester){
+    if(isRequester){
       html+='<button class="btn" onclick="editSwap(\''+s.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
       html+='<button class="btn" style="color:var(--red);" onclick="deleteSwap(\''+s.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
     }
-    html+='</div>';
-    html+='</div>';
-  });
-  document.getElementById('swapList').innerHTML=html;
+  }
+  if(s.status==='Pending Lead'&&isLead()){
+    html+='<button class="btn primary" onclick="approveSwap(\''+s.id+'\')"><span class="mi mi-xs">check</span> Approve</button>';
+    html+='<button class="btn danger" onclick="denySwap(\''+s.id+'\')"><span class="mi mi-xs">close</span> Deny</button>';
+  }
+  if(isLead()&&(s.status==='Pending Partner'||s.status==='Pending Lead')&&!isRequester){
+    html+='<button class="btn" onclick="editSwap(\''+s.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
+    html+='<button class="btn" style="color:var(--red);" onclick="deleteSwap(\''+s.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
+  }
+  html+='</div>';
+  html+='</div>';
+  return html;
 }
 
 function openSwapModal(){
@@ -2187,7 +2254,7 @@ async function submitSwapRequest(){
     swapWith:swapWith,swapWithName:swapWithStaff?swapWithStaff.name:'',
     targetDate:document.getElementById('swTargetDate').value,
     reason:document.getElementById('swReason').value,
-    status:'Pending',approvedBy:'',approvedDate:'',notes:''
+    status:'Pending Partner',approvedBy:'',approvedDate:'',notes:''
   };
   swapRequests.unshift(s);
   closeModal('swapModal');
@@ -2195,6 +2262,34 @@ async function submitSwapRequest(){
   logAudit('add','swap','Swap requested: '+me.fullName+' <> '+(swapWithStaff?swapWithStaff.name:''),s.id);
   toast('Swap request submitted');
   try{await spAdd('SwapRequests',swapToSP(s));}catch(e){console.error('Swap save failed:',e);toast('Failed to save');}
+  // Notify swap partner
+  await sendNotification(swapWith,'swap-partner',me.fullName+' wants to swap shifts with you ('+s.requestDate+')',s.id,'swap');
+}
+
+async function partnerAcceptSwap(id){
+  var s=swapRequests.find(function(x){return x.id===id;});
+  if(!s||!confirm('Accept this swap request?'))return;
+  s.status='Pending Lead';s.notes=(s.notes?s.notes+'; ':'')+'Partner accepted by '+me.fullName;
+  logAudit('edit','swap','Partner accepted swap: '+s.requestByName+' <> '+s.swapWithName,s.id);
+  renderSwaps();toast('Swap accepted, awaiting lead approval');
+  try{var sp=await spGet('SwapRequests',"Title eq '"+s.id+"'");if(sp.length)await spUpdate('SwapRequests',sp[0].Id,swapToSP(s));}catch(e){}
+  // Notify requester
+  await sendNotification(s.requestBy,'swap-status',s.swapWithName+' accepted your swap. Awaiting lead approval.',s.id,'swap');
+  // Notify leads
+  await sendNotificationToLeads('swap-partner',s.requestByName+' and '+s.swapWithName+' swap needs approval ('+s.requestDate+')',s.id,'swap');
+}
+
+async function partnerDeclineSwap(id){
+  var s=swapRequests.find(function(x){return x.id===id;});
+  if(!s)return;
+  var reason=prompt('Reason for declining (optional):');
+  s.status='Declined';s.approvedBy=me.fullName;s.approvedDate=fmtDate(new Date());
+  if(reason)s.notes=reason;
+  logAudit('deny','swap','Partner declined swap: '+s.requestByName+' <> '+s.swapWithName+(reason?' ('+reason+')':''),s.id);
+  renderSwaps();toast('Swap declined');
+  try{var sp=await spGet('SwapRequests',"Title eq '"+s.id+"'");if(sp.length)await spUpdate('SwapRequests',sp[0].Id,swapToSP(s));}catch(e){}
+  // Notify requester
+  await sendNotification(s.requestBy,'swap-status',s.swapWithName+' declined your swap request.'+(reason?' Reason: '+reason:''),s.id,'swap');
 }
 
 async function approveSwap(id){
@@ -2222,6 +2317,9 @@ async function approveSwap(id){
     var existing=await spGet('SwapRequests',"Title eq '"+s.id+"'");
     if(existing.length)await spUpdate('SwapRequests',existing[0].Id,swapToSP(s));
   }catch(e){console.error('Swap status update failed:',e);}
+  // Notify both techs
+  await sendNotification(s.requestBy,'swap-status','Your swap with '+s.swapWithName+' has been approved by '+me.fullName+'.',s.id,'swap');
+  await sendNotification(s.swapWith,'swap-status','Your swap with '+s.requestByName+' has been approved by '+me.fullName+'.',s.id,'swap');
 }
 
 async function denySwap(id){
@@ -2233,6 +2331,9 @@ async function denySwap(id){
   logAudit('deny','swap','Denied swap: '+s.requestByName+' <> '+s.swapWithName+(reason?' ('+reason+')':''),s.id);
   renderSwaps();toast('Swap denied');
   try{var existing=await spGet('SwapRequests',"Title eq '"+s.id+"'");if(existing.length)await spUpdate('SwapRequests',existing[0].Id,swapToSP(s));}catch(e){console.error('Swap update failed:',e);}
+  // Notify both techs
+  await sendNotification(s.requestBy,'swap-status','Your swap with '+s.swapWithName+' was denied by '+me.fullName+'.'+(reason?' Reason: '+reason:''),s.id,'swap');
+  await sendNotification(s.swapWith,'swap-status','Swap between '+s.requestByName+' and you was denied by '+me.fullName+'.',s.id,'swap');
 }
 
 function editSwap(id){
@@ -2878,19 +2979,16 @@ function renderPTO(){
   var filter=document.getElementById('ptoFilter').value;
   var typeF=document.getElementById('ptoTypeFilter').value;
   var filtered=ptoRequests.slice();
-  // Non-leads only see their own PTO requests
   if(!isLead()&&me){filtered=filtered.filter(function(p){return p.requestBy===me.initials;});}
   if(filter)filtered=filtered.filter(function(p){return p.status===filter;});
   if(typeF)filtered=filtered.filter(function(p){return p.requestType===typeF;});
   filtered.sort(function(a,b){return(b.startDate||'').localeCompare(a.startDate||'');});
 
-  // Bidding window banner
   var bw=getBidWindow();
   document.getElementById('ptoBidWindow').innerHTML=bw.open?
     '<div style="background:var(--teal-bg);border:1px solid var(--teal);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:8px;"><span class="mi" style="color:var(--teal);">event_available</span><div><div style="font-size:13px;font-weight:700;color:var(--teal);">'+bw.label+'</div><div style="font-size:11px;color:var(--g500);">Submit your PTO requests now. Priority is based on seniority.</div></div></div>':
     '<div style="background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:10px 16px;font-size:12px;color:var(--g400);display:flex;align-items:center;gap:6px;"><span class="mi mi-sm">info</span>'+bw.label+'. General PTO bidding opens in January, Holiday PTO in May.</div>';
 
-  // Stats (leads only)
   if(isLead()){
     var pending=ptoRequests.filter(function(p){return p.status==='Pending';}).length;
     var approved=ptoRequests.filter(function(p){return p.status==='Approved';}).length;
@@ -2909,48 +3007,64 @@ function renderPTO(){
     return;
   }
 
-  var html='';
-  filtered.forEach(function(p){
-    var sc=p.status.toLowerCase();
-    var isRequester=me&&p.requestBy===me.initials;
-    var conflicts=getPTOConflicts(p.startDate,p.endDate,p.id);
-    var workdays=countWorkdays(p.startDate,p.endDate);
-    html+='<div class="swap-card '+sc+'">';
-    html+='<div class="swap-hdr"><div class="swap-title">'+esc(p.requestByName)+(isLead()?' <span style="font-size:11px;font-weight:400;color:var(--g400);">(Seniority #'+getSeniorityRank(p.requestBy)+')</span>':'')+'</div><span class="swap-badge '+sc+'">'+esc(p.status)+'</span></div>';
-    html+='<div class="swap-detail">';
-    html+='<strong>Dates:</strong> '+esc(p.startDate)+' to '+esc(p.endDate)+' ('+workdays+' workdays, '+workdays*8+'h)<br>';
-    html+='<strong>Type:</strong> '+esc(p.requestType)+' PTO<br>';
-    if(p.reason)html+='<strong>Reason:</strong> '+esc(p.reason)+'<br>';
-    if(conflicts.length){
-      html+='<div style="margin:6px 0;padding:6px 10px;background:var(--amber-bg);border-radius:6px;font-size:11px;"><strong style="color:var(--amber);">Conflicts with:</strong> ';
-      html+=conflicts.map(function(c){return esc(c.requestByName)+' ('+esc(c.startDate)+' to '+esc(c.endDate)+', '+esc(c.status)+')';}).join(', ');
-      html+='</div>';
-    }
-    if(p.coverageImpact)html+='<div style="margin:4px 0;padding:6px 10px;background:var(--red-bg);border-radius:6px;font-size:11px;color:var(--red);"><strong>Coverage impact:</strong> '+esc(p.coverageImpact)+'</div>';
-    if(p.approvedBy)html+='<strong>'+(p.status==='Approved'?'Approved':'Denied')+' by:</strong> '+esc(p.approvedBy)+' on '+esc(p.approvedDate)+'<br>';
-    if(p.deniedReason)html+='<strong>Reason:</strong> '+esc(p.deniedReason)+'<br>';
-    html+='</div>';
+  var today=fmtDate(new Date());
+  var active=filtered.filter(function(p){return p.endDate>=today||p.status==='Pending';});
+  var past=filtered.filter(function(p){return p.endDate<today&&p.status!=='Pending';});
 
-    html+='<div class="swap-actions">';
-    if(p.status==='Pending'&&isLead()){
-      html+='<button class="btn primary" onclick="approvePTO(\''+p.id+'\')"><span class="mi mi-xs">check</span> Approve</button>';
-      html+='<button class="btn danger" onclick="denyPTO(\''+p.id+'\')"><span class="mi mi-xs">close</span> Deny</button>';
-      html+='<button class="btn" onclick="waitlistPTO(\''+p.id+'\')"><span class="mi mi-xs">schedule</span> Waitlist</button>';
-    }
-    // Self edit/delete for pending requests
-    if(isRequester&&(p.status==='Pending'||p.status==='Waitlisted')){
-      html+='<button class="btn" onclick="editPTO(\''+p.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
-      html+='<button class="btn" style="color:var(--red);" onclick="deletePTO(\''+p.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
-    }
-    // Leads can always edit/delete
-    if(isLead()&&!isRequester){
-      html+='<button class="btn" onclick="editPTO(\''+p.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
-      html+='<button class="btn" style="color:var(--red);" onclick="deletePTO(\''+p.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
-    }
-    html+='</div>';
-    html+='</div>';
-  });
+  var html='';
+  if(active.length){
+    active.forEach(function(p){html+=renderPTOCard(p);});
+  }else{
+    html+='<div style="padding:16px;font-size:12px;color:var(--g400);text-align:center;">No active PTO requests</div>';
+  }
+  if(past.length){
+    html+='<div style="margin-top:16px;"><div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.shift-toggle\').style.transform=this.nextElementSibling.style.display===\'none\'?\'rotate(-90deg)\':\'\'"><span style="font-size:12px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;">Past ('+past.length+')</span><span class="shift-toggle" style="font-size:12px;color:var(--g300);transform:rotate(-90deg);">\u25BC</span></div><div style="display:none;">';
+    past.forEach(function(p){html+=renderPTOCard(p);});
+    html+='</div></div>';
+  }
   document.getElementById('ptoList').innerHTML=html;
+}
+
+function renderPTOCard(p){
+  var sc=p.status.toLowerCase();
+  var isRequester=me&&p.requestBy===me.initials;
+  var conflicts=getPTOConflicts(p.startDate,p.endDate,p.id);
+  var workdays=countWorkdays(p.startDate,p.endDate);
+  var html='<div class="swap-card '+sc+'">';
+  html+='<div class="swap-hdr"><div class="swap-title">'+esc(p.requestByName)+(isLead()?' <span style="font-size:11px;font-weight:400;color:var(--g400);">(Seniority #'+getSeniorityRank(p.requestBy)+')</span>':'')+'</div><span class="swap-badge '+sc+'">'+esc(p.status)+'</span></div>';
+  html+='<div class="swap-detail">';
+  html+='<strong>Dates:</strong> '+esc(p.startDate)+' to '+esc(p.endDate)+' ('+workdays+' workdays, '+workdays*8+'h)<br>';
+  html+='<strong>Type:</strong> '+esc(p.requestType)+' PTO<br>';
+  if(p.reason)html+='<strong>Reason:</strong> '+esc(p.reason)+'<br>';
+  if(conflicts.length){
+    html+='<div style="margin:6px 0;padding:6px 10px;background:var(--amber-bg);border-radius:6px;font-size:11px;"><strong style="color:var(--amber);">Conflicts with:</strong> ';
+    html+=conflicts.map(function(c){return esc(c.requestByName)+' ('+esc(c.startDate)+' to '+esc(c.endDate)+', '+esc(c.status)+')';}).join(', ');
+    html+='</div>';
+  }
+  if(p.coverageImpact)html+='<div style="margin:4px 0;padding:6px 10px;background:var(--red-bg);border-radius:6px;font-size:11px;color:var(--red);"><strong>Coverage impact:</strong> '+esc(p.coverageImpact)+'</div>';
+  if(p.status==='Approved'&&p.approvedBy)html+='<strong>Approved by:</strong> '+esc(p.approvedBy)+' on '+esc(p.approvedDate)+'<br>';
+  if(p.status==='Denied'&&p.approvedBy){
+    html+='<strong>Denied by:</strong> '+esc(p.approvedBy)+' on '+esc(p.approvedDate)+'<br>';
+    if(p.deniedReason)html+='<strong>Reason:</strong> '+esc(p.deniedReason)+'<br>';
+  }
+  html+='</div>';
+
+  html+='<div class="swap-actions">';
+  if(p.status==='Pending'&&isLead()){
+    html+='<button class="btn primary" onclick="approvePTO(\''+p.id+'\')"><span class="mi mi-xs">check</span> Approve</button>';
+    html+='<button class="btn danger" onclick="denyPTO(\''+p.id+'\')"><span class="mi mi-xs">close</span> Deny</button>';
+  }
+  if(isRequester&&p.status==='Pending'){
+    html+='<button class="btn" onclick="editPTO(\''+p.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
+    html+='<button class="btn" style="color:var(--red);" onclick="deletePTO(\''+p.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
+  }
+  if(isLead()&&!isRequester){
+    html+='<button class="btn" onclick="editPTO(\''+p.id+'\')"><span class="mi mi-xs">edit</span> Edit</button>';
+    html+='<button class="btn" style="color:var(--red);" onclick="deletePTO(\''+p.id+'\')"><span class="mi mi-xs">delete</span> Delete</button>';
+  }
+  html+='</div>';
+  html+='</div>';
+  return html;
 }
 
 function openPTOModal(){
@@ -3040,6 +3154,8 @@ async function submitPTORequest(){
   logAudit('add','pto','PTO requested: '+me.fullName+' '+s+' to '+e,p.id);
   closeModal('ptoModal');renderPTO();toast('PTO request submitted');
   try{await spAdd('PTORequests',ptoToSP(p));}catch(er){console.error('PTO save failed:',er);}
+  // Notify leads of new PTO request
+  await sendNotificationToLeads('pto-status',me.fullName+' requested PTO: '+s+' to '+e+' ('+countWorkdays(s,e)+' days)',p.id,'pto');
 }
 
 async function approvePTO(id){
@@ -3077,13 +3193,13 @@ async function approvePTO(id){
   await Promise.all(promises);
   logAudit('approve','pto','Approved PTO: '+p.requestByName+' '+p.startDate+' to '+p.endDate,p.id);
   hideLoad();renderPTO();renderCurrentView();toast('PTO approved, schedule updated');
+  await sendNotification(p.requestBy,'pto-status','Your PTO ('+p.startDate+' to '+p.endDate+') has been approved by '+me.fullName+'.',p.id,'pto');
 }
 
 async function denyPTO(id){
   var p=ptoRequests.find(function(x){return x.id===id;});if(!p)return;
   var reason=prompt('Reason for denial:');if(reason===null)return;
   p.status='Denied';p.approvedBy=me.fullName;p.approvedDate=fmtDate(new Date());p.deniedReason=reason;
-  // Suggest alternate dates
   var gaps=getPTOCoverageImpact(p.requestBy,p.startDate,p.endDate);
   if(gaps.length){
     var altStart=new Date(p.endDate+'T12:00:00');altStart.setDate(altStart.getDate()+7);
@@ -3093,14 +3209,7 @@ async function denyPTO(id){
   logAudit('deny','pto','Denied PTO: '+p.requestByName+(reason?' ('+reason+')':''),p.id);
   renderPTO();toast('PTO denied');
   try{var sp=await spGet('PTORequests',"Title eq '"+id+"'");if(sp.length)await spUpdate('PTORequests',sp[0].Id,ptoToSP(p));}catch(er){}
-}
-
-async function waitlistPTO(id){
-  var p=ptoRequests.find(function(x){return x.id===id;});if(!p)return;
-  p.status='Waitlisted';
-  logAudit('edit','pto','Waitlisted PTO: '+p.requestByName,p.id);
-  renderPTO();toast('PTO waitlisted');
-  try{var sp=await spGet('PTORequests',"Title eq '"+id+"'");if(sp.length)await spUpdate('PTORequests',sp[0].Id,ptoToSP(p));}catch(er){}
+  await sendNotification(p.requestBy,'pto-status','Your PTO ('+p.startDate+' to '+p.endDate+') was denied.'+(reason?' Reason: '+reason:''),p.id,'pto');
 }
 
 function editPTO(id){
@@ -3686,6 +3795,128 @@ function renderAuditLog(){
 }
 
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// NOTIFICATION SYSTEM
+// ═══════════════════════════════════════════
+async function loadNotifications(){
+  try{
+    var fm=await discoverFields('ScheduleNotifications');
+    var myIni=me?me.initials:'';
+    var sp=await spGet('ScheduleNotifications',"Recipient eq '"+myIni+"'",null,200);
+    notifications=sp.map(function(i){return spToNotif(i,fm);});
+    renderNotifBadge();
+  }catch(e){console.warn('Notifications load failed:',e);notifications=[];}
+}
+
+async function sendNotification(recipientIni,type,message,relatedId,relatedTab){
+  var n={id:gid(),recipient:recipientIni,notifType:type,message:message,isRead:false,relatedId:relatedId||'',relatedTab:relatedTab||'',created:new Date().toISOString()};
+  // If recipient is current user, add to local array immediately
+  if(me&&recipientIni===me.initials){notifications.unshift(n);renderNotifBadge();}
+  try{await spAdd('ScheduleNotifications',notifToSP(n));}catch(e){console.warn('Notification save failed:',e);}
+}
+
+async function sendNotificationToLeads(type,message,relatedId,relatedTab){
+  var leads=STAFF.filter(function(s){return s.active!==false&&ELEVATED_ROLES.some(function(r){return s.role&&s.role.indexOf(r)>=0;});});
+  for(var i=0;i<leads.length;i++){
+    await sendNotification(leads[i].ini,type,message,relatedId,relatedTab);
+  }
+}
+
+function renderNotifBadge(){
+  var unread=notifications.filter(function(n){return!n.isRead;}).length;
+  var badge=document.getElementById('notif-badge');
+  if(badge){
+    badge.textContent=unread;
+    badge.classList.toggle('show',unread>0);
+  }
+}
+
+function toggleNotifPanel(e){
+  if(e)e.stopPropagation();
+  var panel=document.getElementById('notif-panel');
+  var isOpen=panel.classList.contains('open');
+  panel.classList.toggle('open');
+  if(!isOpen)renderNotifList();
+}
+
+function renderNotifList(){
+  var list=document.getElementById('notif-list');
+  if(!notifications.length){
+    list.innerHTML='<div class="notif-empty"><span class="mi" style="font-size:24px;color:var(--g200);display:block;margin-bottom:6px;">notifications</span>No notifications</div>';
+    return;
+  }
+  var sorted=notifications.slice().sort(function(a,b){return(b.created||'').localeCompare(a.created||'');});
+  var html='';
+  sorted.slice(0,30).forEach(function(n){
+    var iconCls=n.notifType==='swap-partner'||n.notifType==='swap-status'?'swap':n.notifType==='pto-status'?'pto':'info';
+    var iconName=iconCls==='swap'?'compare_arrows':iconCls==='pto'?'event':'info';
+    var timeAgo=getTimeAgo(n.created);
+    html+='<div class="notif-item'+(n.isRead?'':' unread')+'" onclick="handleNotifClick(\''+n.id+'\',\''+esc(n.relatedTab)+'\')"><div class="notif-icon '+iconCls+'"><span class="mi">'+iconName+'</span></div><div class="notif-body"><div class="notif-msg">'+esc(n.message)+'</div><div class="notif-time">'+timeAgo+'</div></div></div>';
+  });
+  list.innerHTML=html;
+}
+
+function getTimeAgo(isoStr){
+  if(!isoStr)return'';
+  var d=new Date(isoStr);var now=new Date();
+  var diff=Math.floor((now-d)/1000);
+  if(diff<60)return'just now';
+  if(diff<3600)return Math.floor(diff/60)+'m ago';
+  if(diff<86400)return Math.floor(diff/3600)+'h ago';
+  if(diff<604800)return Math.floor(diff/86400)+'d ago';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+async function handleNotifClick(id,tab){
+  var n=notifications.find(function(x){return x.id===id;});
+  if(n&&!n.isRead){
+    n.isRead=true;
+    renderNotifBadge();
+    try{
+      var sp=await spGet('ScheduleNotifications',"Title eq '"+id+"'");
+      if(sp.length){
+        var fm=await discoverFields('ScheduleNotifications');
+        var readKey=fm.IsRead||'IsRead';
+        var payload={};payload[readKey]='Yes';
+        await spUpdate('ScheduleNotifications',sp[0].Id,payload);
+      }
+    }catch(e){}
+  }
+  // Navigate to the relevant tab
+  if(tab)switchTab(tab);
+  toggleNotifPanel();
+}
+
+async function markAllRead(e){
+  if(e){e.stopPropagation();e.preventDefault();}
+  var unread=notifications.filter(function(n){return!n.isRead;});
+  unread.forEach(function(n){n.isRead=true;});
+  renderNotifBadge();
+  renderNotifList();
+  // Batch update SP
+  for(var i=0;i<unread.length;i++){
+    try{
+      var sp=await spGet('ScheduleNotifications',"Title eq '"+unread[i].id+"'");
+      if(sp.length){
+        var fm=await discoverFields('ScheduleNotifications');
+        var readKey=fm.IsRead||'IsRead';
+        var payload={};payload[readKey]='Yes';
+        await spUpdate('ScheduleNotifications',sp[0].Id,payload);
+      }
+    }catch(e){}
+  }
+  toast('All notifications marked as read');
+}
+
+// Close notification panel when clicking outside
+document.addEventListener('click',function(e){
+  var bell=document.getElementById('notif-bell');
+  var panel=document.getElementById('notif-panel');
+  if(panel&&panel.classList.contains('open')&&bell&&!bell.contains(e.target)){
+    panel.classList.remove('open');
+  }
+});
+
 // AUTO-BACKUP (3x daily: Night 12-7AM, Day 7AM-3PM, Evening 3PM-12AM)
 // ═══════════════════════════════════════════
 function buildScheduleBackup(){
@@ -3743,10 +3974,10 @@ async function scheduleAutoBackup(){
 // ═══════════════════════════════════════════
 function renderAdmin(){
   // SP lists status
-  var lists=['ScheduleEntries','SwapRequests','ScheduleRoster','PTORequests','HolidayRotation','ScheduleAudit'];
+  var lists=['ScheduleEntries','SwapRequests','ScheduleRoster','PTORequests','HolidayRotation','ScheduleAudit','ScheduleNotifications'];
   var statusHtml='';
   lists.forEach(function(ln){
-    var count=ln==='ScheduleEntries'?schedEntries.length:ln==='SwapRequests'?swapRequests.length:ln==='ScheduleRoster'?STAFF.length:ln==='PTORequests'?ptoRequests.length:ln==='HolidayRotation'?holidayAssignments.length:auditLog.length;
+    var count=ln==='ScheduleEntries'?schedEntries.length:ln==='SwapRequests'?swapRequests.length:ln==='ScheduleRoster'?STAFF.length:ln==='PTORequests'?ptoRequests.length:ln==='HolidayRotation'?holidayAssignments.length:ln==='ScheduleNotifications'?notifications.length:auditLog.length;
     var fm=_fieldMaps[ln];
     var isConnected=fm||count>0;
     var status=isConnected?'<span style="color:var(--green);font-weight:700;">Connected</span>':'<span style="color:var(--amber);font-weight:700;">Pending</span>';
