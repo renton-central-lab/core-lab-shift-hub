@@ -50,7 +50,7 @@
 }
 
 body{font-family:var(--font);background:var(--surface);color:var(--g900);min-height:100vh;-webkit-font-smoothing:antialiased;}
-.mi{font-family:'Material Icons Outlined';font-style:normal;font-weight:normal;font-size:20px;vertical-align:middle;}
+.mi{font-family:'Material Icons Outlined';font-weight:normal;font-style:normal;font-size:20px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;vertical-align:middle;-webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased;font-feature-settings:'liga';}
 .mi-sm{font-size:18px;}.mi-xs{font-size:14px;}.mi-lg{font-size:28px;}
 
 /* ═══ AUTH SCREEN ═══ */
@@ -359,13 +359,15 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .cov-cal{display:grid;grid-template-columns:auto repeat(7,1fr);gap:3px;font-family:var(--font);}
 .cov-cal-hdr{font-size:9px;font-weight:700;color:var(--g400);text-align:center;padding:4px 0;}
 .cov-cal-wk{font-size:9px;font-weight:700;color:var(--g300);text-align:right;padding:6px 6px 0 0;}
-.cov-day{aspect-ratio:1;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:pointer;transition:transform .1s;border:1px solid transparent;}
-.cov-day:hover{transform:scale(1.12);z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.15);}
-.cov-day.cov-full{background:var(--green-bg);color:var(--green);border-color:var(--green-bdr);}
-.cov-day.cov-min{background:#fef3c7;color:#92400e;border-color:#fbbf24;}
-.cov-day.cov-gap{background:var(--red-bg);color:var(--red);border-color:var(--red-bdr);}
-.cov-day.cov-off{background:var(--g50);color:var(--g300);}
-.cov-day.cov-none{background:var(--white);color:var(--g300);border:1px dashed var(--g200);}
+.cov-day{aspect-ratio:1;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;cursor:pointer;transition:transform .1s,box-shadow .1s;border:1px solid transparent;}
+.cov-day:hover{transform:scale(1.12);z-index:2;box-shadow:0 4px 12px rgba(0,0,0,.2);}
+.cov-day.cov-full{background:#c6efce;color:#14532d;border-color:#4ade80;}
+.cov-day.cov-min{background:#fef3c7;color:#78350f;border-color:#f59e0b;}
+.cov-day.cov-gap{background:#fecaca;color:#7f1d1d;border-color:#ef4444;}
+.cov-day.cov-gap::after{content:'';position:absolute;top:2px;right:2px;width:6px;height:6px;background:#dc2626;border-radius:50%;box-shadow:0 0 0 1.5px #fff;}
+.cov-day.cov-off{background:var(--g100);color:var(--g400);border-color:var(--g200);font-weight:500;}
+.cov-day.cov-none{background:var(--white);color:var(--g300);border:1px dashed var(--g200);cursor:default;}
+.cov-day.cov-none:hover{transform:none;box-shadow:none;}
 .cov-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:10px;color:var(--g500);}
 .cov-legend-item{display:inline-flex;align-items:center;gap:4px;}
 .cov-legend-sw{width:12px;height:12px;border-radius:3px;border:1px solid transparent;}
@@ -4422,9 +4424,32 @@ function _destroyStatsCharts(){
 function _mkStatsChart(id,type,data,opts){
   var cv=document.getElementById(id);if(!cv)return;
   if(_statsCharts[id]){try{_statsCharts[id].destroy();}catch(e){}}
+  // Clear any prior empty-state overlay
+  var wrap=cv.parentElement;
+  if(wrap){
+    var existing=wrap.querySelector('.chart-empty');
+    if(existing)existing.remove();
+    cv.style.display='';
+  }
   if(typeof Chart==='undefined')return;
   _statsCharts[id]=new Chart(cv,{type:type,data:data,options:opts});
 }
+function _showChartEmpty(id,message,icon){
+  var cv=document.getElementById(id);if(!cv)return;
+  var wrap=cv.parentElement;if(!wrap)return;
+  // Destroy existing chart instance
+  if(_statsCharts[id]){try{_statsCharts[id].destroy();}catch(e){}delete _statsCharts[id];}
+  // Hide canvas, show empty state
+  cv.style.display='none';
+  var existing=wrap.querySelector('.chart-empty');if(existing)existing.remove();
+  var div=document.createElement('div');
+  div.className='chart-empty';
+  div.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--g300);text-align:center;padding:12px;pointer-events:none;';
+  div.innerHTML='<span class="mi" style="font-size:32px;margin-bottom:6px;color:var(--g200);">'+esc(icon||'bar_chart')+'</span><div style="font-size:11px;font-weight:600;color:var(--g400);">'+esc(message)+'</div>';
+  wrap.appendChild(div);
+}
+function _sumArr(arr){var s=0;for(var i=0;i<arr.length;i++)s+=arr[i]||0;return s;}
+function _sumDatasets(datasets){var s=0;datasets.forEach(function(d){s+=_sumArr(d.data||[]);});return s;}
 var _STATS_CHART_OPTS={
   responsive:true,maintainAspectRatio:false,
   layout:{padding:{top:5,bottom:5,left:5,right:5}},
@@ -4598,10 +4623,10 @@ function renderCoverageCalendar(dr,p){
   }
   html+='</div>';
   html+='<div class="cov-legend">';
-  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:var(--green-bg);border-color:var(--green-bdr);"></div> Fully covered ('+fullCov+')</div>';
-  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:#fef3c7;border-color:#fbbf24;"></div> At minimum ('+minOnly+')</div>';
-  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:var(--red-bg);border-color:var(--red-bdr);"></div> Gap ('+fullGap+')</div>';
-  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:var(--g50);"></div> Off day ('+offDays+')</div>';
+  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:#c6efce;border-color:#4ade80;"></div> Fully covered ('+fullCov+')</div>';
+  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:#fef3c7;border-color:#f59e0b;"></div> At minimum ('+minOnly+')</div>';
+  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:#fecaca;border-color:#ef4444;"></div> Gap ('+fullGap+')</div>';
+  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:var(--g100);border-color:var(--g200);"></div> Off day ('+offDays+')</div>';
   html+='</div>';
   container.innerHTML=html;
   document.getElementById('covSub').textContent=fullGap+' gap day'+(fullGap===1?'':'s')+' · '+minOnly+' at minimum';
@@ -4618,6 +4643,10 @@ function renderShiftCoverageDonut(dr,p){
   });
   var labels=SHIFTS.filter(function(sh){var d=shiftCounts[sh];return d.assigned+d.pto+d.sl>0;});
   var data=labels.map(function(sh){return shiftCounts[sh].assigned;});
+  if(labels.length===0||_sumArr(data)===0){
+    _showChartEmpty('chartShiftCov','No shift data in this period','donut_large');
+    return;
+  }
   var colors={Morning:'#fbbf24',Evening:'#c2410c',Night:'#3730a3'};
   var bgColors=labels.map(function(sh){return colors[sh]||'var(--teal)';});
   _mkStatsChart('chartShiftCov','doughnut',{
@@ -4638,6 +4667,11 @@ function renderCoverageTrendLine(dr,p){
     minLine.push(minS);
     if(dayActual>maxPoint)maxPoint=dayActual;
     cur.setDate(cur.getDate()+1);
+  }
+  if(_sumArr(data)===0){
+    _showChartEmpty('chartCovTrend','No staffing data in this period','show_chart');
+    document.getElementById('statsCovTrendSub').textContent='';
+    return;
   }
   _mkStatsChart('chartCovTrend','line',{
     labels:labels,
@@ -4685,17 +4719,19 @@ function renderMonthlyAssignmentsBar(){
     else if(e.bench==='OT')byMonth[k].ot++;
   });
   var labels=keys.map(function(k){return k.label;});
-  _mkStatsChart('chartAssignByMonth','bar',{
-    labels:labels,
-    datasets:[
-      {label:'H/C',data:keys.map(function(k){return byMonth[k.key].hc;}),backgroundColor:'#00796B'},
-      {label:'C/U',data:keys.map(function(k){return byMonth[k.key].cu;}),backgroundColor:'#80cbc4'},
-      {label:'Float',data:keys.map(function(k){return byMonth[k.key].f;}),backgroundColor:'#8e24aa'},
-      {label:'Training',data:keys.map(function(k){return byMonth[k.key].t;}),backgroundColor:'#fbbf24'},
-      {label:'Admin',data:keys.map(function(k){return byMonth[k.key].admin;}),backgroundColor:'#94a3b8'},
-      {label:'OT',data:keys.map(function(k){return byMonth[k.key].ot;}),backgroundColor:'#c62828'}
-    ]
-  },Object.assign({},_STATS_CHART_OPTS,{
+  var datasets=[
+    {label:'H/C',data:keys.map(function(k){return byMonth[k.key].hc;}),backgroundColor:'#00796B'},
+    {label:'C/U',data:keys.map(function(k){return byMonth[k.key].cu;}),backgroundColor:'#80cbc4'},
+    {label:'Float',data:keys.map(function(k){return byMonth[k.key].f;}),backgroundColor:'#8e24aa'},
+    {label:'Training',data:keys.map(function(k){return byMonth[k.key].t;}),backgroundColor:'#fbbf24'},
+    {label:'Admin',data:keys.map(function(k){return byMonth[k.key].admin;}),backgroundColor:'#94a3b8'},
+    {label:'OT',data:keys.map(function(k){return byMonth[k.key].ot;}),backgroundColor:'#c62828'}
+  ];
+  if(_sumDatasets(datasets)===0){
+    _showChartEmpty('chartAssignByMonth','No assignment history yet','stacked_bar_chart');
+    return;
+  }
+  _mkStatsChart('chartAssignByMonth','bar',{labels:labels,datasets:datasets},Object.assign({},_STATS_CHART_OPTS,{
     scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}}}
   }));
 }
@@ -4709,9 +4745,14 @@ function renderOTTrendChart(){
     if(byMonth[k]===undefined)return;
     byMonth[k]+=parseFloat(e.otHours)||8;
   });
+  var data=keys.map(function(k){return byMonth[k.key];});
+  if(_sumArr(data)===0){
+    _showChartEmpty('chartOTTrend','No OT in past 12 months','timeline');
+    return;
+  }
   _mkStatsChart('chartOTTrend','line',{
     labels:keys.map(function(k){return k.label;}),
-    datasets:[{label:'OT hours',data:keys.map(function(k){return byMonth[k.key];}),borderColor:'#c62828',backgroundColor:'rgba(198,40,40,.15)',fill:true,tension:.3,pointRadius:3,borderWidth:2}]
+    datasets:[{label:'OT hours',data:data,borderColor:'#c62828',backgroundColor:'rgba(198,40,40,.15)',fill:true,tension:.3,pointRadius:3,borderWidth:2}]
   },Object.assign({},_STATS_CHART_OPTS,{
     plugins:{legend:{display:false}},
     scales:{y:{beginAtZero:true,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}}}}
@@ -4727,11 +4768,17 @@ function renderPtoSlTrendChart(){
     if(e.bench==='PTO')byMonth[k].pto++;
     else if(e.bench==='SL')byMonth[k].sl++;
   });
+  var ptoData=keys.map(function(k){return byMonth[k.key].pto;});
+  var slData=keys.map(function(k){return byMonth[k.key].sl;});
+  if(_sumArr(ptoData)+_sumArr(slData)===0){
+    _showChartEmpty('chartPtoSlTrend','No PTO or sick leave in past 12 months','sick');
+    return;
+  }
   _mkStatsChart('chartPtoSlTrend','bar',{
     labels:keys.map(function(k){return k.label;}),
     datasets:[
-      {type:'bar',label:'PTO days',data:keys.map(function(k){return byMonth[k.key].pto;}),backgroundColor:'rgba(230,160,0,.65)',borderRadius:4,yAxisID:'y'},
-      {type:'line',label:'Sick leave days',data:keys.map(function(k){return byMonth[k.key].sl;}),borderColor:'#c62828',backgroundColor:'#c62828',fill:false,tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y'}
+      {type:'bar',label:'PTO days',data:ptoData,backgroundColor:'rgba(230,160,0,.65)',borderRadius:4,yAxisID:'y'},
+      {type:'line',label:'Sick leave days',data:slData,borderColor:'#c62828',backgroundColor:'#c62828',fill:false,tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y'}
     ]
   },Object.assign({},_STATS_CHART_OPTS,{
     scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}}}}
@@ -4901,7 +4948,12 @@ function jumpToDaily(dateStr){
   if(!dateStr)return;
   curDay=new Date(dateStr+'T12:00:00');
   saveUIState();
-  switchPage('daily');
+  switchTab('day');
+}
+
+function closeStaffDetail(){
+  var el=document.getElementById('statsStaffDetail');
+  if(el)el.innerHTML='';
 }
 
 function navStatsPeriod(dir){
@@ -4953,8 +5005,9 @@ function showStaffDetail(userIni){
     coByMonth[key]=(coByMonth[key]||0)+1;
   });
 
-  var html='<div class="rec-panel" style="animation:modalScaleIn var(--dur-long) var(--me-decelerate);">';
-  html+='<h3><span class="mi">person</span> '+esc(staff.name)+' <span style="font-size:11px;font-weight:400;color:var(--g400);">'+esc(staff.role)+' | Seniority #'+getSeniorityRank(userIni)+'</span> <button class="tb-btn" onclick="document.getElementById(\'statsStaffDetail\').innerHTML=\'\'" style="margin-left:auto;"><span class="mi mi-xs">close</span></button></h3>';
+  var html='<div class="rec-panel" style="animation:modalScaleIn var(--dur-long) var(--me-decelerate);position:relative;">';
+  html+='<button class="tb-btn" onclick="closeStaffDetail()" style="position:absolute;top:12px;right:12px;padding:4px 10px;font-size:11px;z-index:2;"><span class="mi mi-xs">close</span> Close</button>';
+  html+='<h3 style="padding-right:80px;"><span class="mi">person</span> '+esc(staff.name)+' <span style="font-size:11px;font-weight:400;color:var(--g400);">'+esc(staff.role)+' | Seniority #'+getSeniorityRank(userIni)+'</span></h3>';
 
   // Sick Leave section
   html+='<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px;"><span class="mi mi-sm">warning</span> Sick Leave ('+sickLeaves.length+' in period, '+allSickLeave.length+' all-time)</div>';
