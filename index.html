@@ -20,6 +20,7 @@
 <title>Core Lab Shift Hub - Renton Central Lab (SharePoint)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
@@ -1179,6 +1180,18 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
         <div id="hub-bk-history" style="font-size:10px;color:var(--g500);">Loading...</div>
       </div>
     </div>
+    <div class="backup-box" style="margin-top:12px;">
+      <h4><span class="mi mi-sm">archive</span> Record Archival (7+ year retention)</h4>
+      <p style="font-size:10px;color:var(--g500);margin-bottom:8px;">Archives records older than 7 years (by entry date) to a permanent PDF with embedded JSON data in the <strong>_shifthub_archives</strong> folder. Archived records are then soft-deleted from active lists. Complete records are preserved for CAP/CLIA retention (42 CFR 493.1105).</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        <button class="btn btn-p" onclick="openArchiveModal()" id="hub-arch-btn"><span class="mi mi-xs">archive</span> Archive Records</button>
+        <button class="btn btn-s" onclick="openRestoreArchiveModal()"><span class="mi mi-xs">unarchive</span> Restore from Archive</button>
+      </div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--g200);">
+        <p style="font-size:10px;font-weight:700;color:var(--g600);margin-bottom:6px;">Archive History</p>
+        <div id="hub-arch-history" style="font-size:10px;color:var(--g500);">Loading...</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1290,6 +1303,63 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
     <div id="expPreview" style="margin-top:10px;font-size:11px;color:var(--teal);font-weight:600;display:none"></div>
   </div>
   <div class="modal-ftr"><button class="btn btn-s" onclick="closeExportModal()">Cancel</button><button class="btn btn-p" onclick="runExport()"><span class="mi mi-xs">download</span> Export</button></div>
+</div></div>
+
+<!-- ARCHIVE MODAL -->
+<div class="modal-bg" id="archiveModalBg" onclick="if(event.target===this)closeArchiveModal()">
+<div class="modal" style="width:560px;">
+  <div class="modal-hdr"><h3><span class="mi mi-sm" style="color:var(--navy)">archive</span> Archive Records</h3><button class="modal-close" onclick="closeArchiveModal()"><span class="mi mi-sm">close</span></button></div>
+  <div class="modal-body">
+    <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:var(--r);padding:10px 12px;font-size:11px;color:#92400e;margin-bottom:12px;line-height:1.5;">
+      <strong style="display:block;margin-bottom:4px;">Archival is permanent.</strong>
+      Archived records are converted to a PDF with embedded JSON data, uploaded to SharePoint, and <strong>soft-deleted from active lists</strong>. They can be restored via "Restore from Archive" if needed.
+    </div>
+    <div class="form-grid">
+      <div class="form-item"><label>Archive cutoff date *</label><input type="date" id="archCutoff" onchange="updateArchivePreview()"></div>
+      <div class="form-item"><label>Scope</label><select id="archScope" onchange="updateArchivePreview()">
+        <option value="entries">Shift Log Entries</option>
+        <option value="announcements">Announcements</option>
+        <option value="reviews">Monthly Reviews</option>
+        <option value="all">All of the above</option>
+      </select></div>
+    </div>
+    <div style="margin-top:10px;padding:10px 12px;background:var(--g50);border-radius:var(--r);font-size:11px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-weight:700;color:var(--navy)"><span class="mi mi-xs">info</span> Quick Presets</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+        <button class="btn btn-s" style="padding:3px 10px;font-size:10px" onclick="setArchivePreset(7)">7 years (standard)</button>
+        <button class="btn btn-s" style="padding:3px 10px;font-size:10px" onclick="setArchivePreset(10)">10 years</button>
+        <button class="btn btn-s" style="padding:3px 10px;font-size:10px" onclick="setArchivePreset(5)">5 years</button>
+      </div>
+    </div>
+    <div id="archPreview" style="margin-top:12px;padding:12px;background:var(--teal-bg);border:1px solid var(--teal-bdr);border-radius:var(--r);font-size:11px;color:var(--navy);display:none;line-height:1.5;"></div>
+    <div id="archProgress" style="margin-top:10px;font-size:11px;color:var(--teal);font-weight:600;display:none"></div>
+  </div>
+  <div class="modal-ftr"><button class="btn btn-s" onclick="closeArchiveModal()">Cancel</button><button class="btn btn-p" id="archRunBtn" onclick="runArchive()"><span class="mi mi-xs">archive</span> Generate Archive</button></div>
+</div></div>
+
+<!-- RESTORE FROM ARCHIVE MODAL -->
+<div class="modal-bg" id="restoreArchiveModalBg" onclick="if(event.target===this)closeRestoreArchiveModal()">
+<div class="modal" style="width:680px;max-height:85vh;">
+  <div class="modal-hdr"><h3><span class="mi mi-sm" style="color:var(--amber)">unarchive</span> Restore from Archive</h3><button class="modal-close" onclick="closeRestoreArchiveModal()"><span class="mi mi-sm">close</span></button></div>
+  <div class="modal-body" style="max-height:60vh;overflow-y:auto;">
+    <div id="restoreArchStep1">
+      <div style="font-size:11px;color:var(--g500);margin-bottom:10px;">Select an archive file to preview and restore specific records. Existing records with matching IDs are updated; missing records are re-inserted.</div>
+      <div id="restoreArchList" style="font-size:11px;">Loading archives...</div>
+    </div>
+    <div id="restoreArchStep2" style="display:none;">
+      <div id="restoreArchMeta" style="background:var(--g50);border-radius:var(--r);padding:10px 12px;font-size:11px;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;"><input type="checkbox" id="restoreSelectAll" onchange="toggleRestoreAll()"> <span>Select all</span></label>
+        <span style="font-size:10px;color:var(--g400);" id="restoreSelCount">0 selected</span>
+        <button class="btn btn-s" style="padding:3px 10px;font-size:10px;margin-left:auto;" onclick="restoreArchBack()"><span class="mi mi-xs">arrow_back</span> Back to list</button>
+      </div>
+      <div id="restoreArchRecords" style="font-size:11px;max-height:350px;overflow-y:auto;border:1px solid var(--g200);border-radius:var(--r);"></div>
+    </div>
+  </div>
+  <div class="modal-ftr">
+    <button class="btn btn-s" onclick="closeRestoreArchiveModal()">Cancel</button>
+    <button class="btn btn-p" id="restoreArchBtn" onclick="runRestoreArchive()" style="display:none;"><span class="mi mi-xs">unarchive</span> Restore Selected</button>
+  </div>
 </div></div>
 
 <div class="img-viewer-overlay" id="imgViewer" onclick="this.classList.remove('show')"><img id="imgViewerImg" src=""></div>
@@ -3012,6 +3082,666 @@ async function downloadHubBackup(fileName){
   }catch(e){toast('Download failed');}
 }
 
+// ═══════════════════════════════════════════
+// ARCHIVAL MODULE (CAP/CLIA 42 CFR 493.1105 retention)
+// ═══════════════════════════════════════════
+var HUB_ARCH_FOLDER='_shifthub_archives';
+var _archiveCache={};// filename -> parsed JSON payload
+
+function openArchiveModal(){
+  if(!isAdm()){toast('Admin only');return;}
+  // Default cutoff: 7 years ago from today
+  var d=new Date();d.setFullYear(d.getFullYear()-7);
+  var cutoffStr=d.toISOString().slice(0,10);
+  $('archCutoff').value=cutoffStr;
+  $('archScope').value='entries';
+  $('archPreview').style.display='none';
+  $('archProgress').style.display='none';
+  var btn=$('archRunBtn');
+  if(btn){btn.disabled=false;btn.innerHTML='<span class="mi mi-xs">archive</span> Generate Archive';}
+  $('archiveModalBg').classList.add('show');
+  updateArchivePreview();
+}
+function closeArchiveModal(){$('archiveModalBg').classList.remove('show');}
+function setArchivePreset(years){
+  var d=new Date();d.setFullYear(d.getFullYear()-years);
+  $('archCutoff').value=d.toISOString().slice(0,10);
+  updateArchivePreview();
+}
+
+function _filterRecordsForArchive(cutoffDate,scope){
+  var result={entries:[],announcements:[],reviews:[],auditForIds:[]};
+  if(scope==='entries'||scope==='all'){
+    result.entries=entries.filter(function(e){return !e.isDeleted&&e.date&&e.date<cutoffDate;});
+  }
+  if(scope==='announcements'||scope==='all'){
+    result.announcements=announcements.filter(function(a){
+      if(a.isDeleted)return false;
+      var d=a.date||(a.timestamp?a.timestamp.slice(0,10):'');
+      return d&&d<cutoffDate;
+    });
+  }
+  if(scope==='reviews'||scope==='all'){
+    result.reviews=monthlyReviews.filter(function(r){
+      if(r.isDeleted)return false;
+      // Review IDs/months look like "2026-04"; archive if the review month is before the cutoff year-month
+      var monthKey=r.month||'';
+      var cutoffYearMonth=cutoffDate.slice(0,7);
+      return monthKey&&monthKey<cutoffYearMonth;
+    });
+  }
+  // Collect related audit trail entries
+  var ids={};
+  result.entries.forEach(function(e){ids[e.id]=1;});
+  result.announcements.forEach(function(a){ids[a.id]=1;});
+  result.reviews.forEach(function(r){ids[r.id]=1;});
+  result.auditForIds=hist.filter(function(h){return h.entryId&&ids[h.entryId];});
+  return result;
+}
+
+function updateArchivePreview(){
+  var cutoff=$('archCutoff').value;
+  var scope=$('archScope').value;
+  var previewEl=$('archPreview');
+  if(!cutoff){previewEl.style.display='none';return;}
+  var r=_filterRecordsForArchive(cutoff,scope);
+  var total=r.entries.length+r.announcements.length+r.reviews.length;
+  if(total===0){
+    previewEl.style.display='block';
+    previewEl.innerHTML='<div style="color:var(--g500);font-weight:600;">No records found older than '+esc(cutoff)+' for the selected scope.</div>';
+    $('archRunBtn').disabled=true;$('archRunBtn').style.opacity='.5';
+    return;
+  }
+  var html='<div style="font-weight:700;margin-bottom:6px;">Archive preview · records older than '+esc(cutoff)+':</div>';
+  if(scope==='entries'||scope==='all')html+='<div>&bull; Shift Log Entries: <strong>'+r.entries.length+'</strong></div>';
+  if(scope==='announcements'||scope==='all')html+='<div>&bull; Announcements: <strong>'+r.announcements.length+'</strong></div>';
+  if(scope==='reviews'||scope==='all')html+='<div>&bull; Monthly Reviews: <strong>'+r.reviews.length+'</strong></div>';
+  html+='<div>&bull; Associated audit trail entries: <strong>'+r.auditForIds.length+'</strong></div>';
+  html+='<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--teal-bdr);">Total records to archive: <strong>'+total+'</strong></div>';
+  previewEl.style.display='block';
+  previewEl.innerHTML=html;
+  $('archRunBtn').disabled=false;$('archRunBtn').style.opacity='1';
+}
+
+// Generate PDF with embedded JSON, upload to SharePoint, soft-delete archived records
+async function runArchive(){
+  if(!isAdm()){toast('Admin only');return;}
+  var cutoff=$('archCutoff').value;
+  var scope=$('archScope').value;
+  if(!cutoff){toast('Pick a cutoff date');return;}
+  var r=_filterRecordsForArchive(cutoff,scope);
+  var total=r.entries.length+r.announcements.length+r.reviews.length;
+  if(total===0){toast('No records to archive');return;}
+  // Typed-confirm guardrail for destructive operation
+  var confirmText=prompt('ARCHIVAL CONFIRMATION\n\nThis will archive '+total+' record(s) to PDF and soft-delete them from active lists. Type ARCHIVE (all caps) to proceed.');
+  if(confirmText!=='ARCHIVE'){toast('Archival cancelled');return;}
+
+  var runBtn=$('archRunBtn');
+  runBtn.disabled=true;runBtn.innerHTML='<span class="mi mi-xs">hourglass_empty</span> Generating...';
+  var progEl=$('archProgress');progEl.style.display='block';
+  function progress(msg){progEl.innerHTML='<span class="mi mi-xs">hourglass_empty</span> '+esc(msg);}
+
+  try{
+    await resolveHubLibName();
+
+    progress('Ensuring archive folder exists...');
+    var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+    var folderRelUrl=siteRelUrl+'/'+HUB_BK_LIB+'/'+HUB_ARCH_FOLDER;
+    var folderCheck=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')");
+    if(!folderCheck.ok){
+      var dg=await getDigestValue();
+      var createResp=await spFetch(SP_SITE+"/_api/web/folders",{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':dg},body:JSON.stringify({__metadata:{type:'SP.Folder'},ServerRelativeUrl:folderRelUrl})});
+      if(!createResp.ok)throw new Error('Cannot create archive folder: '+createResp.status);
+    }
+
+    progress('Building PDF document...');
+    var nowIso=new Date().toISOString();
+    var archId=gid();
+    var dateRangeStart=[];
+    var dateRangeEnd=[];
+    r.entries.forEach(function(e){if(e.date){dateRangeStart.push(e.date);dateRangeEnd.push(e.date);}});
+    r.announcements.forEach(function(a){var d=a.date||(a.timestamp?a.timestamp.slice(0,10):'');if(d){dateRangeStart.push(d);dateRangeEnd.push(d);}});
+    r.reviews.forEach(function(rev){if(rev.month)dateRangeStart.push(rev.month+'-01');});
+    var earliestDate=dateRangeStart.length?dateRangeStart.sort()[0]:cutoff;
+    var latestDate=dateRangeEnd.length?dateRangeEnd.sort().reverse()[0]:cutoff;
+
+    // Step 1: build human-readable PDF with jsPDF
+    var {jsPDF}=window.jspdf;
+    var doc=new jsPDF({unit:'mm',format:'letter'});
+    var pageW=doc.internal.pageSize.getWidth();
+    var pageH=doc.internal.pageSize.getHeight();
+    var leftM=14,topM=16;
+
+    // Cover page
+    doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(26,58,58);
+    doc.text('UW Medicine DLMP',leftM,topM+4);
+    doc.setFontSize(14);doc.setTextColor(0,121,107);
+    doc.text('Core Laboratory',leftM,topM+12);
+    doc.setFontSize(9);doc.setTextColor(100,100,100);
+    doc.text('Renton Central Laboratory',leftM,topM+17);
+    // Divider
+    doc.setDrawColor(0,121,107);doc.setLineWidth(.5);doc.line(leftM,topM+22,pageW-leftM,topM+22);
+    // Title
+    doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(26,58,58);
+    doc.text('Shift Hub Record Archive',leftM,topM+34);
+    doc.setFontSize(10);doc.setTextColor(100,100,100);
+    doc.text('CAP/CLIA retention · 42 CFR 493.1105',leftM,topM+40);
+    // Summary box
+    var boxY=topM+52;
+    doc.setDrawColor(200,200,200);doc.setFillColor(247,244,239);
+    doc.roundedRect(leftM,boxY,pageW-2*leftM,90,3,3,'FD');
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(26,58,58);
+    doc.text('Archive Summary',leftM+6,boxY+8);
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(60,60,60);
+    var lines=[
+      ['Archive ID:',archId],
+      ['Generated:',new Date().toLocaleString('en-US',{dateStyle:'long',timeStyle:'short'})],
+      ['Generated by:',(me?me.fullName:'Unknown')+' ('+(me?me.initials:'??')+')'],
+      ['Cutoff date:',cutoff],
+      ['Scope:',scope==='all'?'All record types':scope==='entries'?'Shift Log Entries':scope==='announcements'?'Announcements':'Monthly Reviews'],
+      ['Record date range:',earliestDate+' to '+latestDate],
+      ['Shift Log Entries:',String(r.entries.length)],
+      ['Announcements:',String(r.announcements.length)],
+      ['Monthly Reviews:',String(r.reviews.length)],
+      ['Audit trail entries:',String(r.auditForIds.length)],
+      ['Total records:',String(total)]
+    ];
+    var lineY=boxY+16;
+    lines.forEach(function(row){
+      doc.setFont('helvetica','bold');doc.text(row[0],leftM+6,lineY);
+      doc.setFont('helvetica','normal');doc.text(String(row[1]),leftM+60,lineY);
+      lineY+=6.5;
+    });
+    // Footer note
+    doc.setFontSize(8);doc.setTextColor(120,120,120);
+    var footerY=pageH-20;
+    doc.text('Machine-readable JSON data for all archived records is embedded in this PDF as an attachment.',leftM,footerY);
+    doc.text('This archive was generated by the Core Lab Shift Hub application. Records are soft-deleted from active',leftM,footerY+4);
+    doc.text('SharePoint lists; this file is the authoritative archival copy.',leftM,footerY+8);
+
+    // Shift Log Entries section
+    if(r.entries.length){
+      doc.addPage();
+      doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(26,58,58);
+      doc.text('Shift Log Entries ('+r.entries.length+')',leftM,16);
+      var entryRows=r.entries.map(function(e){
+        return[e.date||'',e.shift||'',e.category||'',e.priority||'',(e.description||'').slice(0,60),e.status||'',e.reportedBy||''];
+      });
+      doc.autoTable({
+        startY:22,margin:{left:leftM,right:leftM},
+        head:[['Date','Shift','Category','Priority','Description','Status','Reporter']],
+        body:entryRows,
+        theme:'striped',
+        styles:{fontSize:7,cellPadding:1.5,overflow:'linebreak'},
+        headStyles:{fillColor:[0,121,107],textColor:255,fontSize:7,fontStyle:'bold'},
+        columnStyles:{0:{cellWidth:19},1:{cellWidth:15},2:{cellWidth:22},3:{cellWidth:14},4:{cellWidth:65},5:{cellWidth:18},6:{cellWidth:24}}
+      });
+    }
+
+    // Announcements section
+    if(r.announcements.length){
+      doc.addPage();
+      doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(26,58,58);
+      doc.text('Announcements ('+r.announcements.length+')',leftM,16);
+      var annRows=r.announcements.map(function(a){
+        var d=a.date||(a.timestamp?a.timestamp.slice(0,10):'');
+        return[d,a.annType||'standard',(a.text||'').slice(0,80),a.priority||'',a.postedBy||'',a.resolved?'Yes':'No'];
+      });
+      doc.autoTable({
+        startY:22,margin:{left:leftM,right:leftM},
+        head:[['Date','Type','Text','Priority','Posted By','Resolved']],
+        body:annRows,
+        theme:'striped',
+        styles:{fontSize:7,cellPadding:1.5,overflow:'linebreak'},
+        headStyles:{fillColor:[0,121,107],textColor:255,fontSize:7,fontStyle:'bold'},
+        columnStyles:{0:{cellWidth:22},1:{cellWidth:22},2:{cellWidth:78},3:{cellWidth:16},4:{cellWidth:25},5:{cellWidth:18}}
+      });
+    }
+
+    // Monthly Reviews section
+    if(r.reviews.length){
+      doc.addPage();
+      doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(26,58,58);
+      doc.text('Monthly Supervisory Reviews ('+r.reviews.length+')',leftM,16);
+      var revRows=r.reviews.map(function(rev){
+        return[rev.month||'',rev.reviewerInitials||'',rev.reviewDate||'',String(rev.totalEntries||0),String(rev.openItems||0),String(rev.highPriority||0),(rev.reviewComments||'').slice(0,60)];
+      });
+      doc.autoTable({
+        startY:22,margin:{left:leftM,right:leftM},
+        head:[['Month','Reviewer','Date','Total','Open','High','Comments']],
+        body:revRows,
+        theme:'striped',
+        styles:{fontSize:7,cellPadding:1.5,overflow:'linebreak'},
+        headStyles:{fillColor:[0,121,107],textColor:255,fontSize:7,fontStyle:'bold'},
+        columnStyles:{0:{cellWidth:22},1:{cellWidth:20},2:{cellWidth:22},3:{cellWidth:15},4:{cellWidth:15},5:{cellWidth:15},6:{cellWidth:71}}
+      });
+    }
+
+    // Add page numbers to all pages
+    var pageCount=doc.internal.getNumberOfPages();
+    for(var pg=1;pg<=pageCount;pg++){
+      doc.setPage(pg);
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(150,150,150);
+      doc.text('Page '+pg+' of '+pageCount,pageW-leftM,pageH-6,{align:'right'});
+      doc.text('Archive '+archId,leftM,pageH-6);
+    }
+
+    progress('Embedding JSON data...');
+    // Step 2: get PDF as bytes, then re-process with pdf-lib to embed the JSON attachment
+    var pdfBytes=doc.output('arraybuffer');
+    var jsonPayload={
+      format:'shifthub-archive-v1',
+      archiveId:archId,
+      generated:nowIso,
+      generatedBy:me?me.fullName:'',
+      generatedByInitials:me?me.initials:'',
+      cutoffDate:cutoff,
+      scope:scope,
+      source:'Renton Central Laboratory Core Lab Shift Hub',
+      site:SP_SITE,
+      counts:{entries:r.entries.length,announcements:r.announcements.length,reviews:r.reviews.length,audit:r.auditForIds.length,total:total},
+      dateRange:{earliest:earliestDate,latest:latestDate},
+      entries:r.entries,
+      announcements:r.announcements,
+      reviews:r.reviews,
+      auditTrail:r.auditForIds
+    };
+    var jsonStr=JSON.stringify(jsonPayload,null,2);
+    var jsonBytes=new TextEncoder().encode(jsonStr);
+
+    // Use pdf-lib to embed JSON as file attachment
+    var PDFLib=window.PDFLib;
+    if(!PDFLib)throw new Error('pdf-lib not loaded');
+    var pdfDoc=await PDFLib.PDFDocument.load(pdfBytes);
+    // Set metadata
+    pdfDoc.setTitle('Shift Hub Archive '+archId);
+    pdfDoc.setAuthor((me?me.fullName:'Unknown')+' (UW Medicine DLMP Renton Central Lab)');
+    pdfDoc.setSubject('Core Lab Shift Hub records archived per CAP/CLIA retention (42 CFR 493.1105)');
+    pdfDoc.setKeywords(['archive','shifthub','CAP','CLIA','retention','cutoff='+cutoff,'scope='+scope,'count='+total]);
+    pdfDoc.setCreator('Core Lab Shift Hub application');
+    pdfDoc.setProducer('pdf-lib + jsPDF · Core Lab');
+    pdfDoc.setCreationDate(new Date());
+    pdfDoc.setModificationDate(new Date());
+    // Embed JSON as file attachment
+    await pdfDoc.attach(jsonBytes,'archive-data.json',{
+      mimeType:'application/json',
+      description:'Machine-readable JSON payload: full records for all archived items.',
+      creationDate:new Date(),
+      modificationDate:new Date()
+    });
+    var finalBytes=await pdfDoc.save();
+
+    progress('Uploading to SharePoint...');
+    var fileName='shifthub-archive-'+earliestDate+'-to-'+latestDate+'-'+nowIso.slice(0,10)+'-'+archId.slice(0,8)+'.pdf';
+    var dg2=await getDigestValue();
+    var uploadUrl=SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files/add(url='"+fileName+"',overwrite=true)";
+    var uploadResp=await spFetch(uploadUrl,{method:'POST',headers:{'X-RequestDigest':dg2},body:finalBytes});
+    if(!uploadResp.ok){var errText=await uploadResp.text();throw new Error('Upload failed: '+uploadResp.status+' '+errText);}
+
+    progress('Soft-deleting archived records...');
+    var deletedBy=me?me.fullName:'Unknown';
+    var deletedDate=nowIso;
+    var snapshotBase={archiveId:archId,archivedAt:deletedDate,archiveFile:fileName};
+    var deleteErrors=[];
+    // Entries
+    for(var ei=0;ei<r.entries.length;ei++){
+      var e=r.entries[ei];
+      try{
+        e.isDeleted=true;e.deletedDate=deletedDate;e.deletedBy=deletedBy+' (archived)';
+        await spSaveEntry(e);
+        await spAddAudit('delete','Archived: '+(e.category||'entry'),'Archive '+archId,{entryId:e.id,entryCategory:e.category,deletedSnapshot:JSON.stringify(Object.assign({},snapshotBase,{record:e}))});
+      }catch(err){deleteErrors.push('entry '+e.id);console.error(err);}
+    }
+    // Announcements
+    for(var ai=0;ai<r.announcements.length;ai++){
+      var a=r.announcements[ai];
+      try{
+        a.isDeleted=true;a.deletedDate=deletedDate;a.deletedBy=deletedBy+' (archived)';
+        await spSaveAnn(a);
+        await spAddAudit('delete','Archived announcement','Archive '+archId,{entryId:a.id,deletedSnapshot:JSON.stringify(Object.assign({},snapshotBase,{record:a}))});
+      }catch(err){deleteErrors.push('ann '+a.id);console.error(err);}
+    }
+    // Reviews
+    for(var ri=0;ri<r.reviews.length;ri++){
+      var rev=r.reviews[ri];
+      try{
+        rev.isDeleted=true;rev.deletedDate=deletedDate;rev.deletedBy=deletedBy+' (archived)';
+        await spSaveReview(rev);
+        await spAddAudit('delete','Archived MSR '+(rev.month||''),'Archive '+archId,{entryId:rev.id,deletedSnapshot:JSON.stringify(Object.assign({},snapshotBase,{record:rev}))});
+      }catch(err){deleteErrors.push('review '+rev.id);console.error(err);}
+    }
+
+    progress('Logging archival to Shift Hub...');
+    // Add a Resolved Administrative entry to Shift Hub logging this archival
+    var logEntry={
+      id:gid(),
+      date:nowIso.slice(0,10),
+      time:nowIso.slice(11,16),
+      shift:'Morning',
+      department:'General',
+      reportedBy:deletedBy,
+      authorInitials:me?me.initials:'',
+      category:'Administrative',
+      priority:'Low',
+      description:'Record archival completed. '+total+' record(s) archived to SharePoint and soft-deleted from active lists. Archive ID: '+archId+'. Archive file: '+fileName+'. Date range: '+earliestDate+' to '+latestDate+'. Scope: '+scope+'. Records: '+r.entries.length+' entries, '+r.announcements.length+' announcements, '+r.reviews.length+' reviews, '+r.auditForIds.length+' audit trail entries. '+(deleteErrors.length?deleteErrors.length+' record(s) failed to soft-delete; see console log.':'All records soft-deleted successfully.'),
+      action:'Automated archival operation per CAP/CLIA retention policy (42 CFR 493.1105). The PDF archive includes embedded machine-readable JSON payload with complete record data for forensic retrieval and migration.',
+      status:'Resolved',
+      followUp:'No',
+      resolvedBy:me?me.initials:'',
+      resDate:nowIso.slice(0,10),
+      notes:'Cutoff: '+cutoff+' · Scope: '+scope+' · Archive file: '+fileName,
+      attachments:[],
+      lastModified:nowIso,
+      actionType:'None Required',
+      instrument:'',reagentLot:'',testSystem:'',rootCause:'',
+      effReviewDate:'',effVerified:'',effNotes:'',
+      isDeleted:false,deletedDate:'',deletedBy:'',
+      escalatedDate:'',firstLeadResponseDate:'',firstLeadResponseBy:''
+    };
+    entries.push(logEntry);
+    try{await spSaveEntry(logEntry);}catch(er){console.error('Log entry save failed:',er);}
+    await spAddAudit('add','Archive '+archId+' created ('+total+' records)','File: '+fileName,{entryId:logEntry.id,entryCategory:'Administrative'});
+
+    // Refresh UI
+    entries=entries.filter(function(x){return !x.isDeleted;});
+    announcements=announcements.filter(function(x){return !x.isDeleted;});
+    monthlyReviews=monthlyReviews.filter(function(x){return !x.isDeleted;});
+    renderAll();renderMonthlyReview();
+    loadHubArchiveHistory();
+
+    progEl.style.display='none';
+    runBtn.innerHTML='<span class="mi mi-xs">check_circle</span> Done';
+    setTimeout(function(){closeArchiveModal();toast('Archived '+total+' record(s). File: '+fileName);},1200);
+  }catch(e){
+    console.error('Archival failed:',e);
+    progEl.style.display='none';
+    runBtn.disabled=false;runBtn.innerHTML='<span class="mi mi-xs">archive</span> Generate Archive';
+    toast('Archival failed: '+(e.message||'unknown error').slice(0,80));
+  }
+}
+
+async function loadHubArchiveHistory(){
+  var el=$('hub-arch-history');
+  if(!el)return;
+  el.innerHTML='Loading...';
+  try{
+    await resolveHubLibName();
+    var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+    var folderRelUrl=siteRelUrl+'/'+HUB_BK_LIB+'/'+HUB_ARCH_FOLDER;
+    var checkResp=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')");
+    if(!checkResp.ok){el.innerHTML='<span style="color:var(--g400);font-style:italic;">No archives yet. The _shifthub_archives folder will be created on first archive.</span>';return;}
+    var resp=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files?$select=Name,Length,TimeCreated&$orderby=TimeCreated desc&$top=30");
+    if(!resp.ok){el.innerHTML='<span style="color:var(--red)">Could not load archive history</span>';return;}
+    var data=await resp.json();
+    var files=(data.d&&data.d.results)||[];
+    if(!files.length){el.innerHTML='<span style="color:var(--g400);font-style:italic;">No archives yet.</span>';return;}
+    el.innerHTML='<table style="width:100%;border-collapse:collapse"><thead><tr style="color:var(--g600);font-weight:700"><th style="text-align:left;padding:4px 6px">Created</th><th style="text-align:left;padding:4px 6px">File</th><th style="text-align:left;padding:4px 6px">Size</th><th style="text-align:left;padding:4px 6px"></th></tr></thead><tbody>'+
+      files.map(function(f){
+        var date=f.TimeCreated?new Date(f.TimeCreated).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+        var size=f.Length?Math.round(f.Length/1024)+'KB':'—';
+        return'<tr style="border-bottom:1px solid var(--g100)"><td style="padding:4px 6px;white-space:nowrap">'+date+'</td><td style="padding:4px 6px;font-size:9px;max-width:260px;overflow:hidden;text-overflow:ellipsis">'+esc(f.Name)+'</td><td style="padding:4px 6px">'+size+'</td><td style="padding:4px 6px"><a href="#" onclick="downloadHubArchive(\''+escJS(f.Name)+'\');return false" style="color:var(--teal);font-weight:600">Download</a></td></tr>';
+      }).join('')+'</tbody></table>';
+  }catch(e){
+    console.error('loadHubArchiveHistory error:',e);
+    el.innerHTML='<span style="color:var(--red)">Error: '+esc(e.message)+'</span>';
+  }
+}
+
+async function downloadHubArchive(fileName){
+  try{
+    var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+    var folderRelUrl=siteRelUrl+'/'+HUB_BK_LIB+'/'+HUB_ARCH_FOLDER;
+    var resp=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files('"+fileName+"')/$value");
+    var blob=await resp.blob();
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  }catch(e){toast('Download failed');}
+}
+
+// ═══════════════════════════════════════════
+// RESTORE FROM ARCHIVE
+// ═══════════════════════════════════════════
+var _restoreState={fileName:'',payload:null,selectedIds:new Set()};
+
+function openRestoreArchiveModal(){
+  if(!isAdm()){toast('Admin only');return;}
+  _restoreState={fileName:'',payload:null,selectedIds:new Set()};
+  $('restoreArchStep1').style.display='';
+  $('restoreArchStep2').style.display='none';
+  $('restoreArchBtn').style.display='none';
+  $('restoreArchiveModalBg').classList.add('show');
+  loadArchiveListForRestore();
+}
+function closeRestoreArchiveModal(){$('restoreArchiveModalBg').classList.remove('show');}
+function restoreArchBack(){
+  $('restoreArchStep1').style.display='';
+  $('restoreArchStep2').style.display='none';
+  $('restoreArchBtn').style.display='none';
+  _restoreState.selectedIds.clear();
+}
+
+async function loadArchiveListForRestore(){
+  var el=$('restoreArchList');
+  try{
+    await resolveHubLibName();
+    var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+    var folderRelUrl=siteRelUrl+'/'+HUB_BK_LIB+'/'+HUB_ARCH_FOLDER;
+    var checkResp=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')");
+    if(!checkResp.ok){el.innerHTML='<div style="color:var(--g400);font-style:italic;padding:20px;text-align:center;">No archives available.</div>';return;}
+    var resp=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files?$select=Name,Length,TimeCreated&$orderby=TimeCreated desc&$top=50");
+    var data=await resp.json();
+    var files=(data.d&&data.d.results)||[];
+    if(!files.length){el.innerHTML='<div style="color:var(--g400);font-style:italic;padding:20px;text-align:center;">No archives found.</div>';return;}
+    el.innerHTML=files.map(function(f){
+      var date=f.TimeCreated?new Date(f.TimeCreated).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+      var size=f.Length?Math.round(f.Length/1024)+'KB':'—';
+      return '<div class="admin-row" style="cursor:pointer;" onclick="loadArchiveForRestore(\''+escJS(f.Name)+'\')">'+
+        '<span class="mi mi-sm" style="color:var(--teal)">description</span>'+
+        '<div class="admin-name" style="flex:1;"><div style="font-weight:700;">'+esc(f.Name)+'</div><div style="font-size:9px;color:var(--g400);">'+date+' · '+size+'</div></div>'+
+        '<span class="mi mi-sm" style="color:var(--g400)">chevron_right</span>'+
+        '</div>';
+    }).join('');
+  }catch(e){
+    console.error(e);
+    el.innerHTML='<span style="color:var(--red)">Error loading archives: '+esc(e.message)+'</span>';
+  }
+}
+
+async function loadArchiveForRestore(fileName){
+  var el=$('restoreArchList');
+  el.innerHTML='<div style="padding:20px;text-align:center;color:var(--teal);"><span class="mi">hourglass_empty</span> Loading archive data...</div>';
+  try{
+    // Use cache if available
+    if(_archiveCache[fileName]){
+      _showRestoreRecords(fileName,_archiveCache[fileName]);
+      return;
+    }
+    var siteRelUrl='/sites/og_uw_renton_central_laboratory_-_core_lab';
+    var folderRelUrl=siteRelUrl+'/'+HUB_BK_LIB+'/'+HUB_ARCH_FOLDER;
+    var resp=await spFetch(SP_SITE+"/_api/web/GetFolderByServerRelativeUrl('"+folderRelUrl+"')/Files('"+fileName+"')/$value");
+    var pdfBuf=await resp.arrayBuffer();
+    // Use pdf-lib to extract the embedded archive-data.json
+    var PDFLib=window.PDFLib;
+    var pdfDoc=await PDFLib.PDFDocument.load(pdfBuf);
+    // Walk the Names tree / document catalog to find attached file named "archive-data.json"
+    var jsonStr=_extractEmbeddedJson(pdfDoc);
+    if(!jsonStr)throw new Error('Archive does not contain embedded JSON data. It may be an older format.');
+    var payload=JSON.parse(jsonStr);
+    _archiveCache[fileName]=payload;
+    _showRestoreRecords(fileName,payload);
+  }catch(e){
+    console.error(e);
+    el.innerHTML='<div style="color:var(--red);padding:20px;">Error reading archive: '+esc(e.message)+'</div><button class="btn btn-s" onclick="loadArchiveListForRestore()">Back to list</button>';
+  }
+}
+
+function _extractEmbeddedJson(pdfDoc){
+  // pdf-lib stores attachments in the Names tree under EmbeddedFiles
+  try{
+    var catalog=pdfDoc.context.lookup(pdfDoc.context.trailerInfo.Root);
+    if(!catalog)return null;
+    var names=catalog.get(PDFLib.PDFName.of('Names'));
+    if(!names)return null;
+    var embeddedFiles=names.get(PDFLib.PDFName.of('EmbeddedFiles'));
+    if(!embeddedFiles)return null;
+    var nameArray=embeddedFiles.get(PDFLib.PDFName.of('Names'));
+    if(!nameArray)return null;
+    var arr=nameArray.array||[];
+    for(var i=0;i<arr.length;i+=2){
+      var nameStr=arr[i];var fileRef=arr[i+1];
+      var nameVal=nameStr&&nameStr.decodeText?nameStr.decodeText():String(nameStr);
+      if(nameVal&&nameVal.indexOf('archive-data.json')>=0){
+        var fileSpec=pdfDoc.context.lookup(fileRef);
+        if(!fileSpec)continue;
+        var efDict=fileSpec.get(PDFLib.PDFName.of('EF'));
+        if(!efDict)continue;
+        var fStream=pdfDoc.context.lookup(efDict.get(PDFLib.PDFName.of('F')));
+        if(!fStream)continue;
+        var bytes=fStream.getContents();
+        return new TextDecoder('utf-8').decode(bytes);
+      }
+    }
+    return null;
+  }catch(e){
+    console.error('_extractEmbeddedJson error:',e);
+    return null;
+  }
+}
+
+function _showRestoreRecords(fileName,payload){
+  _restoreState.fileName=fileName;
+  _restoreState.payload=payload;
+  _restoreState.selectedIds.clear();
+  $('restoreArchStep1').style.display='none';
+  $('restoreArchStep2').style.display='';
+  $('restoreArchBtn').style.display='';
+  var meta=$('restoreArchMeta');
+  meta.innerHTML='<div style="font-weight:700;color:var(--navy);margin-bottom:4px;">'+esc(fileName)+'</div>'+
+    '<div>Generated: '+esc(payload.generated?new Date(payload.generated).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}):'—')+' by '+esc(payload.generatedBy||'—')+'</div>'+
+    '<div>Cutoff: '+esc(payload.cutoffDate||'—')+' · Scope: '+esc(payload.scope||'—')+' · Total records: <strong>'+(payload.counts?payload.counts.total:0)+'</strong></div>'+
+    '<div>Date range: '+esc((payload.dateRange&&payload.dateRange.earliest)||'—')+' to '+esc((payload.dateRange&&payload.dateRange.latest)||'—')+'</div>';
+  _renderRestoreRecords();
+}
+
+function _renderRestoreRecords(){
+  var p=_restoreState.payload;if(!p)return;
+  var el=$('restoreArchRecords');
+  var html='';
+  function section(title,records,renderRow){
+    if(!records||!records.length)return;
+    html+='<div style="background:var(--g50);padding:6px 10px;font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--g200);">'+esc(title)+' ('+records.length+')</div>';
+    records.forEach(function(rec){
+      var sel=_restoreState.selectedIds.has(rec.id);
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--g100);cursor:pointer;'+(sel?'background:var(--teal-bg);':'')+'" onclick="toggleRestoreSelect(\''+escJS(rec.id)+'\')">';
+      html+='<input type="checkbox" '+(sel?'checked':'')+' onclick="event.stopPropagation();toggleRestoreSelect(\''+escJS(rec.id)+'\')" style="margin:0;">';
+      html+='<div style="flex:1;min-width:0;">'+renderRow(rec)+'</div>';
+      html+='</div>';
+    });
+  }
+  section('Shift Log Entries',p.entries,function(e){return '<div style="font-weight:700;font-size:11px;">'+esc(e.date||'—')+' · '+esc(e.category||'—')+' · <span style="color:'+(e.priority==='High'?'var(--red)':e.priority==='Medium'?'var(--amber)':'var(--g500)')+';">'+esc(e.priority||'—')+'</span></div><div style="font-size:10px;color:var(--g500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(e.description||'').slice(0,120)+'</div>';});
+  section('Announcements',p.announcements,function(a){var d=a.date||(a.timestamp?a.timestamp.slice(0,10):'');return '<div style="font-weight:700;font-size:11px;">'+esc(d||'—')+' · '+esc(a.annType||'standard')+' · '+esc(a.postedBy||'—')+'</div><div style="font-size:10px;color:var(--g500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(a.text||'').slice(0,120)+'</div>';});
+  section('Monthly Reviews',p.reviews,function(r){return '<div style="font-weight:700;font-size:11px;">'+esc(r.month||'—')+' · Reviewer: '+esc(r.reviewerInitials||'—')+' · Signed: '+esc(r.reviewDate||'unsigned')+'</div><div style="font-size:10px;color:var(--g500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(r.reviewComments||'').slice(0,120)+'</div>';});
+  el.innerHTML=html||'<div style="padding:20px;text-align:center;color:var(--g400);">No records in archive.</div>';
+  $('restoreSelCount').textContent=_restoreState.selectedIds.size+' selected';
+}
+
+function toggleRestoreSelect(id){
+  if(_restoreState.selectedIds.has(id))_restoreState.selectedIds.delete(id);
+  else _restoreState.selectedIds.add(id);
+  _renderRestoreRecords();
+}
+
+function toggleRestoreAll(){
+  var checked=$('restoreSelectAll').checked;
+  var p=_restoreState.payload;if(!p)return;
+  _restoreState.selectedIds.clear();
+  if(checked){
+    (p.entries||[]).forEach(function(e){_restoreState.selectedIds.add(e.id);});
+    (p.announcements||[]).forEach(function(a){_restoreState.selectedIds.add(a.id);});
+    (p.reviews||[]).forEach(function(r){_restoreState.selectedIds.add(r.id);});
+  }
+  _renderRestoreRecords();
+}
+
+async function runRestoreArchive(){
+  var p=_restoreState.payload;if(!p){toast('No archive loaded');return;}
+  var ids=_restoreState.selectedIds;
+  if(ids.size===0){toast('Select at least one record');return;}
+  if(!confirm('Restore '+ids.size+' record(s) from archive?\n\nThese records will be re-inserted into active lists. If a matching ID already exists (restored), it will be overwritten. An audit trail entry will be created.'))return;
+  var btn=$('restoreArchBtn');
+  btn.disabled=true;btn.innerHTML='<span class="mi mi-xs">hourglass_empty</span> Restoring...';
+  var restored={entries:0,announcements:0,reviews:0};
+  var errors=[];
+  var restoreId=gid();
+
+  // Helper: find local record by id across arrays
+  function findEntry(id){return entries.find(function(x){return x.id===id;});}
+  function findAnn(id){return announcements.find(function(x){return x.id===id;});}
+  function findRev(id){return monthlyReviews.find(function(x){return x.id===id;});}
+
+  for(var _i=0;_i<(p.entries||[]).length;_i++){
+    var e=p.entries[_i];
+    if(!ids.has(e.id))continue;
+    try{
+      e.isDeleted=false;e.deletedDate='';e.deletedBy='';
+      var existing=findEntry(e.id);
+      if(existing)Object.assign(existing,e);
+      else entries.push(e);
+      await spSaveEntry(e);
+      await spAddAudit('restore','Restored from archive: '+(e.category||'entry'),'Restore '+restoreId+' · from '+_restoreState.fileName,{entryId:e.id,entryCategory:e.category});
+      restored.entries++;
+    }catch(err){errors.push('entry '+e.id);console.error(err);}
+  }
+  for(var _j=0;_j<(p.announcements||[]).length;_j++){
+    var a=p.announcements[_j];
+    if(!ids.has(a.id))continue;
+    try{
+      a.isDeleted=false;a.deletedDate='';a.deletedBy='';
+      var existingA=findAnn(a.id);
+      if(existingA)Object.assign(existingA,a);
+      else announcements.push(a);
+      await spSaveAnn(a);
+      await spAddAudit('restore','Restored announcement from archive','Restore '+restoreId+' · from '+_restoreState.fileName,{entryId:a.id});
+      restored.announcements++;
+    }catch(err){errors.push('ann '+a.id);console.error(err);}
+  }
+  for(var _k=0;_k<(p.reviews||[]).length;_k++){
+    var r=p.reviews[_k];
+    if(!ids.has(r.id))continue;
+    try{
+      r.isDeleted=false;r.deletedDate='';r.deletedBy='';
+      var existingR=findRev(r.id);
+      if(existingR)Object.assign(existingR,r);
+      else monthlyReviews.push(r);
+      await spSaveReview(r);
+      await spAddAudit('restore','Restored MSR from archive','Restore '+restoreId+' · from '+_restoreState.fileName,{entryId:r.id});
+      restored.reviews++;
+    }catch(err){errors.push('review '+r.id);console.error(err);}
+  }
+  var total=restored.entries+restored.announcements+restored.reviews;
+  // Log to Shift Hub
+  var nowIso=new Date().toISOString();
+  var logEntry={
+    id:gid(),date:nowIso.slice(0,10),time:nowIso.slice(11,16),shift:'Morning',department:'General',
+    reportedBy:me?me.fullName:'',authorInitials:me?me.initials:'',category:'Administrative',priority:'Low',
+    description:'Archive restoration completed. '+total+' record(s) restored from archive. Source: '+_restoreState.fileName+'. Restore ID: '+restoreId+'. Restored: '+restored.entries+' entries, '+restored.announcements+' announcements, '+restored.reviews+' reviews.'+(errors.length?' '+errors.length+' failed.':''),
+    action:'Manual restoration via Core Lab Shift Hub admin interface.',
+    status:'Resolved',followUp:'No',resolvedBy:me?me.initials:'',resDate:nowIso.slice(0,10),
+    notes:'Archive source: '+_restoreState.fileName+' · Restore ID: '+restoreId,
+    attachments:[],lastModified:nowIso,actionType:'None Required',
+    instrument:'',reagentLot:'',testSystem:'',rootCause:'',effReviewDate:'',effVerified:'',effNotes:'',
+    isDeleted:false,deletedDate:'',deletedBy:'',
+    escalatedDate:'',firstLeadResponseDate:'',firstLeadResponseBy:''
+  };
+  entries.push(logEntry);
+  try{await spSaveEntry(logEntry);}catch(er){console.error(er);}
+
+  renderAll();renderMonthlyReview();
+  btn.disabled=false;btn.innerHTML='<span class="mi mi-xs">unarchive</span> Restore Selected';
+  toast('Restored '+total+' record(s)');
+  closeRestoreArchiveModal();
+}
+
 // === PAGE NAV ===
 function switchPage(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
@@ -3021,7 +3751,7 @@ function switchPage(p){
   else if(p==='ann'){$('navAnn').classList.add('active');renderAnn();}
   else if(p==='log'){$('navLog').classList.add('active');renderLog();if(window.innerWidth<=600)setTimeout(renderMobileLog,50);}
   else if(p==='audit'){$('navAudit').classList.add('active');loadAuditIfNeeded().then(renderAudit);}
-  else if(p==='admin'){$('navAdmin').classList.add('active');renderAdmin();loadHubBackupHistory();}
+  else if(p==='admin'){$('navAdmin').classList.add('active');renderAdmin();loadHubBackupHistory();loadHubArchiveHistory();}
   // Sync mobile bottom nav
   ['Ann','Dash','Log','Audit','Admin'].forEach(function(n){
     var el=$('mob'+n);if(el)el.classList.toggle('active',p===n.toLowerCase());

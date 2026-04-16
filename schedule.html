@@ -451,22 +451,61 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .notif-bell .mi{color:#fff;font-size:20px;}
 .notif-badge{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;display:none;}
 .notif-badge.show{display:flex;}
-.notif-panel{position:absolute;top:44px;right:0;width:340px;max-height:420px;background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);box-shadow:var(--shadow-3);overflow:hidden;display:none;z-index:100;}
-.notif-panel.open{display:block;}
+.notif-panel{position:absolute;top:44px;right:0;width:360px;max-height:460px;background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);box-shadow:var(--shadow-3);overflow:hidden;display:none;z-index:100;flex-direction:column;}
+.notif-panel.open{display:flex;}
 .notif-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--g100);font-size:13px;font-weight:700;color:var(--g700);}
-.notif-list{overflow-y:auto;max-height:360px;}
-.notif-item{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--g50);cursor:pointer;transition:background var(--dur-short) var(--me-standard);}
+.notif-list{overflow-y:auto;flex:1;}
+.notif-ftr{border-top:1px solid var(--g100);padding:8px;background:var(--g50);}
+.notif-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--g50);cursor:pointer;transition:background var(--dur-short) var(--me-standard);position:relative;}
 .notif-item:hover{background:var(--teal-bg);}
+.notif-item:hover .notif-dismiss{opacity:1;}
 .notif-item.unread{background:rgba(0,121,107,.04);}
-.notif-item.unread::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:5px;}
+.notif-item.unread .notif-msg{font-weight:600;color:var(--g900);}
+.notif-item.unread::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:8px;}
+.notif-item.grouped{background:#fffbea;border-left:3px solid var(--amber);}
+.notif-item.grouped.unread{background:#fef3c7;}
 .notif-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
 .notif-icon.swap{background:#e3f2fd;color:#1565c0;}
 .notif-icon.pto{background:#ffebee;color:#b71c1c;}
+.notif-icon.holiday{background:#fce4ec;color:#ad1457;}
+.notif-icon.system{background:var(--g100);color:var(--g600);}
 .notif-icon.info{background:var(--teal-bg);color:var(--teal);}
 .notif-body{flex:1;min-width:0;}
-.notif-msg{font-size:11px;color:var(--g700);line-height:1.3;}
-.notif-time{font-size:9px;color:var(--g400);margin-top:2px;}
-.notif-empty{padding:24px 16px;text-align:center;font-size:12px;color:var(--g400);}
+.notif-msg{font-size:11px;color:var(--g700);line-height:1.35;word-break:break-word;}
+.notif-time{font-size:9px;color:var(--g400);margin-top:3px;display:flex;align-items:center;gap:4px;}
+.notif-count-chip{display:inline-flex;align-items:center;justify-content:center;background:var(--amber);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;}
+.notif-dismiss{opacity:0;position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--g100);color:var(--g500);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .15s,background .15s;font-size:14px;border:none;}
+.notif-dismiss:hover{background:var(--red);color:#fff;}
+.notif-dismiss .mi{font-size:12px;}
+.notif-empty{padding:28px 16px;text-align:center;font-size:12px;color:var(--g400);}
+.notif-empty .mi{font-size:28px;color:var(--g200);display:block;margin-bottom:8px;}
+
+/* Full-page notifications view */
+.notifpg-hdr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.notifpg-hdr h2{font-size:16px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:6px;}
+.notifpg-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;border-bottom:1px solid var(--g200);padding-bottom:8px;}
+.notifpg-tab{padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;color:var(--g500);cursor:pointer;transition:background .15s,color .15s;border:1px solid transparent;display:flex;align-items:center;gap:4px;}
+.notifpg-tab:hover{background:var(--g50);color:var(--navy);}
+.notifpg-tab.active{background:var(--teal);color:#fff;}
+.notifpg-tab .chip-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 5px;border-radius:8px;font-size:9px;font-weight:800;background:rgba(0,0,0,.12);color:inherit;}
+.notifpg-tab.active .chip-count{background:rgba(255,255,255,.25);}
+.notifpg-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+.notifpg-search{flex:1;min-width:180px;padding:6px 12px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-family:var(--font);}
+.notifpg-search:focus{outline:none;border-color:var(--teal);}
+.notifpg-list{background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);box-shadow:var(--shadow-1);overflow:hidden;}
+.notifpg-section-hdr{padding:8px 14px;background:var(--g50);font-size:10px;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--g200);}
+.notifpg-row{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--g100);cursor:pointer;transition:background .15s;position:relative;}
+.notifpg-row:hover{background:var(--teal-bg);}
+.notifpg-row:hover .notif-dismiss{opacity:1;}
+.notifpg-row.unread{background:rgba(0,121,107,.04);}
+.notifpg-row.unread .notif-msg{font-weight:700;color:var(--g900);}
+.notifpg-row.unread::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:8px;}
+.notifpg-row.grouped{background:#fffbea;border-left:3px solid var(--amber);}
+.notifpg-row.grouped.unread{background:#fef3c7;}
+.notifpg-group-members{margin-top:6px;padding-left:10px;border-left:2px solid var(--amber);display:none;}
+.notifpg-group-members.open{display:block;}
+.notifpg-group-member{font-size:10px;color:var(--g600);padding:3px 0;display:flex;justify-content:space-between;}
+.notifpg-toggle{font-size:9px;color:var(--teal);cursor:pointer;margin-top:4px;text-decoration:underline;}
 
 /* ═══ PROFILE MODAL ═══ */
 .prof-section{margin:12px 0;padding:8px 0;border-bottom:1px solid var(--g100);}
@@ -611,8 +650,12 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
       <span class="mi">notifications</span>
       <span class="notif-badge" id="notif-badge">0</span>
       <div class="notif-panel" id="notif-panel">
-        <div class="notif-hdr"><span>Notifications</span><button class="tb-btn" style="font-size:9px;padding:2px 8px;" onclick="markAllRead(event)">Mark all read</button></div>
+        <div class="notif-hdr">
+          <span style="display:flex;align-items:center;gap:6px;"><span class="mi mi-sm">notifications</span> Notifications</span>
+          <button class="tb-btn" style="font-size:9px;padding:2px 8px;" onclick="markAllRead(event)">Mark all read</button>
+        </div>
         <div class="notif-list" id="notif-list"></div>
+        <div class="notif-ftr"><button class="btn btn-s" onclick="openNotifPage(event)" style="width:100%;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px;"><span class="mi mi-xs">inbox</span> See all notifications</button></div>
       </div>
     </div>
     <div class="hdr-avatar" id="hdr-avatar" title="User" onclick="openProfile()"></div>
@@ -627,6 +670,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
   <div class="nav-tab" id="navSwap" onclick="switchTab('swap')"><span class="mi mi-sm">compare_arrows</span> Swaps<span class="nav-badge" id="swapNavBadge"></span></div>
   <div class="nav-tab" id="navPto" onclick="switchTab('pto')"><span class="mi mi-sm">event</span> PTO<span class="nav-badge" id="ptoNavBadge"></span></div>
   <div class="nav-tab" id="navHoliday" onclick="switchTab('holiday')"><span class="mi mi-sm">emoji_events</span> Holidays</div>
+  <div class="nav-tab" id="navNotifs" onclick="switchTab('notifs')"><span class="mi mi-sm">notifications</span> Notifications<span class="nav-badge" id="notifsNavBadge"></span></div>
   <div class="nav-tab" id="navStats" onclick="switchTab('stats')" style="display:none"><span class="mi mi-sm">assessment</span> Stats</div>
   <div class="nav-tab" id="navAudit" onclick="switchTab('audit')" style="display:none"><span class="mi mi-sm">history</span> Audit</div>
   <div class="nav-tab" id="navRoster" onclick="switchTab('roster')" style="display:none"><span class="mi mi-sm">group</span> Staff Roster</div>
@@ -773,6 +817,29 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
     </div>
   </div>
   <div id="auditList"></div>
+</div>
+
+<!-- NOTIFICATIONS PAGE (full view) -->
+<div class="page" id="pageNotifs">
+  <div class="notifpg-hdr">
+    <h2><span class="mi">notifications</span> Notifications</h2>
+    <span style="font-size:11px;color:var(--g400);margin-left:8px;" id="notifpg-count"></span>
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      <button class="btn btn-s" onclick="markAllRead()"><span class="mi mi-xs">mark_email_read</span> Mark all read</button>
+      <button class="btn btn-s" onclick="archiveAllRead()"><span class="mi mi-xs">archive</span> Archive read</button>
+    </div>
+  </div>
+  <div class="notifpg-tabs" id="notifpg-tabs"></div>
+  <div class="notifpg-toolbar">
+    <input type="text" class="notifpg-search" id="notifpgSearch" placeholder="Search notifications..." oninput="renderNotifPage()">
+    <select id="notifpgSort" onchange="renderNotifPage()" style="padding:6px 12px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-family:var(--font);background:var(--white);">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+      <option value="unread">Unread first</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--g500);cursor:pointer;"><input type="checkbox" id="notifpgShowArchived" onchange="renderNotifPage()"> Show archived</label>
+  </div>
+  <div class="notifpg-list" id="notifpgList"></div>
 </div>
 
 <!-- STATS PAGE (Leads only) -->
@@ -1636,11 +1703,11 @@ function holidayToSP(h){
 // Notification SP mapping
 function spToNotif(item,fm){
   var g=function(n){return spVal(item,n,fm);};
-  return{id:item.Title||'',_spId:item.Id,recipient:g('Recipient')||'',notifType:g('NotifType')||'',message:g('Message')||'',isRead:(g('IsRead')||'No')==='Yes',relatedId:g('RelatedId')||'',relatedTab:g('RelatedTab')||'',created:g('Created')||item.Created||''};
+  return{id:item.Title||'',_spId:item.Id,recipient:g('Recipient')||'',notifType:g('NotifType')||'',message:g('Message')||'',isRead:(g('IsRead')||'No')==='Yes',isArchived:(g('IsArchived')||'No')==='Yes',relatedId:g('RelatedId')||'',relatedTab:g('RelatedTab')||'',created:g('Created')||item.Created||''};
 }
 function notifToSP(n){
   var fm=_fieldMaps['ScheduleNotifications']||{};
-  return spSet(fm,[['Title',n.id],['Recipient',n.recipient],['NotifType',n.notifType],['Message',n.message],['IsRead',n.isRead?'Yes':'No'],['RelatedId',n.relatedId||''],['RelatedTab',n.relatedTab||'']]);
+  return spSet(fm,[['Title',n.id],['Recipient',n.recipient],['NotifType',n.notifType],['Message',n.message],['IsRead',n.isRead?'Yes':'No'],['IsArchived',n.isArchived?'Yes':'No'],['RelatedId',n.relatedId||''],['RelatedTab',n.relatedTab||'']]);
 }
 
 // Audit SP mapping
@@ -1984,6 +2051,7 @@ function switchTab(tab){
   else if(tab==='swap')renderSwaps();
   else if(tab==='pto')renderPTO();
   else if(tab==='holiday')renderHolidays();
+  else if(tab==='notifs')renderNotifPage();
   else if(tab==='stats')renderStats();else if(tab==='audit')renderAuditLog();else if(tab==='admin')renderAdmin();
   else if(tab==='roster')renderRoster();
   saveUIState();
@@ -2005,6 +2073,12 @@ function renderCurrentView(){
 }
 
 function updateNavBadges(){
+  var notifsBadge=document.getElementById('notifsNavBadge');
+  if(notifsBadge){
+    var unreadAll=notifications.filter(function(n){return!n.isRead&&!n.isArchived;}).length;
+    notifsBadge.textContent=unreadAll;
+    notifsBadge.classList.toggle('show',unreadAll>0);
+  }
   if(!isLead())return;
   var pendingSwaps=swapRequests.filter(function(s){return s.status==='Pending Lead';}).length;
   var pendingPTO=ptoRequests.filter(function(p){return p.status==='Pending';}).length;
@@ -2647,7 +2721,7 @@ function renderSwapCard(s){
   var sc=s.status.toLowerCase().replace(/ /g,'-');
   var isRequester=me&&s.requestBy===me.initials;
   var isPartner=me&&s.swapWith===me.initials;
-  var html='<div class="swap-card '+sc+'">';
+  var html='<div class="swap-card '+sc+'" data-swap-id="'+esc(s.id)+'">';
   var badgeColor=s.status==='Pending Partner'?'var(--amber)':s.status==='Pending Lead'?'#1565c0':s.status==='Approved'?'var(--green)':s.status==='Denied'||s.status==='Declined'?'var(--red)':'var(--g400)';
   html+='<div class="swap-hdr"><div class="swap-title">'+esc(s.requestByName)+' &harr; '+esc(s.swapWithName)+'</div><span class="swap-badge" style="background:'+badgeColor+';color:#fff;">'+esc(s.status)+'</span></div>';
   html+='<div class="swap-detail">';
@@ -3567,7 +3641,7 @@ function renderPTOCard(p){
   var isRequester=me&&p.requestBy===me.initials;
   var conflicts=getPTOConflicts(p.startDate,p.endDate,p.id);
   var workdays=countWorkdays(p.startDate,p.endDate);
-  var html='<div class="swap-card '+sc+'" style="border-radius:0;margin:0;border-left:none;border-right:none;border-top:none;">';
+  var html='<div class="swap-card '+sc+'" data-pto-id="'+esc(p.id)+'" style="border-radius:0;margin:0;border-left:none;border-right:none;border-top:none;">';
   html+='<div class="swap-hdr"><div class="swap-title" style="font-size:12px;">'+esc(p.startDate)+' to '+esc(p.endDate)+' <span style="font-weight:400;color:var(--g400);">('+workdays+'d, '+workdays*8+'h) '+esc(p.requestType)+'</span></div><span class="swap-badge '+sc+'">'+esc(p.status)+'</span></div>';
   if(p.reason||conflicts.length||p.coverageImpact||p.approvedBy){
     html+='<div class="swap-detail" style="padding-top:4px;">';
@@ -5261,28 +5335,66 @@ async function loadNotifications(){
   try{
     var fm=await discoverFields('ScheduleNotifications');
     var myIni=me?me.initials:'';
-    var sp=await spGet('ScheduleNotifications',"Recipient eq '"+myIni+"'",null,200);
+    var sp=await spGet('ScheduleNotifications',"Recipient eq '"+myIni+"'",null,500);
     notifications=sp.map(function(i){return spToNotif(i,fm);});
     renderNotifBadge();
+    updateNavBadges();
   }catch(e){console.warn('Notifications load failed:',e);notifications=[];}
 }
 
+// Canonical group key: identical (type, relatedId) produce identical keys.
+// Used for dedupe at write-time and grouping at render-time.
+function _notifGroupKey(type,relatedId,message){
+  // For system notifications without relatedId, fall back to message first 40 chars
+  var idPart=relatedId||(message?message.slice(0,40):'');
+  return (type||'misc')+'::'+idPart;
+}
+
+// Tolerance window for dedupe: skip a send if an unread notification with the
+// same groupKey was created within the last 30 seconds. This prevents the
+// "double-fire" bug seen when approve/deny handlers run twice.
+var NOTIF_DEDUPE_WINDOW_MS=30*1000;
+
 async function sendNotification(recipientIni,type,message,relatedId,relatedTab){
-  var n={id:gid(),recipient:recipientIni,notifType:type,message:message,isRead:false,relatedId:relatedId||'',relatedTab:relatedTab||'',created:new Date().toISOString()};
-  // If recipient is current user, add to local array immediately
-  if(me&&recipientIni===me.initials){notifications.unshift(n);renderNotifBadge();}
+  if(!recipientIni)return;
+  var key=_notifGroupKey(type,relatedId,message);
+  var now=Date.now();
+  // Check local notifications array for exact duplicate within dedupe window
+  if(me&&recipientIni===me.initials){
+    var existing=notifications.find(function(n){
+      if(n.isArchived)return false;
+      if(n.isRead)return false;
+      var nKey=_notifGroupKey(n.notifType,n.relatedId,n.message);
+      if(nKey!==key)return false;
+      if(n.message!==message)return false;// exact message match required for in-window dedupe
+      var nCreated=Date.parse(n.created||'');
+      if(isNaN(nCreated))return false;
+      return (now-nCreated)<NOTIF_DEDUPE_WINDOW_MS;
+    });
+    if(existing){console.log('[notif] skipping duplicate:',key);return;}
+  }
+  var n={id:gid(),recipient:recipientIni,notifType:type,message:message,isRead:false,isArchived:false,relatedId:relatedId||'',relatedTab:relatedTab||'',created:new Date().toISOString()};
+  if(me&&recipientIni===me.initials){
+    notifications.unshift(n);
+    renderNotifBadge();
+    updateNavBadges();
+  }
   try{await spAdd('ScheduleNotifications',notifToSP(n));}catch(e){console.warn('Notification save failed:',e);}
 }
 
 async function sendNotificationToLeads(type,message,relatedId,relatedTab){
   var leads=STAFF.filter(function(s){return s.active!==false&&ELEVATED_ROLES.some(function(r){return s.role&&s.role.indexOf(r)>=0;});});
+  // Dedupe leads by initials in case DEFAULT_STAFF has dupes
+  var seen={};
   for(var i=0;i<leads.length;i++){
+    if(seen[leads[i].ini])continue;
+    seen[leads[i].ini]=1;
     await sendNotification(leads[i].ini,type,message,relatedId,relatedTab);
   }
 }
 
 function renderNotifBadge(){
-  var unread=notifications.filter(function(n){return!n.isRead;}).length;
+  var unread=notifications.filter(function(n){return!n.isRead&&!n.isArchived;}).length;
   var badge=document.getElementById('notif-badge');
   if(badge){
     badge.textContent=unread;
@@ -5298,95 +5410,369 @@ function toggleNotifPanel(e){
   if(!isOpen)renderNotifList();
 }
 
+// ═══ ICON & CATEGORY HELPERS ═══
+function _notifCategory(type){
+  if(!type)return 'system';
+  var t=type.toLowerCase();
+  if(t.indexOf('swap')>=0)return 'swap';
+  if(t.indexOf('pto')>=0)return 'pto';
+  if(t.indexOf('holiday')>=0)return 'holiday';
+  return 'system';
+}
+function _notifIcon(cat){
+  return cat==='swap'?'compare_arrows':cat==='pto'?'event':cat==='holiday'?'emoji_events':cat==='system'?'info':'notifications';
+}
+function _notifCatLabel(cat){
+  return cat==='swap'?'Swap':cat==='pto'?'PTO':cat==='holiday'?'Holiday':'System';
+}
+
+// ═══ BETTER TIMESTAMPS ═══
+// Context-aware formatter: "3:45 PM today", "Yesterday 3:45 PM", "Mon 3:45 PM", "Apr 9".
+function formatNotifTime(isoStr){
+  if(!isoStr)return '';
+  var d=new Date(isoStr);
+  if(isNaN(d.getTime()))return '';
+  var now=new Date();
+  var diffMs=now-d;
+  if(diffMs<60*1000)return 'just now';
+  var today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  var yesterday=new Date(today);yesterday.setDate(yesterday.getDate()-1);
+  var msgDay=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  var sevenDaysAgo=new Date(today);sevenDaysAgo.setDate(sevenDaysAgo.getDate()-6);
+  var timeStr=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  if(msgDay.getTime()===today.getTime()){
+    if(diffMs<60*60*1000){return Math.floor(diffMs/60000)+'m ago';}
+    return timeStr+' today';
+  }
+  if(msgDay.getTime()===yesterday.getTime())return 'Yesterday '+timeStr;
+  if(msgDay>=sevenDaysAgo){
+    var dayName=d.toLocaleDateString('en-US',{weekday:'short'});
+    return dayName+' '+timeStr;
+  }
+  // Older than a week, in same year
+  if(d.getFullYear()===now.getFullYear())return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+// ═══ GROUPING ═══
+// At render time, cluster notifications sharing a groupKey within a 2-hour window.
+// Returns an array of render entries. Each entry is either {single:n} or {group:[n1,n2,...],key,primary}.
+var GROUPING_WINDOW_MS=2*60*60*1000;
+function _groupNotifs(items){
+  // items is already sorted newest first
+  var out=[];
+  var consumed={};
+  for(var i=0;i<items.length;i++){
+    if(consumed[items[i].id])continue;
+    var primary=items[i];
+    var primaryKey=_notifGroupKey(primary.notifType,primary.relatedId,primary.message);
+    var primaryMs=Date.parse(primary.created||'')||0;
+    var cluster=[primary];
+    for(var j=i+1;j<items.length;j++){
+      if(consumed[items[j].id])continue;
+      var otherKey=_notifGroupKey(items[j].notifType,items[j].relatedId,items[j].message);
+      if(otherKey!==primaryKey)continue;
+      var otherMs=Date.parse(items[j].created||'')||0;
+      if(Math.abs(primaryMs-otherMs)>GROUPING_WINDOW_MS)continue;
+      cluster.push(items[j]);
+      consumed[items[j].id]=1;
+    }
+    consumed[primary.id]=1;
+    if(cluster.length>1)out.push({group:cluster,key:primaryKey,primary:primary});
+    else out.push({single:primary});
+  }
+  return out;
+}
+
+// ═══ DROPDOWN: compact preview ═══
 function renderNotifList(){
   var list=document.getElementById('notif-list');
-  if(!notifications.length){
-    list.innerHTML='<div class="notif-empty"><span class="mi" style="font-size:24px;color:var(--g200);display:block;margin-bottom:6px;">notifications</span>No notifications</div>';
+  if(!list)return;
+  // Show top 8: unread first, then recent read. Skip archived.
+  var active=notifications.filter(function(n){return!n.isArchived;});
+  if(!active.length){
+    list.innerHTML='<div class="notif-empty"><span class="mi">notifications_off</span>No notifications</div>';
     return;
   }
-  var sorted=notifications.slice().sort(function(a,b){return(b.created||'').localeCompare(a.created||'');});
-  var now=new Date();
-  var sevenDaysAgo=new Date(now);sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
-  var sevenDayStr=sevenDaysAgo.toISOString();
-
-  var recent=sorted.filter(function(n){return(n.created||'')>=sevenDayStr;});
-  var older=sorted.filter(function(n){return(n.created||'')<sevenDayStr;});
-
+  var sorted=active.slice().sort(function(a,b){
+    if(a.isRead!==b.isRead)return a.isRead?1:-1;
+    return (b.created||'').localeCompare(a.created||'');
+  });
+  var grouped=_groupNotifs(sorted);
+  var top=grouped.slice(0,8);
   var html='';
-  var shown=recent.slice(0,20);
-  shown.forEach(function(n){html+=renderNotifItem(n);});
-
-  if(recent.length>20){
-    html+='<div style="text-align:center;padding:8px;"><span style="font-size:11px;color:var(--g400);">'+(recent.length-20)+' more recent</span></div>';
+  top.forEach(function(entry){
+    if(entry.group)html+=_renderNotifItem(entry.primary,true,entry.group.length);
+    else html+=_renderNotifItem(entry.single,false,0);
+  });
+  if(grouped.length>8){
+    html+='<div style="text-align:center;padding:6px;font-size:10px;color:var(--g400);">'+(grouped.length-8)+' more...</div>';
   }
-
-  if(older.length){
-    html+='<div style="padding:6px 16px;"><div style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.04em;" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.shift-toggle\').style.transform=b.style.display===\'none\'?\'rotate(-90deg)\':\'\'">Older ('+older.length+')<span class="shift-toggle" style="font-size:10px;color:var(--g300);transform:rotate(-90deg);">\u25BC</span></div><div style="display:none;">';
-    older.slice(0,20).forEach(function(n){html+=renderNotifItem(n);});
-    if(older.length>20)html+='<div style="text-align:center;padding:8px;font-size:10px;color:var(--g400);">'+(older.length-20)+' more older notifications</div>';
-    html+='</div></div>';
-  }
-
   list.innerHTML=html;
 }
 
-function renderNotifItem(n){
-  var iconCls=n.notifType==='swap-partner'||n.notifType==='swap-status'?'swap':n.notifType==='pto-status'?'pto':'info';
-  var iconName=iconCls==='swap'?'compare_arrows':iconCls==='pto'?'event':'info';
-  var timeAgo=getTimeAgo(n.created);
-  return'<div class="notif-item'+(n.isRead?'':' unread')+'" onclick="handleNotifClick(\''+escJS(n.id)+'\',\''+escJS(n.relatedTab)+'\')"><div class="notif-icon '+iconCls+'"><span class="mi">'+iconName+'</span></div><div class="notif-body"><div class="notif-msg">'+esc(n.message)+'</div><div class="notif-time">'+timeAgo+'</div></div></div>';
+function _renderNotifItem(n,isGroup,groupCount){
+  var cat=_notifCategory(n.notifType);
+  var iconName=_notifIcon(cat);
+  var timeStr=formatNotifTime(n.created);
+  var countChip=isGroup?'<span class="notif-count-chip">+'+(groupCount-1)+'</span>':'';
+  return '<div class="notif-item'+(n.isRead?'':' unread')+(isGroup?' grouped':'')+'" onclick="handleNotifClick(\''+escJS(n.id)+'\')">'+
+    '<div class="notif-icon '+cat+'"><span class="mi">'+iconName+'</span></div>'+
+    '<div class="notif-body"><div class="notif-msg">'+esc(n.message)+countChip+'</div>'+
+    '<div class="notif-time"><span class="mi mi-xs" style="font-size:10px;">schedule</span>'+esc(timeStr)+'</div></div>'+
+    '<button class="notif-dismiss" onclick="event.stopPropagation();archiveNotif(\''+escJS(n.id)+'\')" title="Archive"><span class="mi">close</span></button>'+
+  '</div>';
 }
 
-function getTimeAgo(isoStr){
-  if(!isoStr)return'';
-  var d=new Date(isoStr);var now=new Date();
-  var diff=Math.floor((now-d)/1000);
-  if(diff<60)return'just now';
-  if(diff<3600)return Math.floor(diff/60)+'m ago';
-  if(diff<86400)return Math.floor(diff/3600)+'h ago';
-  if(diff<604800)return Math.floor(diff/86400)+'d ago';
-  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+// ═══ FULL PAGE: filter, search, sort ═══
+var _notifpgState={category:'all',search:'',sort:'newest',showArchived:false,expandedGroups:{}};
+
+function openNotifPage(e){
+  if(e)e.stopPropagation();
+  var panel=document.getElementById('notif-panel');
+  if(panel)panel.classList.remove('open');
+  switchTab('notifs');
 }
 
-async function handleNotifClick(id,tab){
+function renderNotifPage(){
+  var list=document.getElementById('notifpgList');
+  var tabs=document.getElementById('notifpg-tabs');
+  var countEl=document.getElementById('notifpg-count');
+  if(!list)return;
+  // Read controls
+  var searchEl=document.getElementById('notifpgSearch');
+  var sortEl=document.getElementById('notifpgSort');
+  var archEl=document.getElementById('notifpgShowArchived');
+  if(searchEl)_notifpgState.search=searchEl.value.toLowerCase().trim();
+  if(sortEl)_notifpgState.sort=sortEl.value;
+  if(archEl)_notifpgState.showArchived=archEl.checked;
+
+  var all=notifications.slice();
+  // Build category tab counts from the unfiltered (but archive-respecting) set
+  var tabPool=all.filter(function(n){return _notifpgState.showArchived||!n.isArchived;});
+  var catCounts={all:0,swap:0,pto:0,holiday:0,system:0};
+  tabPool.forEach(function(n){
+    if(n.isRead)return;
+    var c=_notifCategory(n.notifType);
+    catCounts.all++;
+    if(catCounts[c]!==undefined)catCounts[c]++;
+  });
+  // Render tabs
+  if(tabs){
+    tabs.innerHTML=['all','swap','pto','holiday','system'].map(function(cat){
+      var label=cat==='all'?'All':_notifCatLabel(cat);
+      var count=catCounts[cat];
+      return '<div class="notifpg-tab'+(_notifpgState.category===cat?' active':'')+'" onclick="_setNotifCat(\''+cat+'\')"><span class="mi mi-xs">'+(cat==='all'?'inbox':_notifIcon(cat))+'</span>'+esc(label)+(count>0?'<span class="chip-count">'+count+'</span>':'')+'</div>';
+    }).join('');
+  }
+  // Filter by category, archived, search
+  var filtered=all.filter(function(n){
+    if(!_notifpgState.showArchived&&n.isArchived)return false;
+    if(_notifpgState.category!=='all'&&_notifCategory(n.notifType)!==_notifpgState.category)return false;
+    if(_notifpgState.search){
+      var hay=(n.message+' '+n.notifType).toLowerCase();
+      if(hay.indexOf(_notifpgState.search)<0)return false;
+    }
+    return true;
+  });
+  // Sort
+  if(_notifpgState.sort==='oldest'){filtered.sort(function(a,b){return(a.created||'').localeCompare(b.created||'');});}
+  else if(_notifpgState.sort==='unread'){filtered.sort(function(a,b){if(a.isRead!==b.isRead)return a.isRead?1:-1;return (b.created||'').localeCompare(a.created||'');});}
+  else filtered.sort(function(a,b){return(b.created||'').localeCompare(a.created||'');});
+  if(countEl)countEl.textContent=filtered.length+(filtered.length===1?' item':' items');
+  // Group
+  var grouped=_groupNotifs(filtered);
+  if(!grouped.length){
+    list.innerHTML='<div class="notif-empty" style="padding:40px 20px;"><span class="mi">notifications_off</span>'+(_notifpgState.search?'No matches for "'+esc(_notifpgState.search)+'"':_notifpgState.category==='all'?'No notifications':'No '+_notifCatLabel(_notifpgState.category).toLowerCase()+' notifications')+'</div>';
+    return;
+  }
+  // Section by time bucket
+  var now=new Date();
+  var todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+  var yesterdayStart=todayStart-86400000;
+  var weekStart=todayStart-6*86400000;
+  var sections={Today:[],Yesterday:[],'This week':[],Older:[]};
+  grouped.forEach(function(entry){
+    var src=entry.single||entry.primary;
+    var ms=Date.parse(src.created||'')||0;
+    if(ms>=todayStart)sections.Today.push(entry);
+    else if(ms>=yesterdayStart)sections.Yesterday.push(entry);
+    else if(ms>=weekStart)sections['This week'].push(entry);
+    else sections.Older.push(entry);
+  });
+  var html='';
+  ['Today','Yesterday','This week','Older'].forEach(function(title){
+    var bucket=sections[title];
+    if(!bucket.length)return;
+    html+='<div class="notifpg-section-hdr">'+title+' ('+bucket.length+')</div>';
+    bucket.forEach(function(entry){
+      if(entry.group)html+=_renderNotifpgRow(entry.primary,entry.group);
+      else html+=_renderNotifpgRow(entry.single,null);
+    });
+  });
+  list.innerHTML=html;
+}
+
+function _renderNotifpgRow(n,group){
+  var cat=_notifCategory(n.notifType);
+  var iconName=_notifIcon(cat);
+  var timeStr=formatNotifTime(n.created);
+  var groupCount=group?group.length:0;
+  var expanded=group&&_notifpgState.expandedGroups[n.id];
+  var countChip=group?'<span class="notif-count-chip">'+groupCount+' related</span>':'';
+  var toggleBtn=group?'<span class="notifpg-toggle" onclick="event.stopPropagation();_toggleGroup(\''+escJS(n.id)+'\')">'+(expanded?'Hide':'Show')+' '+(groupCount-1)+' more</span>':'';
+  var membersHtml='';
+  if(group&&expanded){
+    membersHtml='<div class="notifpg-group-members open">';
+    group.slice(1).forEach(function(m){
+      membersHtml+='<div class="notifpg-group-member"><span>'+esc(m.message.slice(0,80))+'</span><span style="color:var(--g400);flex-shrink:0;margin-left:8px;">'+esc(formatNotifTime(m.created))+'</span></div>';
+    });
+    membersHtml+='</div>';
+  }
+  var archBadge=n.isArchived?'<span style="font-size:9px;background:var(--g200);color:var(--g600);padding:1px 5px;border-radius:4px;margin-left:4px;">Archived</span>':'';
+  return '<div class="notifpg-row'+(n.isRead?'':' unread')+(group?' grouped':'')+'" onclick="handleNotifClick(\''+escJS(n.id)+'\')">'+
+    '<div class="notif-icon '+cat+'" style="width:32px;height:32px;"><span class="mi" style="font-size:16px;">'+iconName+'</span></div>'+
+    '<div class="notif-body"><div class="notif-msg">'+esc(n.message)+countChip+archBadge+'</div>'+
+    '<div class="notif-time"><span class="mi mi-xs" style="font-size:10px;">schedule</span>'+esc(timeStr)+' &middot; '+esc(_notifCatLabel(cat))+'</div>'+
+    toggleBtn+membersHtml+'</div>'+
+    '<button class="notif-dismiss" onclick="event.stopPropagation();archiveNotif(\''+escJS(n.id)+(group?'\',true':'\'')+')" title="Archive"><span class="mi">close</span></button>'+
+  '</div>';
+}
+
+function _setNotifCat(cat){_notifpgState.category=cat;renderNotifPage();}
+function _toggleGroup(id){_notifpgState.expandedGroups[id]=!_notifpgState.expandedGroups[id];renderNotifPage();}
+
+// ═══ CLICK HANDLER (enhanced) ═══
+async function handleNotifClick(id){
   var n=notifications.find(function(x){return x.id===id;});
-  if(n&&!n.isRead){
+  if(!n)return;
+  if(!n.isRead){
     n.isRead=true;
     renderNotifBadge();
+    updateNavBadges();
     try{
-      var sp=await spGet('ScheduleNotifications',"Title eq '"+id+"'");
-      if(sp.length){
-        var fm=await discoverFields('ScheduleNotifications');
-        var readKey=fm.IsRead||'IsRead';
-        var payload={};payload[readKey]='Yes';
-        await spUpdate('ScheduleNotifications',sp[0].Id,payload);
-      }
+      var fm=await discoverFields('ScheduleNotifications');
+      var readKey=fm.IsRead||'IsRead';
+      var payload={};payload[readKey]='Yes';
+      if(n._spId){await spUpdate('ScheduleNotifications',n._spId,payload);}
+      else{var sp=await spGet('ScheduleNotifications',"Title eq '"+id+"'");if(sp.length){n._spId=sp[0].Id;await spUpdate('ScheduleNotifications',sp[0].Id,payload);}}
     }catch(e){}
   }
-  // Navigate to the relevant tab
-  if(tab)switchTab(tab);
-  toggleNotifPanel();
+  // Close dropdown if it was open
+  var panel=document.getElementById('notif-panel');
+  if(panel)panel.classList.remove('open');
+  // Route to the relevant context with deep link
+  var cat=_notifCategory(n.notifType);
+  if(cat==='swap'&&n.relatedId){
+    switchTab('swap');
+    setTimeout(function(){_highlightSwap(n.relatedId);},100);
+    return;
+  }
+  if(cat==='pto'&&n.relatedId){
+    switchTab('pto');
+    setTimeout(function(){_highlightPTO(n.relatedId);},100);
+    return;
+  }
+  if(cat==='holiday'){
+    switchTab('holiday');
+    return;
+  }
+  // Fallback: just switch to related tab, or stay
+  if(n.relatedTab)switchTab(n.relatedTab);
+}
+
+function _highlightSwap(swapId){
+  // Briefly highlight the matching swap row in Swaps tab
+  var row=document.querySelector('[data-swap-id="'+swapId+'"]');
+  if(row){row.scrollIntoView({behavior:'smooth',block:'center'});row.style.outline='3px solid var(--amber)';row.style.outlineOffset='2px';setTimeout(function(){row.style.outline='';row.style.outlineOffset='';},3000);}
+}
+function _highlightPTO(ptoId){
+  var row=document.querySelector('[data-pto-id="'+ptoId+'"]');
+  if(row){row.scrollIntoView({behavior:'smooth',block:'center'});row.style.outline='3px solid var(--amber)';row.style.outlineOffset='2px';setTimeout(function(){row.style.outline='';row.style.outlineOffset='';},3000);}
+}
+
+// ═══ ARCHIVE / DISMISS ═══
+async function archiveNotif(id,archiveWholeGroup){
+  var n=notifications.find(function(x){return x.id===id;});
+  if(!n)return;
+  var toArchive=[n];
+  if(archiveWholeGroup){
+    var key=_notifGroupKey(n.notifType,n.relatedId,n.message);
+    var nMs=Date.parse(n.created||'')||0;
+    notifications.forEach(function(m){
+      if(m.id===n.id||m.isArchived)return;
+      if(_notifGroupKey(m.notifType,m.relatedId,m.message)!==key)return;
+      var mMs=Date.parse(m.created||'')||0;
+      if(Math.abs(nMs-mMs)>GROUPING_WINDOW_MS)return;
+      toArchive.push(m);
+    });
+  }
+  for(var i=0;i<toArchive.length;i++){
+    toArchive[i].isArchived=true;
+    toArchive[i].isRead=true;// archived implies read
+  }
+  renderNotifBadge();
+  updateNavBadges();
+  if(document.getElementById('pageNotifs')&&document.getElementById('pageNotifs').classList.contains('active'))renderNotifPage();
+  else renderNotifList();
+  // Persist: best-effort SP update
+  try{
+    var fm=await discoverFields('ScheduleNotifications');
+    var archKey=fm.IsArchived||'IsArchived';
+    var readKey=fm.IsRead||'IsRead';
+    for(var j=0;j<toArchive.length;j++){
+      var payload={};payload[archKey]='Yes';payload[readKey]='Yes';
+      if(toArchive[j]._spId){await spUpdate('ScheduleNotifications',toArchive[j]._spId,payload);}
+      else{
+        var sp=await spGet('ScheduleNotifications',"Title eq '"+toArchive[j].id+"'");
+        if(sp.length){toArchive[j]._spId=sp[0].Id;await spUpdate('ScheduleNotifications',sp[0].Id,payload);}
+      }
+    }
+  }catch(e){console.warn('Archive persist failed:',e);}
 }
 
 async function markAllRead(e){
   if(e){e.stopPropagation();e.preventDefault();}
-  var unread=notifications.filter(function(n){return!n.isRead;});
+  var unread=notifications.filter(function(n){return!n.isRead&&!n.isArchived;});
+  if(!unread.length){toast('Nothing to mark');return;}
   unread.forEach(function(n){n.isRead=true;});
   renderNotifBadge();
-  renderNotifList();
+  updateNavBadges();
+  if(document.getElementById('pageNotifs')&&document.getElementById('pageNotifs').classList.contains('active'))renderNotifPage();
+  else renderNotifList();
   // Batch update SP
-  for(var i=0;i<unread.length;i++){
-    try{
-      var sp=await spGet('ScheduleNotifications',"Title eq '"+unread[i].id+"'");
-      if(sp.length){
-        var fm=await discoverFields('ScheduleNotifications');
-        var readKey=fm.IsRead||'IsRead';
-        var payload={};payload[readKey]='Yes';
-        await spUpdate('ScheduleNotifications',sp[0].Id,payload);
+  try{
+    var fm=await discoverFields('ScheduleNotifications');
+    var readKey=fm.IsRead||'IsRead';
+    for(var i=0;i<unread.length;i++){
+      var payload={};payload[readKey]='Yes';
+      if(unread[i]._spId){await spUpdate('ScheduleNotifications',unread[i]._spId,payload);}
+      else{
+        try{var sp=await spGet('ScheduleNotifications',"Title eq '"+unread[i].id+"'");if(sp.length){unread[i]._spId=sp[0].Id;await spUpdate('ScheduleNotifications',sp[0].Id,payload);}}catch(se){}
       }
-    }catch(e){}
-  }
-  toast('All notifications marked as read');
+    }
+  }catch(se){}
+  toast(unread.length+' marked as read');
+}
+
+async function archiveAllRead(){
+  if(!confirm('Archive all read notifications? They will be hidden from the list but remain retrievable via "Show archived".'))return;
+  var readOnes=notifications.filter(function(n){return n.isRead&&!n.isArchived;});
+  if(!readOnes.length){toast('No read notifications to archive');return;}
+  readOnes.forEach(function(n){n.isArchived=true;});
+  renderNotifBadge();
+  updateNavBadges();
+  renderNotifPage();
+  // Persist
+  try{
+    var fm=await discoverFields('ScheduleNotifications');
+    var archKey=fm.IsArchived||'IsArchived';
+    for(var i=0;i<readOnes.length;i++){
+      var payload={};payload[archKey]='Yes';
+      if(readOnes[i]._spId){await spUpdate('ScheduleNotifications',readOnes[i]._spId,payload);}
+    }
+  }catch(e){}
+  toast(readOnes.length+' archived');
 }
 
 // Close notification panel when clicking outside
