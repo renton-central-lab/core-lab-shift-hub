@@ -22,6 +22,7 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ═══ RESET & TOKENS ═══ */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -311,6 +312,109 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .stat-label{font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.04em;}
 .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);}
 .stat-val{font-size:24px;font-weight:800;color:var(--navy);margin-top:2px;}
+
+/* ═══ STATS REDESIGN ═══ */
+.stats-section{margin-bottom:24px;}
+.stats-section-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--g200);}
+.stats-section-hdr h3{font-size:13px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px;}
+.stats-section-hdr .sec-sub{font-size:11px;font-weight:500;color:var(--g400);margin-left:auto;}
+.stats-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+.hero-card{background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:14px 16px;box-shadow:var(--shadow-1);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;}
+.hero-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);}
+.hero-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent,var(--teal));border-radius:var(--rl) var(--rl) 0 0;}
+.hero-card.hc-teal{--accent:var(--teal);}
+.hero-card.hc-amber{--accent:var(--amber);}
+.hero-card.hc-red{--accent:var(--red);}
+.hero-card.hc-purple{--accent:var(--purple);}
+.hero-card.hc-green{--accent:var(--green);}
+.hero-card.hc-navy{--accent:var(--navy);}
+.hero-label{font-size:10px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.hero-val{font-size:28px;font-weight:800;color:var(--navy);line-height:1.1;}
+.hero-delta{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;margin-top:6px;padding:2px 6px;border-radius:999px;}
+.hero-delta.up{color:var(--red);background:var(--red-bg);}
+.hero-delta.down{color:var(--green);background:var(--green-bg);}
+.hero-delta.flat{color:var(--g500);background:var(--g50);}
+.hero-delta.up.good{color:var(--green);background:var(--green-bg);}
+.hero-delta.down.bad{color:var(--red);background:var(--red-bg);}
+.hero-sub{font-size:10px;color:var(--g400);margin-top:4px;}
+
+.stats-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;}
+.s-card{background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:16px;box-shadow:var(--shadow-1);grid-column:span 12;display:flex;flex-direction:column;}
+.s-card.c6{grid-column:span 6;}
+.s-card.c4{grid-column:span 4;}
+.s-card.c8{grid-column:span 8;}
+.s-card.c12{grid-column:span 12;}
+.s-card-hdr{display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+.s-card-hdr h4{font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px;}
+.s-card-hdr .s-card-sub{font-size:10px;font-weight:500;color:var(--g400);margin-left:auto;}
+.s-card-body{flex:1;min-height:0;}
+.chart-box{position:relative;width:100%;height:220px;}
+.chart-box.tall{height:280px;}
+.chart-box.short{height:160px;}
+@media(max-width:900px){
+  .s-card.c6,.s-card.c4,.s-card.c8{grid-column:span 12;}
+}
+
+/* Coverage heatmap calendar */
+.cov-cal{display:grid;grid-template-columns:auto repeat(7,1fr);gap:3px;font-family:var(--font);}
+.cov-cal-hdr{font-size:9px;font-weight:700;color:var(--g400);text-align:center;padding:4px 0;}
+.cov-cal-wk{font-size:9px;font-weight:700;color:var(--g300);text-align:right;padding:6px 6px 0 0;}
+.cov-day{aspect-ratio:1;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:pointer;transition:transform .1s;border:1px solid transparent;}
+.cov-day:hover{transform:scale(1.12);z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.cov-day.cov-full{background:var(--green-bg);color:var(--green);border-color:var(--green-bdr);}
+.cov-day.cov-min{background:#fef3c7;color:#92400e;border-color:#fbbf24;}
+.cov-day.cov-gap{background:var(--red-bg);color:var(--red);border-color:var(--red-bdr);}
+.cov-day.cov-off{background:var(--g50);color:var(--g300);}
+.cov-day.cov-none{background:var(--white);color:var(--g300);border:1px dashed var(--g200);}
+.cov-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:10px;color:var(--g500);}
+.cov-legend-item{display:inline-flex;align-items:center;gap:4px;}
+.cov-legend-sw{width:12px;height:12px;border-radius:3px;border:1px solid transparent;}
+
+/* Staff heatmap */
+.staff-heat{display:grid;gap:2px;font-family:var(--font);}
+.staff-heat-hdr{display:grid;gap:2px;padding-bottom:4px;border-bottom:1px solid var(--g200);margin-bottom:4px;}
+.staff-heat-hdr>div{font-size:10px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.04em;text-align:center;padding:4px;}
+.staff-heat-hdr>div:first-child{text-align:left;padding-left:8px;}
+.staff-heat-row{display:grid;gap:2px;cursor:pointer;transition:background .15s;border-radius:4px;align-items:center;}
+.staff-heat-row:hover{background:var(--g50);}
+.staff-heat-name{font-size:12px;font-weight:700;color:var(--navy);padding:6px 8px;}
+.staff-heat-name .sh-role{font-size:10px;font-weight:500;color:var(--g400);}
+.staff-heat-cell{aspect-ratio:1.2/1;min-height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;transition:transform .1s;}
+.staff-heat-cell:hover{transform:scale(1.08);}
+.staff-heat-cell.v0{background:var(--g50);color:var(--g300);}
+.staff-heat-cell.v1{background:#e0f2f1;color:var(--teal);}
+.staff-heat-cell.v2{background:#b2dfdb;color:#00564d;}
+.staff-heat-cell.v3{background:#80cbc4;color:#00332e;}
+.staff-heat-cell.v4{background:var(--teal);color:#fff;}
+.staff-heat-cell.v5{background:var(--teal-l);color:#fff;font-weight:800;}
+
+/* Flag card list */
+.flag-list{display:flex;flex-direction:column;gap:6px;}
+.flag-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);background:var(--g50);border:1px solid var(--g200);cursor:pointer;transition:background .15s;}
+.flag-item:hover{background:var(--white);border-color:var(--teal-bdr);}
+.flag-item.f-red{background:var(--red-bg);border-color:var(--red-bdr);}
+.flag-item.f-amber{background:#fef3c7;border-color:#fbbf24;}
+.flag-icon{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;flex-shrink:0;}
+.flag-icon.f-red{background:rgba(224,62,62,.15);color:var(--red);}
+.flag-icon.f-amber{background:rgba(230,160,0,.15);color:#92400e;}
+.flag-main{flex:1;min-width:0;}
+.flag-name{font-size:12px;font-weight:700;color:var(--navy);}
+.flag-desc{font-size:10px;color:var(--g500);}
+.flag-val{font-size:13px;font-weight:800;color:var(--navy);flex-shrink:0;}
+.flag-empty{text-align:center;padding:20px;color:var(--g400);font-size:11px;}
+
+/* Mini OT bars in cumulative tracking card */
+.ot-row{display:grid;grid-template-columns:2fr 2fr 2fr 1.2fr;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid var(--g100);font-size:11px;}
+.ot-row:last-child{border-bottom:none;}
+.ot-row.top-candidate{background:var(--teal-bg);border-radius:4px;margin:2px 0;padding:8px 6px;border-bottom:1px solid transparent;}
+.ot-name{font-weight:700;color:var(--navy);}
+.ot-name-role{font-size:9px;font-weight:500;color:var(--g400);}
+.ot-rank{font-size:9px;font-weight:800;color:var(--teal);margin-left:4px;}
+.ot-bar-wrap{display:flex;flex-direction:column;gap:2px;}
+.ot-bar-val{font-size:11px;font-weight:700;}
+.ot-bar{height:4px;background:var(--g100);border-radius:2px;overflow:hidden;}
+.ot-bar-fill{height:100%;border-radius:2px;transition:width .4s var(--me-spring);}
+.ot-last{font-size:10px;color:var(--g500);text-align:right;}
 
 /* ═══ TOAST ═══ */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 24px;border-radius:999px;font-size:13px;font-weight:600;z-index:900;pointer-events:none;opacity:0;transition:transform var(--dur-med) var(--me-emphasized),opacity var(--dur-med) var(--me-emphasized);}
@@ -686,10 +790,41 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
       </select>
     </div>
   </div>
-  <div id="statsOverview" class="stats-row"></div>
-  <div id="statsShiftBreakdown" style="margin-bottom:16px;"></div>
-  <div id="statsOTTracking" style="margin-bottom:16px;"></div>
-  <div id="statsStaffTable" style="margin-bottom:16px;"></div>
+
+  <!-- Hero KPI strip -->
+  <div class="stats-hero" id="statsHero"></div>
+
+  <!-- Section 1: Coverage Health -->
+  <div class="stats-section">
+    <div class="stats-section-hdr"><h3><span class="mi mi-sm">health_and_safety</span> Coverage Health</h3><span class="sec-sub" id="covSub"></span></div>
+    <div class="stats-grid">
+      <div class="s-card c8"><div class="s-card-hdr"><h4><span class="mi mi-sm">calendar_month</span> Daily Coverage Heatmap</h4><span class="s-card-sub">click any day to jump to Daily view</span></div><div class="s-card-body" id="statsCovCalendar"></div></div>
+      <div class="s-card c4"><div class="s-card-hdr"><h4><span class="mi mi-sm">donut_large</span> Shift Coverage</h4></div><div class="s-card-body"><div class="chart-box"><canvas id="chartShiftCov"></canvas></div></div></div>
+      <div class="s-card c12"><div class="s-card-hdr"><h4><span class="mi mi-sm">show_chart</span> Daily Staffing Trend</h4><span class="s-card-sub" id="statsCovTrendSub"></span></div><div class="s-card-body"><div class="chart-box"><canvas id="chartCovTrend"></canvas></div></div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: Trends Over Time -->
+  <div class="stats-section">
+    <div class="stats-section-hdr"><h3><span class="mi mi-sm">trending_up</span> Trends Over Time</h3><span class="sec-sub">Rolling 12 months</span></div>
+    <div class="stats-grid">
+      <div class="s-card c8"><div class="s-card-hdr"><h4><span class="mi mi-sm">stacked_bar_chart</span> Monthly Assignments by Bench</h4></div><div class="s-card-body"><div class="chart-box"><canvas id="chartAssignByMonth"></canvas></div></div></div>
+      <div class="s-card c4"><div class="s-card-hdr"><h4><span class="mi mi-sm">timeline</span> OT Trend (lab-wide)</h4></div><div class="s-card-body"><div class="chart-box"><canvas id="chartOTTrend"></canvas></div></div></div>
+      <div class="s-card c12"><div class="s-card-hdr"><h4><span class="mi mi-sm">sick</span> PTO &amp; Sick Leave Trend</h4><span class="s-card-sub">bars: PTO &middot; line: sick leave</span></div><div class="s-card-body"><div class="chart-box"><canvas id="chartPtoSlTrend"></canvas></div></div></div>
+    </div>
+  </div>
+
+  <!-- Section 3: Individual Staff Comparisons -->
+  <div class="stats-section">
+    <div class="stats-section-hdr"><h3><span class="mi mi-sm">groups</span> Individual Staff Comparisons</h3><span class="sec-sub">click a row for details</span></div>
+    <div class="stats-grid">
+      <div class="s-card c12" id="statsStaffHeatCard"><div class="s-card-hdr"><h4><span class="mi mi-sm">grid_on</span> Per-Staff Heatmap</h4><span class="s-card-sub">cell shading by volume</span></div><div class="s-card-body" id="statsStaffHeat"></div></div>
+      <div class="s-card c8" id="statsOTTrackingCard"><div class="s-card-hdr"><h4><span class="mi mi-sm">schedule</span> Cumulative OT Tracking</h4><span class="s-card-sub">90-day &amp; 1-year rolling &middot; SEIU Article 10.2(a)</span></div><div class="s-card-body" id="statsOTTracking"></div></div>
+      <div class="s-card c4"><div class="s-card-hdr"><h4><span class="mi mi-sm">flag</span> Top Flags</h4><span class="s-card-sub" id="flagSub"></span></div><div class="s-card-body" id="statsFlags"></div></div>
+    </div>
+  </div>
+
+  <!-- Staff detail drawer -->
   <div id="statsStaffDetail"></div>
 </div>
 
@@ -4277,27 +4412,414 @@ function getStatsDateRange(){
   }
 }
 
+
+// ═══ STATS: chart instance management ═══
+var _statsCharts={};
+function _destroyStatsCharts(){
+  Object.keys(_statsCharts).forEach(function(k){try{_statsCharts[k].destroy();}catch(e){}});
+  _statsCharts={};
+}
+function _mkStatsChart(id,type,data,opts){
+  var cv=document.getElementById(id);if(!cv)return;
+  if(_statsCharts[id]){try{_statsCharts[id].destroy();}catch(e){}}
+  if(typeof Chart==='undefined')return;
+  _statsCharts[id]=new Chart(cv,{type:type,data:data,options:opts});
+}
+var _STATS_CHART_OPTS={
+  responsive:true,maintainAspectRatio:false,
+  layout:{padding:{top:5,bottom:5,left:5,right:5}},
+  plugins:{legend:{position:'bottom',labels:{font:{size:10,family:"'Plus Jakarta Sans'"},padding:8,boxWidth:12,boxHeight:12,usePointStyle:true}}}
+};
+
+// ═══ STATS: helpers ═══
+function _getPeriodData(dr){
+  // Returns everything needed for the current period, plus previous period for deltas.
+  var inRange=schedEntries.filter(function(e){return e.date>=dr.start&&e.date<=dr.end;});
+  // Previous period for delta comparison
+  var dStart=new Date(dr.start+'T12:00:00');
+  var dEnd=new Date(dr.end+'T12:00:00');
+  var periodDays=Math.round((dEnd-dStart)/(86400000))+1;
+  var prevEnd=new Date(dStart);prevEnd.setDate(prevEnd.getDate()-1);
+  var prevStart=new Date(prevEnd);prevStart.setDate(prevStart.getDate()-(periodDays-1));
+  var prevStartStr=fmtDate(prevStart),prevEndStr=fmtDate(prevEnd);
+  var prevRange=schedEntries.filter(function(e){return e.date>=prevStartStr&&e.date<=prevEndStr;});
+  return{inRange:inRange,prevRange:prevRange,periodDays:periodDays,prevStart:prevStartStr,prevEnd:prevEndStr};
+}
+
+function _deltaChip(cur,prev,higherIsBad){
+  if(prev===0&&cur===0)return '';
+  var diff=cur-prev;
+  if(diff===0)return '<span class="hero-delta flat">0</span>';
+  var pct=prev===0?100:Math.round(diff/prev*100);
+  var dir=diff>0?'up':'down';
+  var cls='hero-delta '+dir;
+  // Semantic: for metrics where "up" is bad (PTO, Sick, OT), color accordingly
+  if(higherIsBad){cls+=diff>0?' bad':' good';}else{cls+=diff>0?' good':' bad';}
+  var arrow=diff>0?'▲':'▼';
+  return '<span class="'+cls+'">'+arrow+' '+Math.abs(pct)+'%</span>';
+}
+
+function _countWorkdaysBetween(startStr,endStr){
+  var cur=new Date(startStr+'T12:00:00');
+  var end=new Date(endStr+'T12:00:00');
+  var n=0;
+  while(cur<=end){if(cur.getDay()!==0&&cur.getDay()!==6)n++;cur.setDate(cur.getDate()+1);}
+  return n;
+}
+
+function _minStaffingForDay(dateStr){
+  // Weekdays need 4 MLS bench (H/C + C/U for Morning + Evening handled upstream).
+  // Simplified model: minimum = 2 per active shift on weekdays, 2 on Saturdays, 0 on Sundays/holidays.
+  var d=new Date(dateStr+'T12:00:00');
+  var dow=d.getDay();
+  if(dow===0)return 0;// Sunday: typically closed
+  if(dow===6)return 2;// Saturday skeleton
+  // Check holiday
+  var hols=getHolidaysForDate?getHolidaysForDate(dateStr):[];
+  if(hols&&hols.length){
+    var cat=getHolidayCategory(d.getFullYear(),hols[0].name);
+    if(cat==='1')return 4;// Normal staffing
+    if(cat==='2')return 2;// Assigned minimum
+    if(cat==='3')return 2;// Volunteer minimum
+  }
+  return 4;// Weekday standard (Morning 2 + Evening 2; simplified)
+}
+
+// ═══ STATS RENDER DISPATCHER ═══
+function renderStats(){
+  if(!isLead())return;
+  if(typeof Chart==='undefined'){
+    // Chart.js not yet loaded; retry in 300ms
+    setTimeout(renderStats,300);
+    return;
+  }
+  var dr=getStatsDateRange();
+  document.getElementById('statsLabel').textContent=dr.label;
+  _destroyStatsCharts();
+  var p=_getPeriodData(dr);
+  renderHeroKPIs(dr,p);
+  renderCoverageHealth(dr,p);
+  renderTrendsSection(dr,p);
+  renderIndividualComparisons(dr,p);
+  renderOTTracking();
+  renderTopFlags(dr,p);
+  document.getElementById('statsStaffDetail').innerHTML='';
+}
+
+// ═══ HERO KPI STRIP ═══
+function renderHeroKPIs(dr,p){
+  var activeStaff=STAFF.filter(function(s){return s.active!==false&&s.benchEligible;});
+  var totalAssign=p.inRange.filter(function(e){return e.bench&&e.bench!=='PTO'&&e.bench!=='SL'&&e.bench!=='OT';}).length;
+  var totalPTO=p.inRange.filter(function(e){return e.bench==='PTO';}).length;
+  var totalSL=p.inRange.filter(function(e){return e.bench==='SL';}).length;
+  var totalOT=p.inRange.filter(function(e){return e.bench==='OT';}).length;
+  var totalOTHours=p.inRange.filter(function(e){return e.bench==='OT';}).reduce(function(sum,e){return sum+(parseFloat(e.otHours)||8);},0);
+  var workdays=_countWorkdaysBetween(dr.start,dr.end);
+  var avgPerDay=workdays>0?(totalAssign/workdays).toFixed(1):'0';
+
+  // Coverage rate: actual / (workdays × expected MLS bench slots)
+  var expected=0,actual=0;
+  var cur=new Date(dr.start+'T12:00:00');
+  var end=new Date(dr.end+'T12:00:00');
+  while(cur<=end){
+    var ds=fmtDate(cur);
+    var minS=_minStaffingForDay(ds);
+    expected+=minS;
+    if(minS>0){
+      var dayAssigned=p.inRange.filter(function(e){return e.date===ds&&e.bench&&['H/C','C/U','F','T','IO','WFH','HALF','OT'].indexOf(e.bench)>=0;}).length;
+      actual+=Math.min(dayAssigned,minS);
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+  var covRate=expected>0?Math.round(actual/expected*100):0;
+
+  // Previous period equivalents
+  var prevAssign=p.prevRange.filter(function(e){return e.bench&&e.bench!=='PTO'&&e.bench!=='SL'&&e.bench!=='OT';}).length;
+  var prevPTO=p.prevRange.filter(function(e){return e.bench==='PTO';}).length;
+  var prevSL=p.prevRange.filter(function(e){return e.bench==='SL';}).length;
+  var prevOT=p.prevRange.filter(function(e){return e.bench==='OT';}).length;
+
+  var hero=document.getElementById('statsHero');
+  hero.innerHTML=
+    '<div class="hero-card hc-navy"><div class="hero-label">Total Assignments</div><div class="hero-val">'+totalAssign+'</div>'+_deltaChip(totalAssign,prevAssign,false)+'<div class="hero-sub">vs prior period</div></div>'+
+    '<div class="hero-card '+(covRate>=95?'hc-green':covRate>=80?'hc-amber':'hc-red')+'"><div class="hero-label">Coverage Rate</div><div class="hero-val">'+covRate+'%</div><div class="hero-sub">'+actual+' / '+expected+' expected</div></div>'+
+    '<div class="hero-card hc-amber"><div class="hero-label">PTO Days</div><div class="hero-val">'+totalPTO+'</div>'+_deltaChip(totalPTO,prevPTO,true)+'<div class="hero-sub">vs prior period</div></div>'+
+    '<div class="hero-card hc-red"><div class="hero-label">Sick Leave</div><div class="hero-val">'+totalSL+'</div>'+_deltaChip(totalSL,prevSL,true)+'<div class="hero-sub">vs prior period</div></div>'+
+    '<div class="hero-card hc-purple"><div class="hero-label">OT Shifts</div><div class="hero-val">'+totalOT+'</div>'+_deltaChip(totalOT,prevOT,true)+'<div class="hero-sub">'+totalOTHours.toFixed(1)+'h total</div></div>'+
+    '<div class="hero-card hc-teal"><div class="hero-label">Avg MLS / Workday</div><div class="hero-val">'+avgPerDay+'</div><div class="hero-sub">'+workdays+' workdays</div></div>';
+}
+
+// ═══ SECTION 1: COVERAGE HEALTH ═══
+function renderCoverageHealth(dr,p){
+  // 1a. Coverage calendar heatmap
+  renderCoverageCalendar(dr,p);
+  // 1b. Shift coverage donut
+  renderShiftCoverageDonut(dr,p);
+  // 1c. Daily staffing trend line
+  renderCoverageTrendLine(dr,p);
+}
+
+function renderCoverageCalendar(dr,p){
+  var container=document.getElementById('statsCovCalendar');
+  if(!container)return;
+  var start=new Date(dr.start+'T12:00:00'),end=new Date(dr.end+'T12:00:00');
+  // Find the Monday on or before start (DLMP week starts Mon)
+  var calStart=new Date(start);
+  while(calStart.getDay()!==1)calStart.setDate(calStart.getDate()-1);
+  var totalDays=Math.round((end-start)/86400000)+1;
+  var fullGap=0,minOnly=0,fullCov=0,offDays=0;
+  // Build rows
+  var html='<div class="cov-cal"><div class="cov-cal-hdr"></div>';
+  ['M','T','W','T','F','S','S'].forEach(function(d){html+='<div class="cov-cal-hdr">'+d+'</div>';});
+  var cur=new Date(calStart),wkCount=1;
+  var maxLoops=60;// safety
+  while(cur<=end&&maxLoops-->0){
+    html+='<div class="cov-cal-wk">W'+wkCount+'</div>';
+    for(var i=0;i<7;i++){
+      var ds=fmtDate(cur);
+      var inPeriod=cur>=start&&cur<=end;
+      if(!inPeriod){
+        html+='<div class="cov-day cov-none" style="opacity:.3;"></div>';
+      }else{
+        var minS=_minStaffingForDay(ds);
+        var actual=p.inRange.filter(function(e){return e.date===ds&&e.bench&&['H/C','C/U','F','T','IO','WFH','HALF','OT'].indexOf(e.bench)>=0;}).length;
+        var dayNum=cur.getDate();
+        var cls,label;
+        if(minS===0){cls='cov-off';label='Off';offDays++;}
+        else if(actual>=minS+1){cls='cov-full';label=String(dayNum);fullCov++;}
+        else if(actual>=minS){cls='cov-min';label=String(dayNum);minOnly++;}
+        else{cls='cov-gap';label=String(dayNum);fullGap++;}
+        var tip=ds+' · '+actual+'/'+minS+' staffed';
+        html+='<div class="cov-day '+cls+'" title="'+esc(tip)+'" onclick="jumpToDaily(\''+escJS(ds)+'\')">'+label+'</div>';
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+    wkCount++;
+  }
+  html+='</div>';
+  html+='<div class="cov-legend">';
+  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:var(--green-bg);border-color:var(--green-bdr);"></div> Fully covered ('+fullCov+')</div>';
+  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:#fef3c7;border-color:#fbbf24;"></div> At minimum ('+minOnly+')</div>';
+  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:var(--red-bg);border-color:var(--red-bdr);"></div> Gap ('+fullGap+')</div>';
+  html+='<div class="cov-legend-item"><div class="cov-legend-sw" style="background:var(--g50);"></div> Off day ('+offDays+')</div>';
+  html+='</div>';
+  container.innerHTML=html;
+  document.getElementById('covSub').textContent=fullGap+' gap day'+(fullGap===1?'':'s')+' · '+minOnly+' at minimum';
+}
+
+function renderShiftCoverageDonut(dr,p){
+  var shiftCounts={};
+  SHIFTS.forEach(function(sh){shiftCounts[sh]={assigned:0,pto:0,sl:0};});
+  p.inRange.forEach(function(e){
+    var sk=e.shift;if(!shiftCounts[sk])return;
+    if(e.bench==='PTO')shiftCounts[sk].pto++;
+    else if(e.bench==='SL')shiftCounts[sk].sl++;
+    else if(e.bench)shiftCounts[sk].assigned++;
+  });
+  var labels=SHIFTS.filter(function(sh){var d=shiftCounts[sh];return d.assigned+d.pto+d.sl>0;});
+  var data=labels.map(function(sh){return shiftCounts[sh].assigned;});
+  var colors={Morning:'#fbbf24',Evening:'#c2410c',Night:'#3730a3'};
+  var bgColors=labels.map(function(sh){return colors[sh]||'var(--teal)';});
+  _mkStatsChart('chartShiftCov','doughnut',{
+    labels:labels,datasets:[{data:data,backgroundColor:bgColors,borderWidth:0}]
+  },Object.assign({},_STATS_CHART_OPTS,{cutout:'60%'}));
+}
+
+function renderCoverageTrendLine(dr,p){
+  var start=new Date(dr.start+'T12:00:00'),end=new Date(dr.end+'T12:00:00');
+  var labels=[],data=[],minLine=[],maxPoint=0;
+  var cur=new Date(start);
+  while(cur<=end){
+    var ds=fmtDate(cur);
+    var dayActual=p.inRange.filter(function(e){return e.date===ds&&e.bench&&['H/C','C/U','F','T','IO','WFH','HALF','OT'].indexOf(e.bench)>=0;}).length;
+    var minS=_minStaffingForDay(ds);
+    labels.push(String(cur.getMonth()+1)+'/'+cur.getDate());
+    data.push(dayActual);
+    minLine.push(minS);
+    if(dayActual>maxPoint)maxPoint=dayActual;
+    cur.setDate(cur.getDate()+1);
+  }
+  _mkStatsChart('chartCovTrend','line',{
+    labels:labels,
+    datasets:[
+      {label:'Staffed',data:data,borderColor:'#00796B',backgroundColor:'rgba(0,121,107,.15)',fill:true,tension:.3,pointRadius:2,borderWidth:2},
+      {label:'Minimum',data:minLine,borderColor:'#c62828',borderDash:[4,4],fill:false,pointRadius:0,borderWidth:1.5}
+    ]
+  },Object.assign({},_STATS_CHART_OPTS,{
+    scales:{
+      y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},
+      x:{ticks:{font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:15}}
+    }
+  }));
+  document.getElementById('statsCovTrendSub').textContent='peak '+maxPoint+' MLS staffed';
+}
+
+// ═══ SECTION 2: TRENDS OVER TIME ═══
+function renderTrendsSection(dr,p){
+  renderMonthlyAssignmentsBar();
+  renderOTTrendChart();
+  renderPtoSlTrendChart();
+}
+
+function _last12MonthKeys(){
+  var keys=[];
+  var d=new Date();d.setDate(1);
+  for(var i=11;i>=0;i--){
+    var m=new Date(d);m.setMonth(m.getMonth()-i);
+    keys.push({key:m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0'),label:MONTHS[m.getMonth()].slice(0,3)});
+  }
+  return keys;
+}
+
+function renderMonthlyAssignmentsBar(){
+  var keys=_last12MonthKeys();
+  var byMonth={};keys.forEach(function(k){byMonth[k.key]={hc:0,cu:0,f:0,t:0,admin:0,ot:0};});
+  schedEntries.forEach(function(e){
+    var k=(e.date||'').slice(0,7);
+    if(!byMonth[k])return;
+    if(e.bench==='H/C')byMonth[k].hc++;
+    else if(e.bench==='C/U')byMonth[k].cu++;
+    else if(e.bench==='F')byMonth[k].f++;
+    else if(e.bench==='T')byMonth[k].t++;
+    else if(['IO','WFH','HALF'].indexOf(e.bench)>=0)byMonth[k].admin++;
+    else if(e.bench==='OT')byMonth[k].ot++;
+  });
+  var labels=keys.map(function(k){return k.label;});
+  _mkStatsChart('chartAssignByMonth','bar',{
+    labels:labels,
+    datasets:[
+      {label:'H/C',data:keys.map(function(k){return byMonth[k.key].hc;}),backgroundColor:'#00796B'},
+      {label:'C/U',data:keys.map(function(k){return byMonth[k.key].cu;}),backgroundColor:'#80cbc4'},
+      {label:'Float',data:keys.map(function(k){return byMonth[k.key].f;}),backgroundColor:'#8e24aa'},
+      {label:'Training',data:keys.map(function(k){return byMonth[k.key].t;}),backgroundColor:'#fbbf24'},
+      {label:'Admin',data:keys.map(function(k){return byMonth[k.key].admin;}),backgroundColor:'#94a3b8'},
+      {label:'OT',data:keys.map(function(k){return byMonth[k.key].ot;}),backgroundColor:'#c62828'}
+    ]
+  },Object.assign({},_STATS_CHART_OPTS,{
+    scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}}}
+  }));
+}
+
+function renderOTTrendChart(){
+  var keys=_last12MonthKeys();
+  var byMonth={};keys.forEach(function(k){byMonth[k.key]=0;});
+  schedEntries.forEach(function(e){
+    if(e.bench!=='OT')return;
+    var k=(e.date||'').slice(0,7);
+    if(byMonth[k]===undefined)return;
+    byMonth[k]+=parseFloat(e.otHours)||8;
+  });
+  _mkStatsChart('chartOTTrend','line',{
+    labels:keys.map(function(k){return k.label;}),
+    datasets:[{label:'OT hours',data:keys.map(function(k){return byMonth[k.key];}),borderColor:'#c62828',backgroundColor:'rgba(198,40,40,.15)',fill:true,tension:.3,pointRadius:3,borderWidth:2}]
+  },Object.assign({},_STATS_CHART_OPTS,{
+    plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}}}}
+  }));
+}
+
+function renderPtoSlTrendChart(){
+  var keys=_last12MonthKeys();
+  var byMonth={};keys.forEach(function(k){byMonth[k.key]={pto:0,sl:0};});
+  schedEntries.forEach(function(e){
+    var k=(e.date||'').slice(0,7);
+    if(!byMonth[k])return;
+    if(e.bench==='PTO')byMonth[k].pto++;
+    else if(e.bench==='SL')byMonth[k].sl++;
+  });
+  _mkStatsChart('chartPtoSlTrend','bar',{
+    labels:keys.map(function(k){return k.label;}),
+    datasets:[
+      {type:'bar',label:'PTO days',data:keys.map(function(k){return byMonth[k.key].pto;}),backgroundColor:'rgba(230,160,0,.65)',borderRadius:4,yAxisID:'y'},
+      {type:'line',label:'Sick leave days',data:keys.map(function(k){return byMonth[k.key].sl;}),borderColor:'#c62828',backgroundColor:'#c62828',fill:false,tension:.3,pointRadius:3,borderWidth:2,yAxisID:'y'}
+    ]
+  },Object.assign({},_STATS_CHART_OPTS,{
+    scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}}}}
+  }));
+}
+
+// ═══ SECTION 3: INDIVIDUAL STAFF COMPARISONS ═══
+function renderIndividualComparisons(dr,p){
+  renderStaffHeatmap(dr,p);
+}
+
+function renderStaffHeatmap(dr,p){
+  var activeStaff=STAFF.filter(function(s){return s.active!==false;});
+  var cols=['H/C','C/U','F','T','Admin','OT','PTO','SL'];
+  var colLabels=['H/C','C/U','Float','Train','Admin','OT','PTO','Sick'];
+  var rows=[];
+  activeStaff.forEach(function(s){
+    var mine=p.inRange.filter(function(e){return e.userIni===s.ini;});
+    var counts={
+      'H/C':mine.filter(function(e){return e.bench==='H/C';}).length,
+      'C/U':mine.filter(function(e){return e.bench==='C/U';}).length,
+      'F':mine.filter(function(e){return e.bench==='F';}).length,
+      'T':mine.filter(function(e){return e.bench==='T';}).length,
+      'Admin':mine.filter(function(e){return ['IO','WFH','HALF'].indexOf(e.bench)>=0;}).length,
+      'OT':mine.filter(function(e){return e.bench==='OT';}).length,
+      'PTO':mine.filter(function(e){return e.bench==='PTO';}).length,
+      'SL':mine.filter(function(e){return e.bench==='SL';}).length
+    };
+    rows.push({ini:s.ini,name:s.name,role:s.role,counts:counts});
+  });
+  // Compute per-column max for scaling
+  var colMax={};cols.forEach(function(c){colMax[c]=Math.max.apply(null,rows.map(function(r){return r.counts[c];}).concat([1]));});
+
+  function cellClass(val,max){
+    if(val===0)return 'v0';
+    var r=val/max;
+    if(r<=0.15)return 'v1';
+    if(r<=0.35)return 'v2';
+    if(r<=0.6)return 'v3';
+    if(r<=0.85)return 'v4';
+    return 'v5';
+  }
+
+  var container=document.getElementById('statsStaffHeat');
+  if(!container)return;
+  var gridCols='2fr '+cols.map(function(){return '1fr';}).join(' ');
+  var html='<div class="staff-heat">';
+  html+='<div class="staff-heat-hdr" style="grid-template-columns:'+gridCols+';"><div>Staff</div>';
+  colLabels.forEach(function(l){html+='<div>'+esc(l)+'</div>';});
+  html+='</div>';
+  rows.forEach(function(r){
+    html+='<div class="staff-heat-row" style="grid-template-columns:'+gridCols+';" onclick="showStaffDetail(\''+escJS(r.ini)+'\')">';
+    html+='<div class="staff-heat-name">'+esc(r.name)+'<div class="sh-role">'+esc(r.role||'')+'</div></div>';
+    cols.forEach(function(c){
+      var v=r.counts[c],cls=cellClass(v,colMax[c]);
+      // Special colors for PTO/SL/OT columns
+      var extraStyle='';
+      if(v>0){
+        if(c==='PTO')extraStyle='background:rgba(230,160,0,'+(0.15+0.7*(v/colMax[c]))+');color:#92400e;';
+        else if(c==='SL')extraStyle='background:rgba(198,40,40,'+(0.15+0.7*(v/colMax[c]))+');color:'+(v/colMax[c]>0.5?'#fff':'#8b0000')+';';
+        else if(c==='OT')extraStyle='background:rgba(142,36,170,'+(0.15+0.7*(v/colMax[c]))+');color:'+(v/colMax[c]>0.5?'#fff':'#4a148c')+';';
+      }
+      html+='<div class="staff-heat-cell '+cls+'" style="'+extraStyle+'">'+(v||0)+'</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+// ═══ CUMULATIVE OT TRACKING (re-themed for card) ═══
 function renderOTTracking(){
   var container=document.getElementById('statsOTTracking');
   if(!container)return;
   var activeStaff=STAFF.filter(function(s){return s.active!==false&&s.benchEligible;});
-  if(!activeStaff.length){container.innerHTML='';return;}
+  if(!activeStaff.length){container.innerHTML='<div class="flag-empty">No bench-eligible staff</div>';return;}
 
-  // Rolling windows: count OT entries for each staff member ending today
   var today=new Date();
   var d90=new Date(today);d90.setDate(d90.getDate()-90);
   var d365=new Date(today);d365.setDate(d365.getDate()-365);
   var t90=fmtDate(d90),t365=fmtDate(d365),tToday=fmtDate(today);
 
-  // Collect OT entries per staff member within each window
   var otData={};
-  activeStaff.forEach(function(s){
-    otData[s.ini]={h90:0,h365:0,c90:0,c365:0,lastOT:'',lastApprover:'',lastReason:''};
-  });
+  activeStaff.forEach(function(s){otData[s.ini]={h90:0,h365:0,c90:0,c365:0,lastOT:'',lastApprover:'',lastReason:''};});
   schedEntries.forEach(function(e){
     if(e.bench!=='OT')return;
     if(!otData[e.userIni])return;
-    var hrs=parseFloat(e.otHours)||8;// fallback for legacy OT entries
+    var hrs=parseFloat(e.otHours)||8;
     if(e.date>=t365&&e.date<=tToday){
       otData[e.userIni].h365+=hrs;otData[e.userIni].c365++;
       if(!otData[e.userIni].lastOT||e.date>otData[e.userIni].lastOT){
@@ -4306,66 +4828,80 @@ function renderOTTracking(){
         otData[e.userIni].lastReason=e.otReason||'';
       }
     }
-    if(e.date>=t90&&e.date<=tToday){
-      otData[e.userIni].h90+=hrs;otData[e.userIni].c90++;
-    }
+    if(e.date>=t90&&e.date<=tToday){otData[e.userIni].h90+=hrs;otData[e.userIni].c90++;}
   });
-
-  // Sort ascending by 90-day hours (least OT first for equitable solicitation per Article 10.2(a))
   var sorted=activeStaff.map(function(s){return{ini:s.ini,name:s.name,role:s.role,data:otData[s.ini]};}).sort(function(a,b){
     if(a.data.h90!==b.data.h90)return a.data.h90-b.data.h90;
     return a.data.h365-b.data.h365;
   });
-
-  // Compute max for bar scaling
   var max90=Math.max.apply(null,sorted.map(function(r){return r.data.h90;}).concat([1]));
-  var max365=Math.max.apply(null,sorted.map(function(r){return r.data.h365;}).concat([1]));
 
-  var html='<div class="rec-panel"><h3><span class="mi">schedule</span> Cumulative OT Tracking <span style="font-size:10px;font-weight:400;color:var(--g400);">· rolling windows · sorted ascending (offer OT preferentially to staff with lower totals per SEIU Article 10.2(a))</span></h3>';
-  html+='<div style="overflow-x:auto;"><table class="sched-table" style="min-width:700px;"><thead><tr>';
-  html+='<th style="text-align:left;padding-left:12px;">Staff</th>';
-  html+='<th style="text-align:center;">90-day Hours</th>';
-  html+='<th style="text-align:center;">90-day Shifts</th>';
-  html+='<th style="text-align:center;">1-year Hours</th>';
-  html+='<th style="text-align:center;">1-year Shifts</th>';
-  html+='<th style="text-align:left;">Last OT</th>';
-  html+='</tr></thead><tbody>';
+  var html='<div style="display:grid;grid-template-columns:2fr 2fr 2fr 1.2fr;gap:10px;padding:6px 6px 8px;border-bottom:1px solid var(--g200);font-size:10px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.04em;">';
+  html+='<div>Staff</div><div>90-day</div><div>1-year</div><div style="text-align:right;">Last OT</div>';
+  html+='</div>';
   sorted.forEach(function(r,idx){
     var d=r.data;
-    var isTopCandidate=idx<3&&d.h90<max90;// top 3 with below-max hours
-    var rowStyle=isTopCandidate?'background:var(--teal-bg);':'';
-    var rank=idx===0?'<span style="color:var(--teal);font-weight:800;">&#9733; 1st</span>':idx===1?'<span style="color:var(--teal);font-weight:700;">2nd</span>':idx===2?'<span style="color:var(--teal);font-weight:700;">3rd</span>':'';
-    var bar90=max90>0?Math.round(d.h90/max90*100):0;
-    var bar365=max365>0?Math.round(d.h365/max365*100):0;
+    var isTop=idx<3&&d.h90<max90;
     var barColor=d.h90===0?'var(--g200)':d.h90<max90*0.33?'var(--green)':d.h90<max90*0.66?'var(--amber)':'var(--red)';
-    html+='<tr style="'+rowStyle+'">';
-    html+='<td style="text-align:left;padding-left:12px;font-weight:700;">'+esc(r.name)+(rank?' <span style="font-size:9px;margin-left:4px;">'+rank+'</span>':'')+'<div style="font-size:10px;font-weight:400;color:var(--g400);">'+esc(r.role||'')+'</div></td>';
-    html+='<td style="text-align:center;font-weight:700;"><div style="font-size:14px;color:'+barColor+';">'+d.h90.toFixed(1)+'h</div>';
-    html+='<div style="height:4px;background:var(--g100);border-radius:2px;margin:3px 8px 0;overflow:hidden;"><div style="height:100%;background:'+barColor+';width:'+bar90+'%;"></div></div></td>';
-    html+='<td style="text-align:center;color:var(--g500);">'+d.c90+'</td>';
-    html+='<td style="text-align:center;font-weight:700;"><div style="font-size:13px;color:var(--g600);">'+d.h365.toFixed(1)+'h</div>';
-    html+='<div style="height:4px;background:var(--g100);border-radius:2px;margin:3px 8px 0;overflow:hidden;"><div style="height:100%;background:var(--g400);width:'+bar365+'%;"></div></div></td>';
-    html+='<td style="text-align:center;color:var(--g500);">'+d.c365+'</td>';
+    var bar90=max90>0?Math.round(d.h90/max90*100):0;
+    var rank=idx===0?'<span class="ot-rank">★ 1st</span>':idx===1?'<span class="ot-rank">2nd</span>':idx===2?'<span class="ot-rank">3rd</span>':'';
+    html+='<div class="ot-row'+(isTop?' top-candidate':'')+'">';
+    html+='<div><div class="ot-name">'+esc(r.name)+rank+'</div><div class="ot-name-role">'+esc(r.role||'')+'</div></div>';
+    html+='<div class="ot-bar-wrap"><div class="ot-bar-val" style="color:'+barColor+';">'+d.h90.toFixed(1)+'h <span style="font-weight:500;color:var(--g400);font-size:10px;">('+d.c90+' shifts)</span></div><div class="ot-bar"><div class="ot-bar-fill" style="background:'+barColor+';width:'+bar90+'%;"></div></div></div>';
+    html+='<div class="ot-bar-wrap"><div class="ot-bar-val" style="color:var(--g600);">'+d.h365.toFixed(1)+'h <span style="font-weight:500;color:var(--g400);font-size:10px;">('+d.c365+' shifts)</span></div><div class="ot-bar"><div class="ot-bar-fill" style="background:var(--g400);width:'+(d.h365>0?Math.round(d.h365/Math.max(...sorted.map(function(x){return x.data.h365;}),1)*100):0)+'%;"></div></div></div>';
     if(d.lastOT){
-      var lastOTDate=new Date(d.lastOT+'T12:00:00');
-      var lastOTLabel=lastOTDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-      html+='<td style="text-align:left;font-size:11px;color:var(--g600);"><div style="font-weight:700;">'+esc(lastOTLabel)+'</div>'+(d.lastReason?'<div style="font-size:10px;color:var(--g400);">'+esc(d.lastReason)+(d.lastApprover?' · appr '+esc(d.lastApprover):'')+'</div>':'')+'</td>';
+      var lastD=new Date(d.lastOT+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      html+='<div class="ot-last"><div style="font-weight:700;color:var(--g700);">'+esc(lastD)+'</div>'+(d.lastReason?'<div>'+esc(d.lastReason.slice(0,16))+'</div>':'')+'</div>';
     }else{
-      html+='<td style="text-align:left;font-size:11px;color:var(--g300);font-style:italic;">Never</td>';
+      html+='<div class="ot-last" style="font-style:italic;color:var(--g300);">Never</div>';
     }
-    html+='</tr>';
+    html+='</div>';
   });
-  html+='</tbody></table></div>';
+  html+='<div style="margin-top:10px;padding:8px 10px;background:var(--teal-bg);border-radius:var(--r);font-size:10px;color:var(--g600);line-height:1.5;"><strong style="color:var(--navy);">Fairness guide:</strong> Offer OT preferentially to staff at the top of this list per SEIU Article 10.2(a). Top 3 highlighted.</div>';
+  container.innerHTML=html;
+}
 
-  // Legend
-  html+='<div style="margin-top:10px;padding:8px 12px;background:var(--g50);border-radius:var(--r);font-size:10px;color:var(--g500);line-height:1.5;">';
-  html+='<strong style="color:var(--navy);">Fairness guide:</strong> When offering OT, preferentially contact staff at the top of this list (lowest recent OT hours). ';
-  html+='Teal-highlighted rows are the top 3 candidates. ';
-  html+='Bars compare to the staff member with the highest OT in the same window.';
-  html+='</div>';
-
+// ═══ TOP FLAGS ═══
+function renderTopFlags(dr,p){
+  var container=document.getElementById('statsFlags');
+  var subEl=document.getElementById('flagSub');
+  if(!container)return;
+  var activeStaff=STAFF.filter(function(s){return s.active!==false;});
+  var flags=[];
+  activeStaff.forEach(function(s){
+    var mine=p.inRange.filter(function(e){return e.userIni===s.ini;});
+    var sl=mine.filter(function(e){return e.bench==='SL';}).length;
+    var ot=mine.filter(function(e){return e.bench==='OT';}).length;
+    var otHours=mine.filter(function(e){return e.bench==='OT';}).reduce(function(sum,e){return sum+(parseFloat(e.otHours)||8);},0);
+    if(sl>=3)flags.push({ini:s.ini,name:s.name,sev:'red',iconStr:'sick',desc:sl+' sick leave days',val:sl});
+    else if(sl>=2)flags.push({ini:s.ini,name:s.name,sev:'amber',iconStr:'sick',desc:sl+' sick leave days',val:sl});
+    if(otHours>=20)flags.push({ini:s.ini,name:s.name,sev:'red',iconStr:'schedule',desc:otHours.toFixed(1)+'h OT',val:otHours});
+    else if(otHours>=12)flags.push({ini:s.ini,name:s.name,sev:'amber',iconStr:'schedule',desc:otHours.toFixed(1)+'h OT',val:otHours});
+    // Consecutive weekends check
+    var weekends=mine.filter(function(e){var d=new Date(e.date+'T12:00:00');return(d.getDay()===0||d.getDay()===6)&&e.bench&&e.bench!=='PTO'&&e.bench!=='SL';});
+    if(weekends.length>=3)flags.push({ini:s.ini,name:s.name,sev:'amber',iconStr:'date_range',desc:weekends.length+' weekend shifts',val:weekends.length});
+  });
+  flags.sort(function(a,b){if(a.sev!==b.sev)return a.sev==='red'?-1:1;return b.val-a.val;});
+  if(subEl)subEl.textContent=flags.length+' flag'+(flags.length===1?'':'s');
+  if(!flags.length){container.innerHTML='<div class="flag-empty"><span class="mi" style="font-size:28px;display:block;color:var(--g300);margin-bottom:6px;">check_circle</span>No flags this period</div>';return;}
+  var html='<div class="flag-list">';
+  flags.slice(0,6).forEach(function(f){
+    html+='<div class="flag-item f-'+f.sev+'" onclick="showStaffDetail(\''+escJS(f.ini)+'\')">';
+    html+='<div class="flag-icon f-'+f.sev+'"><span class="mi mi-sm">'+esc(f.iconStr)+'</span></div>';
+    html+='<div class="flag-main"><div class="flag-name">'+esc(f.name)+'</div><div class="flag-desc">'+esc(f.desc)+'</div></div>';
+    html+='<div class="flag-val">'+esc(String(f.val.toFixed?f.val.toFixed(1):f.val))+'</div>';
+    html+='</div>';
+  });
   html+='</div>';
   container.innerHTML=html;
+}
+
+// ═══ DEEP LINK: jump to Daily view for a specific date ═══
+function jumpToDaily(dateStr){
+  if(!dateStr)return;
+  curDay=new Date(dateStr+'T12:00:00');
+  saveUIState();
+  switchPage('daily');
 }
 
 function navStatsPeriod(dir){
@@ -4376,99 +4912,6 @@ function navStatsPeriod(dir){
   renderStats();
 }
 
-function renderStats(){
-  if(!isLead())return;
-  var dr=getStatsDateRange();
-  document.getElementById('statsLabel').textContent=dr.label;
-
-  // Filter entries in range
-  var inRange=schedEntries.filter(function(e){return e.date>=dr.start&&e.date<=dr.end;});
-  var activeStaff=STAFF.filter(function(s){return s.active!==false;});
-
-  // Overview stats
-  var totalAssignments=inRange.filter(function(e){return e.bench&&e.bench!=='PTO'&&e.bench!=='SL';}).length;
-  var totalPTO=inRange.filter(function(e){return e.bench==='PTO';}).length;
-  var totalCO=inRange.filter(function(e){return e.bench==='SL';}).length;
-  var totalOT=inRange.filter(function(e){return e.bench==='OT';}).length;
-
-  // Count workdays in range for coverage gap calculation
-  var workdays=0;
-  var cur=new Date(dr.start+'T12:00:00');
-  var end=new Date(dr.end+'T12:00:00');
-  while(cur<=end){if(cur.getDay()!==0&&cur.getDay()!==6)workdays++;cur.setDate(cur.getDate()+1);}
-
-  document.getElementById('statsOverview').innerHTML=
-    '<div class="stat-card"><div class="stat-label">Total Assignments</div><div class="stat-val">'+totalAssignments+'</div></div>'+
-    '<div class="stat-card"><div class="stat-label">PTO Days Used</div><div class="stat-val" style="color:var(--amber)">'+totalPTO+'</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Sick Leave</div><div class="stat-val" style="color:var(--red)">'+totalCO+'</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Overtime Shifts</div><div class="stat-val" style="color:var(--purple)">'+totalOT+'</div></div>'+
-    '<div class="stat-card"><div class="stat-label">Workdays</div><div class="stat-val">'+workdays+'</div></div>';
-
-  // Per-shift breakdown
-  var shiftData={};
-  SHIFTS.forEach(function(sh){shiftData[sh]={assignments:0,pto:0,co:0,gaps:0};});
-  inRange.forEach(function(e){
-    if(!shiftData[e.shift])return;
-    if(e.bench==='PTO')shiftData[e.shift].pto++;
-    else if(e.bench==='SL')shiftData[e.shift].co++;
-    else shiftData[e.shift].assignments++;
-  });
-
-  var sbHtml='<div class="rec-panel"><h3><span class="mi">bar_chart</span> Per-Shift Breakdown</h3>';
-  sbHtml+='<table class="sched-table" style="min-width:auto;"><thead><tr><th style="text-align:left;padding-left:12px;">Shift</th><th>Assignments</th><th>PTO</th><th>Sick Leave</th></tr></thead><tbody>';
-  SHIFTS.forEach(function(sh){
-    var d=shiftData[sh];
-    sbHtml+='<tr><td style="text-align:left;padding-left:12px;font-weight:700;">'+esc(sh)+'</td>';
-    sbHtml+='<td style="text-align:center;font-weight:700;">'+d.assignments+'</td>';
-    sbHtml+='<td style="text-align:center;color:var(--amber);font-weight:700;">'+d.pto+'</td>';
-    sbHtml+='<td style="text-align:center;color:var(--red);font-weight:700;">'+d.co+'</td></tr>';
-  });
-  sbHtml+='</tbody></table></div>';
-  document.getElementById('statsShiftBreakdown').innerHTML=sbHtml;
-
-  // OT Tracking widget (rolling 90-day and 1-year hours, sorted ascending for equitable solicitation)
-  renderOTTracking();
-
-  // Per-staff table
-  var staffStats=[];
-  activeStaff.forEach(function(s){
-    var mine=inRange.filter(function(e){return e.userIni===s.ini;});
-    var hc=mine.filter(function(e){return e.bench==='H/C';}).length;
-    var cu=mine.filter(function(e){return e.bench==='C/U';}).length;
-    var fl=mine.filter(function(e){return e.bench==='F';}).length;
-    var pto=mine.filter(function(e){return e.bench==='PTO';}).length;
-    var co=mine.filter(function(e){return e.bench==='SL';}).length;
-    var ot=mine.filter(function(e){return e.bench==='OT';}).length;
-    var tr=mine.filter(function(e){return e.bench==='T';}).length;
-    var io=mine.filter(function(e){return e.bench==='IO'||e.bench==='WFH'||e.bench==='HALF';}).length;
-    var total=hc+cu+fl+ot+tr+io;
-    staffStats.push({ini:s.ini,name:s.name,role:s.role,hc:hc,cu:cu,fl:fl,pto:pto,co:co,ot:ot,tr:tr,io:io,total:total});
-  });
-
-  // Sort by sick leave descending for visibility
-  staffStats.sort(function(a,b){return b.co-a.co;});
-
-  var stHtml='<div class="rec-panel"><h3><span class="mi">person</span> Per-Staff Breakdown <span style="font-size:11px;font-weight:400;color:var(--g400);">(click a row for details)</span></h3>';
-  stHtml+='<div style="overflow-x:auto;"><table class="sched-table" style="min-width:750px;"><thead><tr><th style="text-align:left;padding-left:12px;">Staff</th><th style="text-align:left;">Role</th><th>H/C</th><th>C/U</th><th>Float</th><th>Training</th><th>Admin</th><th>OT</th><th style="color:var(--amber)">PTO</th><th style="color:var(--red)">Sick Leave</th><th>Total</th></tr></thead><tbody>';
-  staffStats.forEach(function(s){
-    var coHighlight=s.co>=3?'background:var(--red-bg);':s.co>=2?'background:var(--amber-bg);':'';
-    stHtml+='<tr onclick="showStaffDetail(\''+escJS(s.ini)+'\')" style="cursor:pointer;'+coHighlight+'">';
-    stHtml+='<td style="text-align:left;padding-left:12px;font-weight:700;">'+esc(s.name)+'</td>';
-    stHtml+='<td style="text-align:left;font-size:11px;color:var(--g500);">'+esc(s.role)+'</td>';
-    stHtml+='<td style="text-align:center;">'+s.hc+'</td>';
-    stHtml+='<td style="text-align:center;">'+s.cu+'</td>';
-    stHtml+='<td style="text-align:center;">'+s.fl+'</td>';
-    stHtml+='<td style="text-align:center;">'+s.tr+'</td>';
-    stHtml+='<td style="text-align:center;color:var(--teal);font-weight:700;">'+s.io+'</td>';
-    stHtml+='<td style="text-align:center;color:var(--purple);font-weight:700;">'+s.ot+'</td>';
-    stHtml+='<td style="text-align:center;color:var(--amber);font-weight:700;">'+s.pto+'</td>';
-    stHtml+='<td style="text-align:center;color:var(--red);font-weight:800;font-size:14px;">'+s.co+'</td>';
-    stHtml+='<td style="text-align:center;font-weight:700;">'+s.total+'</td></tr>';
-  });
-  stHtml+='</tbody></table></div></div>';
-  document.getElementById('statsStaffTable').innerHTML=stHtml;
-  document.getElementById('statsStaffDetail').innerHTML='';
-}
 
 function showStaffDetail(userIni){
   var dr=getStatsDateRange();
