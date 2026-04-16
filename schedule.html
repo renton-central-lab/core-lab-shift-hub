@@ -1168,7 +1168,7 @@ function updateHeaderAvatar(){
   var nick=s&&s.nickname?s.nickname:'';
   el.title=me.fullName;
   if(pic){
-    el.innerHTML='<img src="'+pic+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    el.innerHTML=safeImg(pic,'style="width:100%;height:100%;object-fit:cover;border-radius:50%;"');
     el.style.fontSize='0';
   }else if(nick){
     el.innerHTML=esc(nick);
@@ -1188,7 +1188,7 @@ function openProfile(){
   document.getElementById('profNick').value=s.nickname||'';
   var p=document.getElementById('profPicPreview');
   if(s.picture){
-    p.innerHTML='<img src="'+s.picture+'">';p.style.fontSize='0';
+    p.innerHTML=safeImg(s.picture);p.style.fontSize='0';
   }else if(s.nickname){
     p.innerHTML=esc(s.nickname);p.style.fontSize='16px';
   }else{
@@ -1208,7 +1208,7 @@ function handleProfPic(e){
       var mn=Math.min(img.width,img.height);
       ctx.drawImage(img,(img.width-mn)/2,(img.height-mn)/2,mn,mn,0,0,80,80);
       var url=c.toDataURL('image/jpeg',.8);
-      document.getElementById('profPicPreview').innerHTML='<img src="'+url+'">';
+      document.getElementById('profPicPreview').innerHTML=safeImg(url);
       document.getElementById('profPicPreview').style.fontSize='0';
       var s=STAFF.find(function(x){return x.ini===me.initials;});
       if(s){
@@ -1618,7 +1618,9 @@ function recommendAssignments(dateStr,shift){
 // RENDERING
 // ═══════════════════════════════════════════
 
-function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function escJS(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r');}
+function safeImg(s,extra){if(typeof s!=='string'||!/^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/=]+$/i.test(s))return'';return'<img src="'+esc(s)+'"'+(extra?' '+extra:'')+'>';}
 function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3000);}
@@ -1819,7 +1821,7 @@ function staffAvatar(staff,size){
   var isElev=ELEVATED_ROLES.some(function(r){return staff.role&&staff.role.indexOf(r)>=0;});
   var roleCls=isLeadRole?'lead':isElev?'mgr':staff.role==='MLS2'?'mls2':'tech';
   if(staff.picture){
-    return'<div class="av '+roleCls+'" style="width:'+sz+'px;height:'+sz+'px;"><img src="'+staff.picture+'"></div>';
+    return'<div class="av '+roleCls+'" style="width:'+sz+'px;height:'+sz+'px;">'+safeImg(staff.picture)+'</div>';
   }
   if(staff.nickname){
     return'<div class="av '+roleCls+' nick" style="height:'+sz+'px;font-size:'+Math.max(Math.round(sz*.35),8)+'px;">'+esc(staff.nickname)+'</div>';
@@ -2010,9 +2012,9 @@ function renderSingleShiftGrid(shift,dates,compact){
       // Swap: split block with partner stripe
       var swapPartner=getSwapPartner(staff.ini,d.date,shift);
       if(swapPartner&&bench){
-        html+='<div class="blk sw-split '+cls+'" onclick="openAssignModal(\''+staff.ini+'\',\''+d.date+'\',\''+shift+'\')" title="'+esc(staff.name)+': '+label+' (swapped with '+esc(swapPartner.name)+')"><div class="sw-main">'+emptyDisplay+badge+'</div><div class="sw-stripe">\u21C4 '+esc(swapPartner.ini)+'</div></div>';
+        html+='<div class="blk sw-split '+cls+'" onclick="openAssignModal(\''+escJS(staff.ini)+'\',\''+escJS(d.date)+'\',\''+escJS(shift)+'\')" title="'+esc(staff.name)+': '+label+' (swapped with '+esc(swapPartner.name)+')"><div class="sw-main">'+emptyDisplay+badge+'</div><div class="sw-stripe">\u21C4 '+esc(swapPartner.ini)+'</div></div>';
       }else{
-        html+='<div class="blk '+cls+'" onclick="openAssignModal(\''+staff.ini+'\',\''+d.date+'\',\''+shift+'\')" title="'+esc(staff.name)+': '+label+'">'+emptyDisplay+badge+'</div>';
+        html+='<div class="blk '+cls+'" onclick="openAssignModal(\''+escJS(staff.ini)+'\',\''+escJS(d.date)+'\',\''+escJS(shift)+'\')" title="'+esc(staff.name)+': '+label+'">'+emptyDisplay+badge+'</div>';
       }
     });
   });
@@ -2126,7 +2128,7 @@ function renderDay(){
           var sp=getSwapPartner(staff.ini,ds,shift);
           if(sp){
             var spAvContent='';
-            if(sp.staff&&sp.staff.picture){spAvContent='<img src="'+sp.staff.picture+'">';}
+            if(sp.staff&&sp.staff.picture){spAvContent=safeImg(sp.staff.picture);}
             else if(sp.staff&&sp.staff.nickname){spAvContent=esc(sp.staff.nickname);}
             else{spAvContent=esc(sp.ini);}
             swapPillHtml='<div class="swap-pill">\u21C4 <div class="sp-av">'+spAvContent+'</div> '+esc(sp.firstName)+'</div>';
@@ -2134,7 +2136,7 @@ function renderDay(){
             swapPillHtml='<div class="swap-pill">\u21C4 Swapped</div>';
           }
         }
-        html+='<div class="daily-row" onclick="openAssignModal(\''+staff.ini+'\',\''+ds+'\',\''+shift+'\')"><div class="daily-info">'+staffAvatar(staff,32)+'<div><div class="daily-name">'+esc(staff.name)+'</div><div class="daily-role">'+esc(staff.role)+notes+trainingNote+'</div></div></div><div style="display:flex;align-items:center;gap:6px;">'+swapPillHtml+'<div class="daily-blk blk '+cls+'">'+label+'</div></div></div>';
+        html+='<div class="daily-row" onclick="openAssignModal(\''+escJS(staff.ini)+'\',\''+escJS(ds)+'\',\''+escJS(shift)+'\')"><div class="daily-info">'+staffAvatar(staff,32)+'<div><div class="daily-name">'+esc(staff.name)+'</div><div class="daily-role">'+esc(staff.role)+notes+trainingNote+'</div></div></div><div style="display:flex;align-items:center;gap:6px;">'+swapPillHtml+'<div class="daily-blk blk '+cls+'">'+label+'</div></div></div>';
       });
       html+='</div>';
     }
@@ -2624,7 +2626,7 @@ function openRecPanel(){
       bodyHtml+='<div style="font-size:11px;font-weight:800;color:var(--g500);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.04em;">'+dayLabel+' - '+shift+'</div>';
       unassigned.forEach(function(r){
         allRecs.push({ini:r.ini,date:ds,shift:shift,bench:r.bench});
-        bodyHtml+='<div class="rec-row"><span class="rec-name">'+esc(r.name)+'</span><span class="rec-assign">'+benchChip(r.bench,true)+'</span><span class="rec-reason">'+esc(r.reason)+'</span><button class="rec-accept" onclick="applyRec(\''+r.ini+'\',\''+ds+'\',\''+shift+'\',\''+r.bench+'\')">Apply</button></div>';
+        bodyHtml+='<div class="rec-row"><span class="rec-name">'+esc(r.name)+'</span><span class="rec-assign">'+benchChip(r.bench,true)+'</span><span class="rec-reason">'+esc(r.reason)+'</span><button class="rec-accept" onclick="applyRec(\''+escJS(r.ini)+'\',\''+escJS(ds)+'\',\''+escJS(shift)+'\',\''+escJS(r.bench)+'\')">Apply</button></div>';
       });
       recs.filter(function(r){return r.isWarning;}).forEach(function(r){
         bodyHtml+='<div class="rec-row" style="background:var(--amber-bg);border-radius:6px;padding:4px 8px;"><span class="rec-name" style="color:var(--amber);">'+esc(r.name)+'</span><span class="rec-reason" style="color:var(--red);">'+esc(r.reason)+'</span></div>';
@@ -2727,8 +2729,8 @@ function renderRoster(){
       '<td style="text-align:left;font-size:11px;color:var(--g500);">'+esc(s.phone||'')+'</td>'+
       '<td style="text-align:center;"><span class="cov-item '+statusCls+'" style="font-size:9px;">'+statusLabel+'</span></td>'+
       '<td style="text-align:center;">'+
-        '<button class="tb-btn" style="padding:3px 8px;font-size:10px;" onclick="editRoster(\''+esc(s.ini)+'\')"><span class="mi mi-xs">edit</span></button> '+
-        (s.active!==false?'<button class="tb-btn" style="padding:3px 8px;font-size:10px;color:var(--red);" onclick="deactivateRoster(\''+esc(s.ini)+'\')"><span class="mi mi-xs">person_remove</span></button>':'<button class="tb-btn" style="padding:3px 8px;font-size:10px;color:var(--green);" onclick="reactivateRoster(\''+esc(s.ini)+'\')"><span class="mi mi-xs">person</span></button>')+
+        '<button class="tb-btn" style="padding:3px 8px;font-size:10px;" onclick="editRoster(\''+escJS(s.ini)+'\')"><span class="mi mi-xs">edit</span></button> '+
+        (s.active!==false?'<button class="tb-btn" style="padding:3px 8px;font-size:10px;color:var(--red);" onclick="deactivateRoster(\''+escJS(s.ini)+'\')"><span class="mi mi-xs">person_remove</span></button>':'<button class="tb-btn" style="padding:3px 8px;font-size:10px;color:var(--green);" onclick="reactivateRoster(\''+escJS(s.ini)+'\')"><span class="mi mi-xs">person</span></button>')+
       '</td></tr>';
   }).join('');
 }
@@ -3542,7 +3544,7 @@ function renderHolidays(){
     }
 
     if(isLead()){
-      html+='<select onchange="assignHoliday(this.value,\''+esc(hol.name)+'\',\''+hol.date+'\',\''+hol.type+'\',\''+year+'\')" style="margin-top:6px;padding:3px 8px;border:1px solid var(--g200);border-radius:999px;font-size:10px;font-family:var(--font);width:100%;">';
+      html+='<select onchange="assignHoliday(this.value,\''+escJS(hol.name)+'\',\''+escJS(hol.date)+'\',\''+escJS(hol.type)+'\',\''+escJS(year)+'\')" style="margin-top:6px;padding:3px 8px;border:1px solid var(--g200);border-radius:999px;font-size:10px;font-family:var(--font);width:100%;">';
       html+='<option value="">+ Assign staff</option>';
       activeStaff.forEach(function(s){
         var alreadyAssigned=assigned.some(function(a){return a.userIni===s.ini;});
@@ -3793,7 +3795,7 @@ function renderStats(){
   stHtml+='<div style="overflow-x:auto;"><table class="sched-table" style="min-width:750px;"><thead><tr><th style="text-align:left;padding-left:12px;">Staff</th><th style="text-align:left;">Role</th><th>H/C</th><th>C/U</th><th>Float</th><th>Training</th><th>Admin</th><th>OT</th><th style="color:var(--amber)">PTO</th><th style="color:var(--red)">Sick Leave</th><th>Total</th></tr></thead><tbody>';
   staffStats.forEach(function(s){
     var coHighlight=s.co>=3?'background:var(--red-bg);':s.co>=2?'background:var(--amber-bg);':'';
-    stHtml+='<tr onclick="showStaffDetail(\''+esc(s.ini)+'\')" style="cursor:pointer;'+coHighlight+'">';
+    stHtml+='<tr onclick="showStaffDetail(\''+escJS(s.ini)+'\')" style="cursor:pointer;'+coHighlight+'">';
     stHtml+='<td style="text-align:left;padding-left:12px;font-weight:700;">'+esc(s.name)+'</td>';
     stHtml+='<td style="text-align:left;font-size:11px;color:var(--g500);">'+esc(s.role)+'</td>';
     stHtml+='<td style="text-align:center;">'+s.hc+'</td>';
@@ -4083,7 +4085,7 @@ function renderNotifItem(n){
   var iconCls=n.notifType==='swap-partner'||n.notifType==='swap-status'?'swap':n.notifType==='pto-status'?'pto':'info';
   var iconName=iconCls==='swap'?'compare_arrows':iconCls==='pto'?'event':'info';
   var timeAgo=getTimeAgo(n.created);
-  return'<div class="notif-item'+(n.isRead?'':' unread')+'" onclick="handleNotifClick(\''+n.id+'\',\''+esc(n.relatedTab)+'\')"><div class="notif-icon '+iconCls+'"><span class="mi">'+iconName+'</span></div><div class="notif-body"><div class="notif-msg">'+esc(n.message)+'</div><div class="notif-time">'+timeAgo+'</div></div></div>';
+  return'<div class="notif-item'+(n.isRead?'':' unread')+'" onclick="handleNotifClick(\''+escJS(n.id)+'\',\''+escJS(n.relatedTab)+'\')"><div class="notif-icon '+iconCls+'"><span class="mi">'+iconName+'</span></div><div class="notif-body"><div class="notif-msg">'+esc(n.message)+'</div><div class="notif-time">'+timeAgo+'</div></div></div>';
 }
 
 function getTimeAgo(isoStr){
@@ -4253,7 +4255,7 @@ function renderAdmin(){
       '<div>Staff Count: '+STAFF.filter(function(s){return s.active!==false;}).length+' active</div>'+
       '<div>Last Sync: '+(_lastSyncISO?new Date(_lastSyncISO).toLocaleString():'Never')+'</div>'+
       '<div>Last Auto-Backup: '+lastAutoBackup+'</div>';
-  }catch(e){document.getElementById('adminSysInfo').innerHTML='<div style="color:var(--red);">Error loading system info: '+e.message+'</div>';}
+  }catch(e){document.getElementById('adminSysInfo').innerHTML='<div style="color:var(--red);">Error loading system info: '+esc(e.message)+'</div>';}
 }
 
 async function forceSync(){
@@ -4293,7 +4295,7 @@ async function backupToSP(){
     document.getElementById('adminBackupStatus').innerHTML='<span style="color:var(--green);font-weight:700;">Backup saved: '+fileName+'</span>';
   }catch(e){
     console.error('SP backup failed:',e);
-    document.getElementById('adminBackupStatus').innerHTML='<span style="color:var(--red);">Backup failed: '+e.message+'</span>';
+    document.getElementById('adminBackupStatus').innerHTML='<span style="color:var(--red);">Backup failed: '+esc(e.message)+'</span>';
   }
   hideLoad();
 }
@@ -4316,7 +4318,7 @@ async function loadBackupHistory(){
     html+='</div>';
     document.getElementById('adminBackupHistory').innerHTML=html;
   }catch(e){
-    document.getElementById('adminBackupHistory').innerHTML='<span style="color:var(--red);">Error: '+e.message+'</span>';
+    document.getElementById('adminBackupHistory').innerHTML='<span style="color:var(--red);">Error: '+esc(e.message)+'</span>';
   }
 }
 
@@ -4368,7 +4370,7 @@ async function restoreBackup(){
     renderCurrentView();
     statusEl.innerHTML='<span style="color:var(--green);font-weight:700;">Restore complete: '+added+' added, '+updated+' updated</span>';
   }catch(e){
-    statusEl.innerHTML='<span style="color:var(--red);">Restore failed: '+e.message+'</span>';
+    statusEl.innerHTML='<span style="color:var(--red);">Restore failed: '+esc(e.message)+'</span>';
   }
   hideLoad();
 }

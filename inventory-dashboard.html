@@ -1026,7 +1026,7 @@ function updateBulkInput(){
   var selectStyle='appearance:none;-webkit-appearance:none;background:transparent;border:none;outline:none;color:rgba(255,255,255,.9);font-size:11px;font-weight:600;font-family:var(--font);padding:7px 28px 7px 10px;cursor:pointer;';
   var opts={Instrument:DEPTS,ItemType:ITEM_TYPES,Unit:UNITS,IsActive:['Yes','No']};
   if(opts[field]){
-    wrap.innerHTML='<select id="bulk-value" style="'+selectStyle+'">'+opts[field].map(function(o){return'<option style="background:#1B1C19">'+o+'</option>';}).join('')+'</select>';
+    wrap.innerHTML='<select id="bulk-value" style="'+selectStyle+'">'+opts[field].map(function(o){return'<option style="background:#1B1C19">'+esc(o)+'</option>';}).join('')+'</select>';
   }else{
     wrap.innerHTML='<input type="number" id="bulk-value" value="0" step="0.1" style="background:transparent;border:none;outline:none;color:rgba(255,255,255,.9);font-size:11px;font-weight:600;font-family:var(--font);padding:7px 10px;width:72px;">';
   }
@@ -1120,7 +1120,7 @@ function onTrendItemSearch(q){
   var dd=document.getElementById('trend-item-dropdown');
   if(!q){dd.innerHTML='';dd.classList.remove('open');renderTrends();return;}
   var matches=allInventory.map(function(r){return r.Title;}).filter(function(t){return t&&t.toLowerCase().indexOf(q.toLowerCase())>=0;}).slice(0,12);
-  dd.innerHTML=matches.map(function(t){return'<div class="isr-item'+(t===trendItem?' sel':'')+'" onmousedown="selectTrendItem(\''+esc(t)+'\')">'+esc(t)+'</div>';}).join('');
+  dd.innerHTML=matches.map(function(t){return'<div class="isr-item'+(t===trendItem?' sel':'')+'" onmousedown="selectTrendItem(\''+escJS(t)+'\')">'+esc(t)+'</div>';}).join('');
   dd.classList.toggle('open',matches.length>0);
   renderTrends();
 }
@@ -1555,7 +1555,7 @@ async function loadBackupHistory(){
       else{tbody.innerHTML=files.map(function(f){
         var date=f.TimeCreated?new Date(f.TimeCreated).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
         var size=f.Length?(Math.round(f.Length/1024)+'KB'):'—';
-        return'<tr><td>'+date+'</td><td>'+esc(f.Name)+'</td><td>'+size+'</td><td><a href="#" onclick="downloadSPBackup(\''+esc(f.Name)+'\');return false;" style="color:var(--primary);font-weight:600;font-size:12px;text-decoration:none">Download</a></td></tr>';
+        return'<tr><td>'+date+'</td><td>'+esc(f.Name)+'</td><td>'+size+'</td><td><a href="#" onclick="downloadSPBackup(\''+escJS(f.Name)+'\');return false;" style="color:var(--primary);font-weight:600;font-size:12px;text-decoration:none">Download</a></td></tr>';
       }).join('');}
     }
     if(files.length>0){
@@ -1582,7 +1582,8 @@ function renderBackupView(){
   loadBackupHistory();
 }
 
-function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function escJS(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r');}
 function showLoad(m){document.getElementById('loading-text').textContent=m||'Loading...';document.getElementById('loading').classList.add('show');}
 function hideLoad(){document.getElementById('loading').classList.remove('show');}
 window.addEventListener('load',function(){

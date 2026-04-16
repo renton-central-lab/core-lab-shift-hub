@@ -817,7 +817,8 @@ var INV={Instrument:'field_1',ItemType:'field_2',Unit:'field_3',InStock:'field_4
 var LOG={Action:'field_1',QuantityDelta:'field_2',QuantityAfter:'field_3',LotNumber:'field_4',ExpiryDate:'field_5',Timestamp:'field_6',ReasonNote:'field_7',ScannedBy:'ScannedBy'};
 function cf(obj,map){var o={};for(var k in obj)o[map[k]||k]=obj[k];return o;}
 function iv(row,k){return row[INV[k]||k];}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function escJS(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r');}
 var msalInstance=null,spToken=null,spTokenExpiry=0;
 var isAdmin=false,currentItem=null,currentTab=null;
 var lastEntry={},lastParsedGS1=null,lastRaw='';
