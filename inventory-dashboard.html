@@ -604,6 +604,14 @@ input[type=number]{-moz-appearance:textfield}
       </div>
       <button class="nav-btn" onclick="showView('log')"><span class="material-icons-outlined">receipt_long</span>Transaction Log</button>
       <button class="nav-btn" id="nav-backup" onclick="showView('backup')" style="display:none"><span class="material-icons-outlined">backup</span>Backup &amp; Restore</button>
+      <!-- Cross-app quick links. Separator keeps them visually distinct from the
+           main nav. Opens sibling apps in a new tab so the user keeps their
+           dashboard state. -->
+      <div style="margin:12px 8px 8px;padding-top:12px;border-top:1px solid var(--outline-variant);font-size:10px;font-weight:700;color:var(--on-surface-variant);letter-spacing:.06em;text-transform:uppercase;">Quick Links</div>
+      <button class="nav-btn" onclick="window.open('inventory-scanner.html','_blank')"><span class="material-icons-outlined">qr_code_scanner</span>Scanner</button>
+      <button class="nav-btn" onclick="window.open('index.html','_blank')"><span class="material-icons-outlined">dashboard</span>Shift Hub</button>
+      <button class="nav-btn" onclick="window.open('schedule.html','_blank')"><span class="material-icons-outlined">calendar_month</span>Schedule</button>
+      <button class="nav-btn" onclick="window.open('contacts.html','_blank')"><span class="material-icons-outlined">contact_phone</span>Contacts</button>
     </nav>
     <div class="sidebar-footer"><div class="name" id="side-user"></div><div id="side-sp">Connecting...</div><div style="margin-top:10px;font-size:8px;color:var(--outline-variant);letter-spacing:.02em;opacity:.5">&copy; 2026 Jesus Martinez. All rights reserved.</div></div>
   </aside>

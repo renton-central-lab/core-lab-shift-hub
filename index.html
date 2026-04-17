@@ -1309,6 +1309,17 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
     <div><div class="hdr-title">Core Lab Shift Hub</div><div class="hdr-sub">UW Medicine DLMP &middot; Renton Central Lab</div></div>
   </div>
   <div class="hdr-right">
+    <!-- Apps launcher: cross-app navigation to sibling Renton Core Lab apps.
+         Opens in new tabs to preserve the user's current Shift Hub context. -->
+    <div class="apps-launcher" style="position:relative;">
+      <button class="hdr-chip" onclick="toggleAppsMenu(event)" style="cursor:pointer;border:none;background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);padding:5px 10px;" title="Other Core Lab apps"><span class="mi" style="font-size:16px;">apps</span></button>
+      <div id="apps-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.2);padding:6px;min-width:180px;z-index:400;">
+        <a href="schedule.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--navy);font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;"><span class="mi mi-sm">calendar_month</span>Schedule</a>
+        <a href="inventory-scanner.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--navy);font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;"><span class="mi mi-sm">qr_code_scanner</span>Scanner</a>
+        <a href="inventory-dashboard.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--navy);font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;"><span class="mi mi-sm">analytics</span>Dashboard</a>
+        <a href="contacts.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--navy);font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;"><span class="mi mi-sm">contact_phone</span>Contacts</a>
+      </div>
+    </div>
     <div class="hdr-chip" id="clockChip"></div>
     <div class="hdr-chip" id="backupChip" style="font-size:9px;opacity:.7;cursor:help;" title="SharePoint Connected"><span class="mi" style="font-size:12px;vertical-align:middle;">cloud_done</span> <span id="backupTime">SP</span></div>
     <div class="push-toggle" id="pushToggle" onclick="togglePushNotifications()" title="Push notifications: off">
@@ -3224,6 +3235,27 @@ function updateNotifsNavBadge(){
 }
 
 function toggleBell(e){if(e)e.stopPropagation();$('bellDrop').classList.toggle('show');rBL();}
+
+// Apps launcher popover (sibling Renton Core Lab apps). Outside-click and Esc
+// close it. Matches the pattern used in schedule.html for cross-app consistency.
+function toggleAppsMenu(e){
+  if(e)e.stopPropagation();
+  var menu=document.getElementById('apps-menu');
+  if(!menu)return;
+  menu.style.display=menu.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',function(e){
+  var menu=document.getElementById('apps-menu');
+  if(!menu||menu.style.display==='none')return;
+  if(e.target.closest('.apps-launcher'))return;
+  menu.style.display='none';
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    var menu=document.getElementById('apps-menu');
+    if(menu)menu.style.display='none';
+  }
+});
 document.addEventListener('click',function(e){if(!e.target.closest('#bellBtn')&&!e.target.closest('#bellDrop'))$('bellDrop').classList.remove('show');});
 
 // Render bell dropdown — compact preview, top 8 unread-first, with grouping + dismiss

@@ -644,6 +644,18 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
     <div class="hdr-info"><h1>Core Lab Schedule</h1><p>UW Medicine DLMP - Renton Central Lab</p></div>
   </div>
   <div class="hdr-right">
+    <!-- Apps dropdown: links to sibling Renton Core Lab apps so users can hop
+         between Shift Hub, Schedule, Scanner, Dashboard, Contacts without going
+         back to bookmarks. Opens in new tab so schedule state is preserved. -->
+    <div class="apps-launcher" style="position:relative;">
+      <button class="hdr-chip" onclick="toggleAppsMenu(event)" style="cursor:pointer;border:none;" title="Other Core Lab apps"><span class="mi">apps</span></button>
+      <div id="apps-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.2);padding:6px;min-width:180px;z-index:200;">
+        <a href="index.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--navy);font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;"><span class="mi mi-sm">dashboard</span>Shift Hub</a>
+        <a href="inventory-scanner.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--navy);font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;"><span class="mi mi-sm">qr_code_scanner</span>Scanner</a>
+        <a href="inventory-dashboard.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--navy);font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;"><span class="mi mi-sm">analytics</span>Dashboard</a>
+        <a href="contacts.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;color:var(--navy);font-size:13px;font-weight:600;text-decoration:none;border-radius:8px;"><span class="mi mi-sm">contact_phone</span>Contacts</a>
+      </div>
+    </div>
     <div class="hdr-chip" id="hdr-date"></div>
     <div class="hdr-chip" id="hdr-sync"><span class="mi mi-xs">sync</span> Synced</div>
     <div class="notif-bell" id="notif-bell" onclick="toggleNotifPanel()" title="Notifications" style="position:relative;">
@@ -5772,6 +5784,29 @@ function toggleNotifPanel(e){
   panel.classList.toggle('open');
   if(!isOpen)renderNotifList();
 }
+
+// Apps launcher popover (sibling Renton Core Lab app links). Outside-click and
+// Esc close it. Simple inline style-based show/hide since this is a lightweight
+// menu with no persistent state.
+function toggleAppsMenu(e){
+  if(e)e.stopPropagation();
+  var menu=document.getElementById('apps-menu');
+  if(!menu)return;
+  menu.style.display=menu.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',function(e){
+  var menu=document.getElementById('apps-menu');
+  if(!menu||menu.style.display==='none')return;
+  // Don't close if click was inside the launcher container
+  if(e.target.closest('.apps-launcher'))return;
+  menu.style.display='none';
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    var menu=document.getElementById('apps-menu');
+    if(menu)menu.style.display='none';
+  }
+});
 
 // ═══ ICON & CATEGORY HELPERS ═══
 function _notifCategory(type){

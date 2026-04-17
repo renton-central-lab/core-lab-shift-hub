@@ -100,7 +100,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   #screen-manual .body>div:last-child{grid-column:1/-1}
   .mob-edit-bg{display:none!important;}
 }
-@media(max-width:767px){
+@media(max-width:768px){
   #desktop-nav{display:none!important}
   #desktop-panel{display:none!important}
   #scanner-main{display:contents}
@@ -158,17 +158,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .panel-section.collapsed .pt-chevron{transform:rotate(-90deg)}
 .panel-section.collapsed .panel-title{margin-bottom:0}
 
-/* Panel Search */
-.panel-search-wrap{display:flex;align-items:center;gap:8px;background:var(--md-surface-container-lowest);border:1.5px solid var(--md-outline-variant);border-radius:var(--radius-full);padding:6px 14px}
-.panel-search-wrap:focus-within{border-color:var(--md-primary);box-shadow:0 0 0 2px rgba(0,105,110,.1)}
-.panel-search{border:none;outline:none;background:transparent;font-size:13px;font-family:var(--font-body);color:var(--md-on-surface);width:100%}
-.panel-search::placeholder{color:var(--md-outline)}
-.panel-search-results{margin-top:8px;display:none}
-.panel-search-results.show{display:block}
-.psr-item{padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;transition:.1s}
-.psr-item:hover{background:var(--md-surface-container-high)}
-.psr-item .psr-name{font-weight:700;color:var(--md-on-surface);margin-bottom:1px}
-.psr-item .psr-meta{font-size:11px;color:var(--md-on-surface-variant)}
+/* Panel Search — REMOVED. Migrated into the scan input typeahead. */
 
 /* Panel Alerts */
 .alert-list{display:flex;flex-direction:column;gap:6px}
@@ -420,14 +410,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .screen.active{animation:screenIn var(--dur-med) var(--me-decelerate) both;}
 @keyframes screenIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
-/* ── Panel search results ── */
-.panel-search-results{margin-top:8px;display:grid;grid-template-rows:0fr;overflow:hidden;transition:grid-template-rows var(--dur-med) var(--me-emphasized);}
-.panel-search-results > *{min-height:0;}
-.panel-search-results.show{grid-template-rows:1fr;}
-.psr-item{padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;
-  transition:background var(--dur-micro) var(--me-standard),transform var(--dur-micro) var(--me-standard);}
-.psr-item:hover{background:var(--md-surface-container-high);}
-.psr-item:active{transform:scale(.98);}
+/* ── Panel search results — REMOVED. Migrated into scan-input typeahead. ── */
 
 /* ── Nav item hover ── */
 .nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;font-size:14px;font-weight:500;color:var(--md-on-surface-variant);cursor:pointer;border-radius:0 var(--radius-full) var(--radius-full) 0;margin-right:12px;
@@ -462,7 +445,7 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 .toast.err{background:var(--md-error);color:var(--md-on-error)}
 .toast.ok{background:var(--receive);color:#fff}
-@media(max-width:767px){
+@media(max-width:768px){
   .toast{top:auto;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);}
   .toast.show{transform:translateX(-50%) translateY(0);}
 }
@@ -607,6 +590,9 @@ html,body{height:100%;font-family:var(--font-body);background:var(--md-surface);
   <div class="nav-item" onclick="resetManual();goScreen('screen-manual')"><span class="material-icons-outlined">edit</span>Manual Entry</div>
   <div class="nav-section" style="margin-top:12px">Quick Links</div>
   <div class="nav-item" onclick="window.open('inventory-dashboard.html','_blank')"><span class="material-icons-outlined">analytics</span>Dashboard</div>
+  <div class="nav-item" onclick="window.open('index.html','_blank')"><span class="material-icons-outlined">dashboard</span>Shift Hub</div>
+  <div class="nav-item" onclick="window.open('schedule.html','_blank')"><span class="material-icons-outlined">calendar_month</span>Schedule</div>
+  <div class="nav-item" onclick="window.open('contacts.html','_blank')"><span class="material-icons-outlined">contact_phone</span>Contacts</div>
 
   <!-- Session Stats — collapsible -->
   <div class="nav-collapsible" id="nav-stats-col" style="margin-top:8px;border-top:1px solid var(--md-outline-variant)">
@@ -2049,12 +2035,10 @@ function toggleAllPanelSections(){
   savePanelState();
 }
 
-// ── Quick search click → load item screen ──
+// ── Click-to-load handler for panel-nav-item rows (Recent Scans) ──
 async function lookupByTitle(title){
-  var si=document.getElementById('panel-search');
-  if(si)si.value='';
-  var results=document.getElementById('panel-search-results');
-  if(results){results.innerHTML='';results.className='panel-search-results';}
+  // (Previous panel-search input/result references have been removed; this helper
+  // now only loads the item and navigates.)
   showLoad('Loading '+title+'...');
   try{
     var safe=title.replace(/'/g,"''");
@@ -2064,7 +2048,7 @@ async function lookupByTitle(title){
     if(!invRow){hideLoad();showToast('Item not found',true);return;}
     currentItem=invRow;
     renderItem();hideLoad();goScreen('screen-item');
-  }catch(e){hideLoad();showToast('Load failed: '+(e.message||'').slice(0,50),true);}
+  }catch(e){hideLoad();showToast(formatSPError(e),true);}
 }
 
 window.addEventListener('load',function(){
