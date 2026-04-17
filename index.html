@@ -500,7 +500,7 @@ body.syncing .page.active{
 .ann-bar-hdr .mi{color:var(--g500);transition:transform var(--dur-med) var(--me-emphasized);}
 .ann-bar-hdr.collapsed .mi{transform:rotate(-90deg);}
 .ann-list{max-height:500px;overflow-y:auto;}.ann-list.collapsed{display:none;}
-.ann-item{padding:10px 14px;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:flex-start;position:relative;background:var(--white);
+.ann-item{padding:10px 14px;border-bottom:1px solid var(--g100);display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;position:relative;background:var(--white);
   transition:background var(--dur-micro) var(--me-standard),transform var(--dur-micro) var(--me-standard);}
 .ann-item:hover{background:var(--g50);}
 .ann-item:last-child{border-bottom:none;}
@@ -517,6 +517,25 @@ body.syncing .page.active{
 .ann-meta{font-size:10px;color:var(--g400);margin-top:1px;}
 .ann-dismiss{background:none;border:none;cursor:pointer;color:var(--g400);padding:2px;display:flex;}
 .ann-dismiss:hover{color:var(--g600);}
+/* Expandable "Acknowledgments 3/5" header inside mandatory-read cards. The hover
+   state and chevron rotation give a clear click affordance. */
+.ack-toggle{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:6px 8px;border-radius:var(--r);transition:background var(--dur-short) var(--me-standard);margin:-4px;}
+.ack-toggle:hover{background:rgba(255,255,255,.6);}
+.ack-chev{transition:transform var(--dur-med) var(--me-standard);}
+.ack-toggle.open .ack-chev{transform:rotate(180deg);}
+/* Reaction strip — tiny emoji chips at the bottom of Standard / Welcome announcements.
+   Hidden by default (off via ANN_FEATURES.reactions flag). Users click to toggle their
+   own reaction. Active state = user has reacted; empty state = no reactions yet.
+   flex-basis:100% + order:99 force the strip to wrap to its own row when inside a
+   flex parent (like .ann-item), placing it below body+action buttons. */
+.ann-react-strip{display:flex;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--g100);flex-wrap:wrap;flex-basis:100%;order:99;}
+.ann-react{background:var(--white);border:1px solid var(--g200);border-radius:999px;padding:2px 8px 2px 6px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit;transition:background var(--dur-short) var(--me-standard),border-color var(--dur-short) var(--me-standard),transform var(--dur-short) var(--me-spring);color:var(--g700);}
+.ann-react:hover{background:var(--g50);border-color:var(--g300);transform:translateY(-1px);}
+.ann-react.active{background:var(--teal-bg);border-color:var(--teal);color:var(--teal);}
+.ann-react.empty{opacity:.5;}
+.ann-react.empty:hover{opacity:1;}
+.ann-react-emo{font-size:13px;line-height:1;}
+.ann-react-cnt{font-size:10px;font-weight:700;min-width:10px;text-align:center;}
 .ann-welcome{padding:14px;background:linear-gradient(135deg,#e0f2f1,#b2dfdb);position:relative;}
 .ann-welcome .wh{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
 .ann-welcome .wt{font-size:14px;font-weight:800;color:#004D40;}
@@ -1393,6 +1412,12 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
       <h2 style="font-size:16px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:6px;"><span class="mi">campaign</span> Announcements</h2>
       <button class="btn btn-p" id="annBtn" onclick="openAnnModal()" style="display:none"><span class="mi mi-xs">add</span> Post Announcement</button>
     </div>
+    <!-- Search bar — filters all 4 zones (mandatory, welcome, standard, resolved) -->
+    <div id="annSearchBar" style="display:flex;align-items:center;gap:8px;margin-bottom:14px;background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);padding:2px 4px 2px 12px;box-shadow:var(--shadow-1);">
+      <span class="mi mi-sm" style="color:var(--g400);">search</span>
+      <input type="text" id="annSearchInput" placeholder="Search announcements..." oninput="_onAnnSearchInput()" style="flex:1;border:none;outline:none;padding:10px 4px;font-family:inherit;font-size:12px;background:transparent;">
+      <button id="annSearchClearBtn" onclick="clearAnnSearch()" style="display:none;background:transparent;border:none;color:var(--g500);cursor:pointer;padding:4px 10px;font-size:10px;font-weight:700;"><span class="mi mi-xs">close</span></button>
+    </div>
     <div id="mandZone"></div>
     <div id="welcomeZone"></div>
     <div id="annZone"></div>
@@ -1622,7 +1647,6 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
     <div class="form-item full"><label>Announcement *</label><textarea id="annText" style="min-height:80px;"></textarea></div>
     <div class="form-item" id="annWelcomeNameWrap" style="display:none"><label>Name *</label><input type="text" id="annWelcomeName" placeholder="e.g., Alexander Fleming"></div>
     <div class="form-item" id="annWelcomeRoleWrap" style="display:none"><label>Role</label><input type="text" id="annWelcomeRole" placeholder="e.g., MLS1, Hematology"></div>
-    <div class="form-item"><label>Priority</label><select id="annPri"><option>Low</option><option>Medium</option><option>High</option></select></div>
   </div>
 </div>
 <div class="modal-ftr"><button class="btn btn-s" onclick="closeAnnModal()">Cancel</button><button class="btn btn-p" id="annPostBtn" onclick="postAnnouncement()"><span class="mi mi-xs">campaign</span> Post</button></div>
@@ -1665,7 +1689,7 @@ td.desc-cell .cell-txt:hover{color:var(--teal);}
 <div class="mandatory-bg" id="mandBg">
 <div class="mand-card"><div class="mand-hdr"><div class="mh-icon"><span class="mi">priority_high</span></div><div><div class="mh-title" id="mandTitle">Mandatory Read</div><div class="mh-sub" id="mandSub"></div></div></div>
 <div class="mand-body"><div class="mb-text" id="mandText"></div><div class="mb-meta" id="mandMeta"></div>
-<div class="mb-ack"><div class="mb-ack-label">Type your initials to acknowledge:</div><div class="mb-ack-row"><input type="text" id="mandAckInput" maxlength="4" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter')ackMandatory()"><button onclick="ackMandatory()">Acknowledge</button></div>
+<div class="mb-ack"><div class="mb-ack-label" id="mandAckPrompt">I confirm that I have read this announcement.</div><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"><button class="btn btn-p" id="mandAckBtn" onclick="ackMandatory()" style="padding:10px 20px;font-size:13px;"><span class="mi mi-xs">check_circle</span> I have read and acknowledge</button></div>
 <div style="display:flex;justify-content:center;margin-top:8px;"><button class="btn btn-s" style="font-size:10px;padding:4px 12px;color:var(--g500);" onclick="snoozeMandatory()" title="Dismiss now, remind me in 1 hour"><span class="mi mi-xs">schedule</span>Remind me in 1 hour</button></div>
 <div class="mb-ack-list" id="mandAckList"></div></div>
 </div></div></div>
@@ -2384,6 +2408,30 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function escJS(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r');}
 function safeImg(s,extra){if(typeof s!=='string'||!/^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/=]+$/i.test(s))return'';return'<img src="'+esc(s)+'"'+(extra?' '+extra:'')+'>';}
 function fd(d){if(!d)return'';const[y,m,dy]=d.split('-');return m+'/'+dy+'/'+y;}
+
+/* Announcement date formatter — renders relative time for recent posts ("2h ago",
+   "Yesterday", "3 days ago"), and falls back to "Mar 26" or "Mar 26, 2025" for older.
+   Accepts ISO timestamp (preferred, has time of day) or date-only "YYYY-MM-DD".
+   Returns a short human-friendly string. */
+function _formatAnnDate(timestamp,dateFallback){
+  var d;
+  if(timestamp){d=new Date(timestamp);}
+  else if(dateFallback){d=new Date(dateFallback+'T00:00:00');}
+  else return '';
+  if(isNaN(d.getTime()))return '';
+  var now=new Date(),diff=now-d;
+  if(diff<0)return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  if(diff<60000)return 'just now';
+  if(diff<3600000)return Math.floor(diff/60000)+'m ago';
+  if(diff<86400000)return Math.floor(diff/3600000)+'h ago';
+  var today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  var day=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  var dayDiff=Math.floor((today-day)/86400000);
+  if(dayDiff===1)return 'Yesterday';
+  if(dayDiff<7)return dayDiff+' days ago';
+  if(d.getFullYear()===now.getFullYear())return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
 function toast(m){const t=document.createElement('div');t.className='toast-msg';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3200);}
 function ln(i){const u=users[(i||'').toUpperCase()];return u?u.fullName:i;}
 function li(n){for(const[k,v]of Object.entries(users)){if(v.fullName===n)return k;}return'';}
@@ -5344,20 +5392,151 @@ function _clearPresetLabelIfStale(){
 }
 
 // === ANNOUNCEMENTS ===
-function setAnnType(t){annType=t;document.querySelectorAll('.ato').forEach(el=>el.classList.remove('sel'));$('ato'+(t==='standard'?'Std':t==='welcome'?'Wel':'Mand')).classList.add('sel');$('annWelcomeNameWrap').style.display=t==='welcome'?'':'none';$('annWelcomeRoleWrap').style.display=t==='welcome'?'':'none';$('annPostBtn').innerHTML=t==='welcome'?'<span class="mi mi-xs">celebration</span> Welcome!':t==='mandatory'?'<span class="mi mi-xs">priority_high</span> Post Mandatory':'<span class="mi mi-xs">campaign</span> Post';}
+function setAnnType(t){annType=t;document.querySelectorAll('.ato').forEach(el=>el.classList.remove('sel'));$('ato'+(t==='standard'?'Std':t==='welcome'?'Wel':'Mand')).classList.add('sel');$('annWelcomeNameWrap').style.display=t==='welcome'?'':'none';$('annWelcomeRoleWrap').style.display=t==='welcome'?'':'none';$('annPostBtn').innerHTML=t==='welcome'?'<span class="mi mi-xs">celebration</span> Post Welcome':t==='mandatory'?'<span class="mi mi-xs">priority_high</span> Post Mandatory':'<span class="mi mi-xs">campaign</span> Post';}
+// ═══ ANNOUNCEMENT SEARCH ═══
+// Single search string, case-insensitive substring match across text, welcomeName,
+// welcomeRole, postedBy, and comment bodies. Applies to all 4 zones simultaneously.
+// Also auto-expands the Resolved section when a search is active so matches show.
+var _annSearchQuery='';
+
+// ═══ FEATURE FLAGS ═══
+// These toggle optional features added during the audit. Set to true to enable,
+// false to disable. Can be changed at runtime from the browser console for quick testing:
+//   ANN_FEATURES.reactions = true;
+//   renderAnn();
+var ANN_FEATURES={
+  // Emoji reactions (👍 ❤️ 🎉 👀) on Standard and Welcome announcements.
+  // Off by default — enable if the team wants lightweight engagement.
+  reactions: false
+};
+
+// ═══ REACTIONS ═══
+// Renders a reaction strip at the bottom of an announcement card.
+// Reactions are stored as { emoji: [initials1, initials2, ...] }.
+// Click an emoji to toggle your reaction. Each user counts once per emoji.
+var ANN_REACTIONS=['👍','❤️','🎉','👀'];
+function _renderAnnReactions(a){
+  if(!ANN_FEATURES.reactions)return '';
+  var rs=a.reactions||{};
+  var chips=ANN_REACTIONS.map(function(emo){
+    var who=rs[emo]||[];
+    var mine=me&&who.includes(me.initials);
+    var cnt=who.length;
+    var title=cnt?who.map(ln).join(', ')+' reacted with '+emo:'React with '+emo;
+    return '<button class="ann-react '+(mine?'active':'')+(cnt===0?' empty':'')+'" onclick="event.stopPropagation();toggleReaction(\''+escJS(a.id)+'\',\''+emo+'\')" title="'+esc(title)+'">'+
+      '<span class="ann-react-emo">'+emo+'</span>'+
+      (cnt>0?'<span class="ann-react-cnt">'+cnt+'</span>':'')+
+      '</button>';
+  }).join('');
+  return '<div class="ann-react-strip">'+chips+'</div>';
+}
+function toggleReaction(aid,emo){
+  if(!me){toast('Sign in to react');return;}
+  var a=announcements.find(function(x){return x.id===aid;});
+  if(!a)return;
+  if(!a.reactions)a.reactions={};
+  if(!a.reactions[emo])a.reactions[emo]=[];
+  var idx=a.reactions[emo].indexOf(me.initials);
+  if(idx>=0){
+    a.reactions[emo].splice(idx,1);
+    if(!a.reactions[emo].length)delete a.reactions[emo];
+  }else{
+    a.reactions[emo].push(me.initials);
+  }
+  spSaveAnn(a).catch(function(e){console.error(e);});
+  renderAnn();
+}
+// ═══ RESOLVED ANN RETENTION CUTOFF ═══
+// Resolved announcements older than RES_CUTOFF_DAYS are hidden by default to keep
+// the page fast and uncluttered. Admins/leads can toggle "Show older" to see all.
+// A search query bypasses the cutoff (search always examines every resolved record).
+var RES_CUTOFF_DAYS=90;
+var _showOlderResolved=false;
+function _resolvedWithinCutoff(a){
+  if(_annSearchQuery)return true;// search always bypasses cutoff
+  if(_showOlderResolved)return true;
+  if(!a.resolvedDate)return true;// safety: show anything without a resolvedDate
+  var cutoff=Date.now()-(RES_CUTOFF_DAYS*86400000);
+  var rd=new Date(a.resolvedDate+'T00:00:00').getTime();
+  return rd>=cutoff;
+}
+function _countOlderResolved(){
+  if(_annSearchQuery)return 0;
+  var cutoff=Date.now()-(RES_CUTOFF_DAYS*86400000);
+  return announcements.filter(function(a){
+    if(!a.resolved||!a.resolvedDate)return false;
+    var rd=new Date(a.resolvedDate+'T00:00:00').getTime();
+    return rd<cutoff;
+  }).length;
+}
+function toggleOlderResolved(){
+  _showOlderResolved=!_showOlderResolved;
+  renderAnn();
+}
+// Renders the bottom row inside the Resolved Announcements bar, showing how many
+// resolved records are older than the cutoff with a toggle to show/hide them.
+// Suppressed when searching (cutoff is bypassed automatically) or when there are no
+// older records to surface.
+function _resolvedOlderFooter(){
+  if(_annSearchQuery)return '';
+  var olderCount=_countOlderResolved();
+  if(!olderCount)return '';
+  if(_showOlderResolved){
+    return '<div style="padding:10px 14px;background:var(--g50);border-top:1px solid var(--green-bdr);text-align:center;font-size:10px;color:var(--g500);">'+
+      '<span style="margin-right:8px;">Showing all resolved records.</span>'+
+      '<button class="btn btn-s" style="padding:3px 10px;font-size:10px;" onclick="toggleOlderResolved()"><span class="mi mi-xs">filter_list</span> Hide older than '+RES_CUTOFF_DAYS+' days</button>'+
+      '</div>';
+  }
+  return '<div style="padding:10px 14px;background:var(--g50);border-top:1px solid var(--green-bdr);text-align:center;font-size:10px;color:var(--g500);">'+
+    '<span style="margin-right:8px;">'+olderCount+' older record'+(olderCount===1?'':'s')+' hidden (older than '+RES_CUTOFF_DAYS+' days).</span>'+
+    '<button class="btn btn-s" style="padding:3px 10px;font-size:10px;" onclick="toggleOlderResolved()"><span class="mi mi-xs">visibility</span> Show older</button>'+
+    '</div>';
+}
+function _onAnnSearchInput(){
+  var v=$('annSearchInput').value||'';
+  _annSearchQuery=v.trim().toLowerCase();
+  $('annSearchClearBtn').style.display=_annSearchQuery?'':'none';
+  // Auto-open resolved section when searching so matches there are visible
+  if(_annSearchQuery)secOpen.resAnn=true;
+  renderAnn();
+}
+function clearAnnSearch(){
+  _annSearchQuery='';
+  var inp=$('annSearchInput');if(inp)inp.value='';
+  $('annSearchClearBtn').style.display='none';
+  renderAnn();
+}
+function _annMatchesSearch(a){
+  if(!_annSearchQuery)return true;
+  var q=_annSearchQuery;
+  var fields=[a.text||'',a.welcomeName||'',a.welcomeRole||'',a.postedBy||''];
+  if(a.comments&&a.comments.length)fields.push(a.comments.map(function(c){return(c.text||'')+' '+(c.author||'');}).join(' '));
+  return fields.some(function(f){return f.toLowerCase().indexOf(q)>=0;});
+}
+
 function renderAnn(){
   renderMandZone();renderWelcomeZone();renderStdAnn();renderResolvedAnn();
-  // Show empty state on mobile if nothing rendered
+  // Show empty state if nothing rendered
   var es=$('annEmptyState');
   if(!es)return;
   var hasCont=$('mandZone').innerHTML||$('welcomeZone').innerHTML||$('annZone').innerHTML||$('resAnnZone').innerHTML;
-  es.style.display=hasCont?'none':'block';
+  if(!hasCont){
+    if(_annSearchQuery){
+      es.style.display='block';
+      es.innerHTML='<span class="mi" style="font-size:48px;display:block;margin-bottom:12px;color:var(--g300)">search_off</span><div style="font-size:14px;font-weight:600;color:var(--g500);margin-bottom:6px;">No matches</div><div style="font-size:12px;color:var(--g400);">No announcements match "'+esc(_annSearchQuery)+'"</div>';
+    }else{
+      es.style.display='block';
+      es.innerHTML='<span class="mi" style="font-size:48px;display:block;margin-bottom:12px;color:var(--g300)">campaign</span><div style="font-size:14px;font-weight:600;color:var(--g500);margin-bottom:6px;">No Announcements</div><div style="font-size:12px;color:var(--g400);">Nothing posted yet for this period.</div>';
+    }
+  }else{
+    es.style.display='none';
+  }
 }
-function renderMandZone(){var z=$('mandZone');var ms=announcements.filter(a=>a.annType==='mandatory'&&!a.resolved);if(!ms.length){z.innerHTML='';return;}z.innerHTML=ms.map(a=>{var ack=a.acknowledged||[],iA=me&&ack.includes(me.initials),all=Object.keys(users),na=all.filter(i=>!ack.includes(i));var act='';if(isLead()){act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="editAnn(\''+a.id+'\')"><span class="mi mi-xs">edit</span></button> ';act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;color:var(--green);" onclick="resolveAnn(\''+a.id+'\')"><span class="mi mi-xs">check_circle</span></button> ';}if(isAdm())act+='<button class="btn btn-d" style="padding:2px 6px;font-size:9px;" onclick="deleteAnn(\''+a.id+'\')"><span class="mi mi-xs">delete</span></button> ';var ackH='<div style="margin-top:6px;padding:8px 10px;background:var(--g50);border-radius:var(--r);border:1px solid var(--g200);font-size:10px;"><div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'"><span style="font-weight:700;color:var(--navy);"><span class="mi mi-xs">people</span> Acknowledgments</span><span style="color:var(--g500);">'+ack.length+'/'+all.length+' <span class="mi mi-xs">expand_more</span></span></div><div style="display:none;margin-top:6px;">'+(ack.length?'<div style="margin-bottom:4px;"><span style="font-weight:600;color:var(--green);">Done:</span> '+ack.map(i=>'<span style="display:inline-block;background:var(--green-bg);color:var(--green);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>':'')+(na.length?'<div><span style="font-weight:600;color:var(--red);">Pending:</span> '+na.map(i=>'<span style="display:inline-block;background:var(--red-bg);color:var(--red);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>':'')+'</div></div>';return'<div style="margin-bottom:10px;border-radius:var(--rl);border:2px solid var(--red-bdr);overflow:hidden;box-shadow:var(--shadow-1);"><div style="background:linear-gradient(135deg,var(--red-bg),#fbe2e2);padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--red-bdr);"><span class="mi" style="color:var(--red);">priority_high</span><div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--red);">Mandatory Read</div><div style="font-size:10px;color:var(--g500);">'+fd(a.date)+' &middot; '+esc(a.postedBy)+' &middot; '+ack.length+'/'+all.length+'</div></div>'+(!iA?'<button class="btn btn-d" style="padding:4px 10px;font-size:10px;" onclick="showMandatory(\''+a.id+'\')"><span class="mi mi-xs">visibility</span> Read &amp; Acknowledge</button>':'<span class="badge b-resolved" style="font-size:9px;">&#10003; Acknowledged</span>')+' '+act+'<button class="ann-dismiss" style="position:static;" onclick="dismissAnn(\''+a.id+'\')"><span class="mi mi-xs">close</span></button></div><div style="padding:10px 14px;background:var(--white);font-size:12px;color:var(--g900);line-height:1.5;">'+esc(a.text)+ackH+'</div></div>';}).join('');}
-function renderWelcomeZone(){var z=$('welcomeZone');var ws=announcements.filter(a=>a.annType==='welcome'&&!a.resolved);if(!ws.length){z.innerHTML='';return;}z.innerHTML=ws.map(a=>{var c=a.comments||[],cH=c.map(x=>'<div class="wc-item"><b>'+esc(x.author)+':</b> <span>'+esc(x.text)+'</span></div>').join('');var act='';if(isLead()){act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="editAnn(\''+a.id+'\')"><span class="mi mi-xs">edit</span></button> ';act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;color:var(--green);" onclick="resolveAnn(\''+a.id+'\')"><span class="mi mi-xs">check_circle</span></button> ';}if(isAdm())act+='<button class="btn btn-d" style="padding:2px 6px;font-size:9px;" onclick="deleteAnn(\''+a.id+'\')"><span class="mi mi-xs">delete</span></button> ';return'<div style="margin-bottom:10px;border-radius:var(--rl);overflow:hidden;border:1px solid #b2dfdb;box-shadow:var(--shadow-1);"><div class="ann-welcome"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><span class="ann-type-tag welcome">WELCOME</span><div style="display:flex;align-items:center;gap:2px;">'+act+'<button class="ann-dismiss" style="position:static;" onclick="dismissAnn(\''+a.id+'\')"><span class="mi mi-xs">close</span></button></div></div><div class="wh"><span class="mi" style="font-size:28px;color:#00796B;">celebration</span><div><div class="wt">Welcome, '+esc(a.welcomeName||'')+'!</div></div></div><div class="ws">'+(a.welcomeRole?esc(a.welcomeRole)+' &middot; ':'')+'Posted by '+esc(a.postedBy)+' &middot; '+fd(a.date)+'</div>'+(a.text?'<div class="wtext">'+esc(a.text)+'</div>':'')+'<div class="wc-area"><h5>Welcome Messages ('+c.length+')</h5><div class="wc-list">'+cH+'</div><div class="wc-row" style="align-items:flex-start;gap:6px;"><textarea id="wci_'+a.id+'" placeholder="Add a welcome message..." rows="2" style="flex:1;min-height:56px;max-height:140px;padding:8px 12px;border:1px solid #b2dfdb;border-radius:var(--r);font-family:inherit;font-size:12px;resize:vertical;box-sizing:border-box;" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\')addWC(\''+a.id+'\')"></textarea><button onclick="addWC(\''+a.id+'\')" style="align-self:stretch;">Send</button></div></div></div></div>';}).join('');}
-function renderStdAnn(){var z=$('annZone'),myD=me?(dismissed[me.initials]||[]):[],stds=announcements.filter(a=>(!a.annType||a.annType==='standard')&&!a.resolved&&!myD.includes(a.id));if(!stds.length){z.innerHTML='';return;}var o=secOpen.ann;z.innerHTML='<div class="ann-bar"><div class="ann-bar-hdr '+(o?'':'collapsed')+'" onclick="secOpen.ann=!secOpen.ann;renderStdAnn()"><h3><span class="mi mi-sm">campaign</span> Announcements <span class="ann-cnt">'+stds.length+'</span></h3><span class="mi mi-sm">expand_more</span></div><div class="ann-list '+(o?'':'collapsed')+'">'+stds.map(function(a){var act='';if(isLead()){act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="event.stopPropagation();editAnn(\''+a.id+'\')"><span class="mi mi-xs">edit</span></button> ';act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;color:var(--green);" onclick="event.stopPropagation();resolveAnn(\''+a.id+'\')"><span class="mi mi-xs">check_circle</span></button> ';}if(isAdm()){act+='<button class="btn btn-d" style="padding:2px 6px;font-size:9px;" onclick="event.stopPropagation();deleteAnn(\''+a.id+'\')"><span class="mi mi-xs">delete</span></button> ';}return'<div class="ann-item"><span class="ann-type-tag standard">UPDATE</span><div class="ann-body"><div class="ann-text">'+esc(a.text)+'</div><div class="ann-meta">'+fd(a.date)+' &middot; '+esc(a.postedBy)+'</div></div><div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">'+act+'<button class="ann-dismiss" onclick="event.stopPropagation();dismissAnn(\''+a.id+'\')"><span class="mi mi-xs">close</span></button></div></div>';}).join('')+'</div></div>';}
-function renderResolvedAnn(){var z=$('resAnnZone');if(!z)return;var rs=announcements.filter(a=>a.resolved);if(!rs.length){z.innerHTML='';return;}var o=secOpen.resAnn;var items=rs.map(a=>{var tl=a.annType==='mandatory'?'MANDATORY':a.annType==='welcome'?'WELCOME':'UPDATE',tc=a.annType||'standard';var ab='';if(isLead()){ab+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="editAnn(\''+a.id+'\')"><span class="mi mi-xs">edit</span></button> ';ab+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;color:var(--amber);" onclick="unresolveAnn(\''+a.id+'\')"><span class="mi mi-xs">undo</span> Reopen</button> ';}if(isAdm()){ab+='<button class="btn btn-d" style="padding:2px 6px;font-size:9px;" onclick="deleteAnn(\''+a.id+'\')"><span class="mi mi-xs">delete</span></button>';}var h='<div style="padding:12px 14px;background:var(--white);border-bottom:1px solid var(--g100);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:6px;"><span class="ann-type-tag '+tc+'">'+tl+'</span><span class="badge b-resolved" style="font-size:8px;">Resolved '+fd(a.resolvedDate||'')+'</span></div><div style="display:flex;align-items:center;gap:4px;">'+ab+'</div></div>';if(a.annType==='welcome'){var c=a.comments||[],cH=c.map(x=>'<div class="wc-item"><b>'+esc(x.author)+':</b> <span>'+esc(x.text)+'</span></div>').join('');h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span class="mi" style="font-size:24px;color:#00796B;">celebration</span><div style="font-size:14px;font-weight:800;color:#004D40;">Welcome, '+esc(a.welcomeName||'')+'!</div></div><div style="font-size:10px;color:#00695C;margin-bottom:4px;">'+(a.welcomeRole?esc(a.welcomeRole)+' &middot; ':'')+'Posted by '+esc(a.postedBy)+' &middot; '+fd(a.date)+'</div>'+(a.text?'<div style="font-size:12px;color:#1a3a3a;line-height:1.4;margin-bottom:6px;">'+esc(a.text)+'</div>':'')+'<div class="wc-area"><h5>Welcome Messages ('+c.length+')</h5><div class="wc-list" style="max-height:200px;">'+cH+'</div></div>';}else if(a.annType==='mandatory'){var ack=a.acknowledged||[],all=Object.keys(users),na=all.filter(i=>!ack.includes(i));h+='<div style="font-size:12px;color:var(--g900);line-height:1.5;margin-bottom:4px;">'+esc(a.text)+'</div><div style="font-size:10px;color:var(--g500);">'+fd(a.date)+' &middot; '+esc(a.postedBy)+' &middot; '+ack.length+'/'+all.length+'</div><div style="margin-top:6px;font-size:10px;">'+(ack.length?'<div style="margin-bottom:3px;"><span style="font-weight:600;color:var(--green);">Acknowledged ('+ack.length+'):</span> '+ack.map(i=>'<span style="display:inline-block;background:var(--green-bg);color:var(--green);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>':'')+(na.length?'<div><span style="font-weight:600;color:var(--red);">Did not ('+na.length+'):</span> '+na.map(i=>'<span style="display:inline-block;background:var(--red-bg);color:var(--red);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>':'')+'</div>';}else{h+='<div style="font-size:12px;color:var(--g900);line-height:1.5;">'+esc(a.text)+'</div><div style="font-size:10px;color:var(--g500);margin-top:2px;">'+fd(a.date)+' &middot; '+esc(a.postedBy)+'</div>';}h+='</div>';return h;}).join('');z.innerHTML='<div class="ann-bar" style="border-color:var(--green-bdr);margin-top:14px;"><div class="ann-bar-hdr '+(o?'':'collapsed')+'" style="background:var(--green-bg);border-bottom-color:var(--green-bdr);" onclick="secOpen.resAnn=!secOpen.resAnn;renderResolvedAnn()"><h3 style="color:var(--green);"><span class="mi mi-sm">check_circle</span> Resolved Announcements <span class="ann-cnt" style="background:rgba(18,132,90,.12);color:var(--green);">'+rs.length+'</span></h3><span class="mi mi-sm" style="color:var(--green);">expand_more</span></div><div class="ann-list '+(o?'':'collapsed')+'">'+items+'</div></div>';}
-function dismissAnn(id){if(!me)return;if(!dismissed[me.initials])dismissed[me.initials]=[];dismissed[me.initials].push(id);saveAll();renderAnn();}
+function renderMandZone(){var z=$('mandZone');var ms=announcements.filter(a=>a.annType==='mandatory'&&!a.resolved&&_annMatchesSearch(a));if(!ms.length){z.innerHTML='';return;}z.innerHTML=ms.map(a=>{var ack=a.acknowledged||[],iA=me&&ack.includes(me.initials),all=Object.keys(users),na=all.filter(i=>!ack.includes(i));var act='';if(isLead()){act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="editAnn(\''+a.id+'\')"><span class="mi mi-xs">edit</span></button> ';act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;color:var(--green);" onclick="resolveAnn(\''+a.id+'\')"><span class="mi mi-xs">check_circle</span></button> ';}if(isAdm())act+='<button class="btn btn-d" style="padding:2px 6px;font-size:9px;" onclick="deleteAnn(\''+a.id+'\')"><span class="mi mi-xs">delete</span></button> ';var ackH='<div style="margin-top:6px;padding:8px 10px;background:var(--g50);border-radius:var(--r);border:1px solid var(--g200);font-size:10px;"><div class="ack-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'"><span style="font-weight:700;color:var(--navy);display:flex;align-items:center;gap:4px;"><span class="mi mi-xs">people</span> Acknowledgments</span><span style="color:var(--g500);display:flex;align-items:center;gap:4px;">'+ack.length+'/'+all.length+' <span class="mi mi-xs ack-chev">expand_more</span></span></div><div style="display:none;margin-top:6px;">'+(ack.length?'<div style="margin-bottom:4px;"><span style="font-weight:600;color:var(--green);">Done:</span> '+ack.map(i=>'<span style="display:inline-block;background:var(--green-bg);color:var(--green);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>':'')+(na.length?'<div><span style="font-weight:600;color:var(--red);">Pending:</span> '+na.map(i=>'<span style="display:inline-block;background:var(--red-bg);color:var(--red);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>':'')+'</div></div>';return'<div style="margin-bottom:10px;border-radius:var(--rl);border:2px solid var(--red-bdr);overflow:hidden;box-shadow:var(--shadow-1);"><div style="background:linear-gradient(135deg,var(--red-bg),#fbe2e2);padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--red-bdr);"><span class="mi" style="color:var(--red);">priority_high</span><div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--red);">Mandatory Read</div><div style="font-size:10px;color:var(--g500);">'+_formatAnnDate(a.timestamp,a.date)+' &middot; '+esc(a.postedBy)+' &middot; '+ack.length+'/'+all.length+'</div></div>'+(!iA?'<button class="btn btn-d" style="padding:4px 10px;font-size:10px;" onclick="showMandatory(\''+a.id+'\')"><span class="mi mi-xs">check_circle</span> Acknowledge</button>':'<span class="badge b-resolved" style="font-size:9px;">&#10003; Acknowledged</span>')+' '+act+'<button class="ann-dismiss" style="position:static;" onclick="dismissAnn(\''+a.id+'\')" title="Hide for me (others still see it)"><span class="mi mi-xs">visibility_off</span></button></div><div style="padding:10px 14px;background:var(--white);font-size:12px;color:var(--g900);line-height:1.5;">'+esc(a.text)+ackH+'</div></div>';}).join('');}
+function renderWelcomeZone(){var z=$('welcomeZone');var ws=announcements.filter(a=>a.annType==='welcome'&&!a.resolved&&_annMatchesSearch(a));if(!ws.length){z.innerHTML='';return;}z.innerHTML=ws.map(a=>{var c=a.comments||[],cH=c.map(x=>'<div class="wc-item"><b>'+esc(x.author)+':</b> <span>'+esc(x.text)+'</span></div>').join('');var act='';if(isLead()){act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="editAnn(\''+a.id+'\')"><span class="mi mi-xs">edit</span></button> ';act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;color:var(--green);" onclick="resolveAnn(\''+a.id+'\')"><span class="mi mi-xs">check_circle</span></button> ';}if(isAdm())act+='<button class="btn btn-d" style="padding:2px 6px;font-size:9px;" onclick="deleteAnn(\''+a.id+'\')"><span class="mi mi-xs">delete</span></button> ';return'<div style="margin-bottom:10px;border-radius:var(--rl);overflow:hidden;border:1px solid #b2dfdb;box-shadow:var(--shadow-1);"><div class="ann-welcome"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><span class="ann-type-tag welcome">WELCOME</span><div style="display:flex;align-items:center;gap:2px;">'+act+'<button class="ann-dismiss" style="position:static;" onclick="dismissAnn(\''+a.id+'\')" title="Hide for me (others still see it)"><span class="mi mi-xs">visibility_off</span></button></div></div><div class="wh"><span class="mi" style="font-size:28px;color:#00796B;">celebration</span><div><div class="wt">Welcome, '+esc(a.welcomeName||'')+'!</div></div></div><div class="ws">'+(a.welcomeRole?esc(a.welcomeRole)+' &middot; ':'')+'Posted by '+esc(a.postedBy)+' &middot; '+_formatAnnDate(a.timestamp,a.date)+'</div>'+(a.text?'<div class="wtext">'+esc(a.text)+'</div>':'<div class="wtext" style="color:var(--g500);font-style:italic;">Welcome aboard! Say hello in the comments below.</div>')+'<div class="wc-area"><h5>Welcome Messages ('+c.length+')</h5><div class="wc-list">'+cH+'</div><div class="wc-row" style="align-items:flex-start;gap:6px;"><textarea id="wci_'+a.id+'" placeholder="Add a welcome message..." rows="2" style="flex:1;min-height:56px;max-height:140px;padding:8px 12px;border:1px solid #b2dfdb;border-radius:var(--r);font-family:inherit;font-size:12px;resize:vertical;box-sizing:border-box;" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key===\'Enter\')addWC(\''+a.id+'\')"></textarea><button onclick="addWC(\''+a.id+'\')" style="align-self:stretch;">Send</button></div></div>'+_renderAnnReactions(a)+'</div></div></div>';}).join('');}
+function renderStdAnn(){var z=$('annZone'),myD=me?(dismissed[me.initials]||[]):[],stds=announcements.filter(a=>(!a.annType||a.annType==='standard')&&!a.resolved&&!myD.includes(a.id)&&_annMatchesSearch(a));if(!stds.length){z.innerHTML='';return;}var o=secOpen.ann;z.innerHTML='<div class="ann-bar"><div class="ann-bar-hdr '+(o?'':'collapsed')+'" onclick="secOpen.ann=!secOpen.ann;renderStdAnn()"><h3><span class="mi mi-sm">campaign</span> Announcements <span class="ann-cnt">'+stds.length+'</span></h3><span class="mi mi-sm">expand_more</span></div><div class="ann-list '+(o?'':'collapsed')+'">'+stds.map(function(a){var act='';if(isLead()){act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="event.stopPropagation();editAnn(\''+a.id+'\')"><span class="mi mi-xs">edit</span></button> ';act+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;color:var(--green);" onclick="event.stopPropagation();resolveAnn(\''+a.id+'\')"><span class="mi mi-xs">check_circle</span></button> ';}if(isAdm()){act+='<button class="btn btn-d" style="padding:2px 6px;font-size:9px;" onclick="event.stopPropagation();deleteAnn(\''+a.id+'\')"><span class="mi mi-xs">delete</span></button> ';}return'<div class="ann-item"><span class="ann-type-tag standard">UPDATE</span><div class="ann-body"><div class="ann-text">'+esc(a.text)+'</div><div class="ann-meta">'+_formatAnnDate(a.timestamp,a.date)+' &middot; '+esc(a.postedBy)+'</div></div><div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">'+act+'<button class="ann-dismiss" onclick="event.stopPropagation();dismissAnn(\''+a.id+'\')" title="Hide for me (others still see it)"><span class="mi mi-xs">visibility_off</span></button></div>'+_renderAnnReactions(a)+'</div>';}).join('')+'</div></div>';}
+function renderResolvedAnn(){var z=$('resAnnZone');if(!z)return;var rs=announcements.filter(a=>a.resolved&&_annMatchesSearch(a)&&_resolvedWithinCutoff(a));if(!rs.length){z.innerHTML='';return;}var o=secOpen.resAnn;var items=rs.map(a=>{var tl=a.annType==='mandatory'?'MANDATORY':a.annType==='welcome'?'WELCOME':'UPDATE',tc=a.annType||'standard';var ab='';if(isLead()){ab+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;" onclick="editAnn(\''+a.id+'\')"><span class="mi mi-xs">edit</span></button> ';ab+='<button class="btn btn-s" style="padding:2px 6px;font-size:9px;color:var(--amber);" onclick="unresolveAnn(\''+a.id+'\')"><span class="mi mi-xs">undo</span> Reopen</button> ';}if(isAdm()){ab+='<button class="btn btn-d" style="padding:2px 6px;font-size:9px;" onclick="deleteAnn(\''+a.id+'\')"><span class="mi mi-xs">delete</span></button>';}var h='<div style="padding:12px 14px;background:var(--white);border-bottom:1px solid var(--g100);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:6px;"><span class="ann-type-tag '+tc+'">'+tl+'</span><span class="badge b-resolved" style="font-size:8px;">Resolved '+fd(a.resolvedDate||'')+'</span></div><div style="display:flex;align-items:center;gap:4px;">'+ab+'</div></div>';if(a.annType==='welcome'){var c=a.comments||[],cH=c.map(x=>'<div class="wc-item"><b>'+esc(x.author)+':</b> <span>'+esc(x.text)+'</span></div>').join('');h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span class="mi" style="font-size:24px;color:#00796B;">celebration</span><div style="font-size:14px;font-weight:800;color:#004D40;">Welcome, '+esc(a.welcomeName||'')+'!</div></div><div style="font-size:10px;color:#00695C;margin-bottom:4px;">'+(a.welcomeRole?esc(a.welcomeRole)+' &middot; ':'')+'Posted by '+esc(a.postedBy)+' &middot; '+_formatAnnDate(a.timestamp,a.date)+'</div>'+(a.text?'<div style="font-size:12px;color:#1a3a3a;line-height:1.4;margin-bottom:6px;">'+esc(a.text)+'</div>':'')+'<div class="wc-area"><h5>Welcome Messages ('+c.length+')</h5><div class="wc-list" style="max-height:200px;">'+cH+'</div></div>';}else if(a.annType==='mandatory'){var ack=a.acknowledged||[],all=Object.keys(users),na=all.filter(i=>!ack.includes(i));h+='<div style="font-size:12px;color:var(--g900);line-height:1.5;margin-bottom:4px;">'+esc(a.text)+'</div><div style="font-size:10px;color:var(--g500);">'+_formatAnnDate(a.timestamp,a.date)+' &middot; '+esc(a.postedBy)+' &middot; '+ack.length+'/'+all.length+'</div><div style="margin-top:6px;font-size:10px;">'+(ack.length?'<div style="margin-bottom:3px;"><span style="font-weight:600;color:var(--green);">Acknowledged ('+ack.length+'):</span> '+ack.map(i=>'<span style="display:inline-block;background:var(--green-bg);color:var(--green);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>':'')+(na.length?'<div><span style="font-weight:600;color:var(--red);">Did not ('+na.length+'):</span> '+na.map(i=>'<span style="display:inline-block;background:var(--red-bg);color:var(--red);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>':'')+'</div>';}else{h+='<div style="font-size:12px;color:var(--g900);line-height:1.5;">'+esc(a.text)+'</div><div style="font-size:10px;color:var(--g500);margin-top:2px;">'+_formatAnnDate(a.timestamp,a.date)+' &middot; '+esc(a.postedBy)+'</div>';}h+='</div>';return h;}).join('');z.innerHTML='<div class="ann-bar" style="border-color:var(--green-bdr);margin-top:14px;"><div class="ann-bar-hdr '+(o?'':'collapsed')+'" style="background:var(--green-bg);border-bottom-color:var(--green-bdr);" onclick="secOpen.resAnn=!secOpen.resAnn;renderResolvedAnn()"><h3 style="color:var(--green);"><span class="mi mi-sm">check_circle</span> Resolved Announcements <span class="ann-cnt" style="background:rgba(18,132,90,.12);color:var(--green);">'+rs.length+'</span></h3><span class="mi mi-sm" style="color:var(--green);">expand_more</span></div><div class="ann-list '+(o?'':'collapsed')+'">'+items+_resolvedOlderFooter()+'</div></div>';}
+function dismissAnn(id){if(!me)return;if(!dismissed[me.initials])dismissed[me.initials]=[];if(!dismissed[me.initials].includes(id))dismissed[me.initials].push(id);saveAll();renderAnn();toast('Hidden from your view. Leads still see it.');}
 function addWC(aid){var input=$('wci_'+aid);if(!input)return;var t=input.value.trim();if(!t)return;var a=announcements.find(x=>x.id===aid);if(!a)return;if(!a.comments)a.comments=[];a.comments.push({author:me?me.fullName:'',text:t,timestamp:new Date().toISOString()});var _wca=announcements.find(function(x){return x.id===aid;});if(_wca)spSaveAnn(_wca).catch(function(e){console.error(e);});input.value='';renderAnn();}
 var _editingAnnId=null;
 function editAnn(aid){
@@ -5458,9 +5637,9 @@ async function restoreAnn(aid){
     toast('Restore failed: '+err.message);
   }
 }
-function openAnnModal(){annType='standard';setAnnType('standard');$('annText').value='';$('annPri').value='Low';$('annWelcomeName').value='';$('annWelcomeRole').value='';openSheet('annModalBg');}
+function openAnnModal(){annType='standard';setAnnType('standard');$('annText').value='';$('annWelcomeName').value='';$('annWelcomeRole').value='';openSheet('annModalBg');}
 function closeAnnModal(){closeSheet('annModalBg');}
-function postAnnouncement(){var t=$('annText').value.trim();if(annType==='welcome'&&!$('annWelcomeName').value.trim()){toast('Enter name');return;}if(!t&&annType!=='welcome'){toast('Enter text');return;}var a={id:gid(),text:t,annType:annType,priority:$('annPri').value,date:new Date().toISOString().split('T')[0],postedBy:me.fullName,postedByIni:me.initials,timestamp:new Date().toISOString()};if(annType==='welcome'){a.welcomeName=$('annWelcomeName').value.trim();a.welcomeRole=$('annWelcomeRole').value.trim();a.comments=[];}if(annType==='mandatory'){a.acknowledged=[me.initials];}announcements.unshift(a);spSaveAnn(a).catch(function(e){console.error('Ann save failed:',e);});pushOnNewAnnouncement(a);addH('add','Announcement ('+annType+'): "'+(t||a.welcomeName||'').slice(0,40)+'..."','');saveAll();closeAnnModal();secOpen.ann=true;renderAnn();if(annType==='welcome'){var sk='rcl7_confetti_seen',sn=ld(sk,{});if(!sn[me.initials])sn[me.initials]=[];sn[me.initials].push(a.id);sv(sk,sn);fireConfetti();}toast(annType==='mandatory'?'Mandatory read posted.':'Posted');}
+function postAnnouncement(){var t=$('annText').value.trim();if(annType==='welcome'&&!$('annWelcomeName').value.trim()){toast('Enter name');return;}if(!t&&annType!=='welcome'){toast('Enter text');return;}var a={id:gid(),text:t,annType:annType,date:new Date().toISOString().split('T')[0],postedBy:me.fullName,postedByIni:me.initials,timestamp:new Date().toISOString()};if(annType==='welcome'){a.welcomeName=$('annWelcomeName').value.trim();a.welcomeRole=$('annWelcomeRole').value.trim();a.comments=[];}if(annType==='mandatory'){a.acknowledged=[me.initials];}announcements.unshift(a);spSaveAnn(a).catch(function(e){console.error('Ann save failed:',e);});pushOnNewAnnouncement(a);addH('add','Announcement ('+annType+'): "'+(t||a.welcomeName||'').slice(0,40)+'..."','');saveAll();closeAnnModal();secOpen.ann=true;renderAnn();if(annType==='welcome'){var sk='rcl7_confetti_seen',sn=ld(sk,{});if(!sn[me.initials])sn[me.initials]=[];sn[me.initials].push(a.id);sv(sk,sn);fireConfetti();}toast(annType==='mandatory'?'Mandatory read posted.':'Posted');}
 
 // === MANDATORY ===
 function checkMandatoryReads(){if(!me)return;var un=announcements.filter(a=>a.annType==='mandatory'&&!a.resolved&&a.acknowledged&&!a.acknowledged.includes(me.initials)&&!_isMandatorySnoozed(a.id));if(un.length>0)showMandatory(un[0].id);else checkWelcomeConfetti();}
@@ -5491,8 +5670,8 @@ function snoozeMandatory(){
   activeMandId=null;
   toast('Reminded in 1 hour');
 }
-function showMandatory(aid){var a=announcements.find(x=>x.id===aid);if(!a)return;activeMandId=aid;$('mandTitle').textContent='Mandatory Read';$('mandSub').textContent='By '+a.postedBy+' on '+fd(a.date);$('mandText').textContent=a.text;$('mandMeta').textContent=a.priority+' Priority';var ack=a.acknowledged||[],all=Object.keys(users),na=all.filter(i=>!ack.includes(i));var lH='';if(ack.length)lH+='<div style="margin-bottom:4px;"><span style="font-weight:600;color:var(--green);">Done ('+ack.length+'):</span> '+ack.map(i=>'<span style="display:inline-block;background:var(--green-bg);color:var(--green);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>';if(na.length)lH+='<div><span style="font-weight:600;color:var(--red);">Pending ('+na.length+'):</span> '+na.map(i=>'<span style="display:inline-block;background:var(--red-bg);color:var(--red);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>';$('mandAckList').innerHTML=lH||'No users.';$('mandAckInput').value='';openSheet('mandBg','show');$('mandAckInput').focus();}
-function ackMandatory(){var ini=$('mandAckInput').value.trim().toUpperCase();if(!ini){toast('Enter initials');return;}if(!me||ini!==me.initials){toast('Enter YOUR initials: '+me.initials);return;}var a=announcements.find(x=>x.id===activeMandId);if(!a)return;if(!a.acknowledged)a.acknowledged=[];if(a.acknowledged.includes(ini)){toast('Already done');return;}a.acknowledged.push(ini);addH('edit','Acknowledged: "'+a.text.slice(0,30)+'..."','By '+ln(ini));saveAll();closeSheet('mandBg','show');activeMandId=null;renderAnn();toast('Acknowledged');setTimeout(checkMandatoryReads,400);}
+function showMandatory(aid){var a=announcements.find(x=>x.id===aid);if(!a)return;activeMandId=aid;$('mandTitle').textContent='Mandatory Read';$('mandSub').textContent='By '+a.postedBy+' on '+_formatAnnDate(a.timestamp,a.date);$('mandText').textContent=a.text;$('mandMeta').textContent='';var ack=a.acknowledged||[],all=Object.keys(users),na=all.filter(i=>!ack.includes(i));var lH='';if(ack.length)lH+='<div style="margin-bottom:4px;"><span style="font-weight:600;color:var(--green);">Done ('+ack.length+'):</span> '+ack.map(i=>'<span style="display:inline-block;background:var(--green-bg);color:var(--green);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>';if(na.length)lH+='<div><span style="font-weight:600;color:var(--red);">Pending ('+na.length+'):</span> '+na.map(i=>'<span style="display:inline-block;background:var(--red-bg);color:var(--red);padding:1px 5px;border-radius:3px;margin:1px;font-weight:600;">'+esc(ln(i))+'</span>').join('')+'</div>';$('mandAckList').innerHTML=lH||'No users.';openSheet('mandBg','show');}
+function ackMandatory(){if(!me){toast('Not signed in');return;}var ini=me.initials;var a=announcements.find(x=>x.id===activeMandId);if(!a)return;if(!a.acknowledged)a.acknowledged=[];if(a.acknowledged.includes(ini)){toast('Already acknowledged');closeSheet('mandBg','show');activeMandId=null;return;}a.acknowledged.push(ini);addH('edit','Acknowledged: "'+a.text.slice(0,30)+'..."','By '+(me.fullName||ln(ini)),{annId:a.id});saveAll();spSaveAnn(a).catch(function(e){console.error(e);});closeSheet('mandBg','show');activeMandId=null;renderAnn();toast('Acknowledged');setTimeout(checkMandatoryReads,400);}
 
 // === CONFETTI ===
 function checkWelcomeConfetti(){if(!me)return;var sk='rcl7_confetti_seen',sn=ld(sk,{}),ms=sn[me.initials]||[];var ws=announcements.filter(a=>a.annType==='welcome'&&!a.resolved&&!ms.includes(a.id));if(ws.length>0){ws.forEach(w=>ms.push(w.id));sn[me.initials]=ms;sv(sk,sn);fireConfetti();}}
