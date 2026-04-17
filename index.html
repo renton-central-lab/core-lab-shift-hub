@@ -377,11 +377,12 @@ tr.row-selected{background:#e0f2f1!important;box-shadow:inset 4px 0 0 var(--teal
 tr.row-selected td{background:rgba(224,242,241,.6);}
 .mob-log-card.row-selected{background:#e0f2f1;box-shadow:0 0 0 2px var(--teal);border-color:var(--teal);}
 
-.bulk-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--navy);color:var(--white);padding:10px 14px;border-radius:999px;box-shadow:0 8px 32px rgba(0,0,0,.3);display:flex;align-items:center;gap:10px;z-index:250;transition:transform .3s cubic-bezier(.2,.8,.2,1);max-width:calc(100vw - 40px);font-size:12px;font-weight:600;}
-.bulk-bar.show{transform:translateX(-50%) translateY(0);}
-/* Backstop: hide bulk bar whenever the Log page is NOT active, even if .show is set.
+.bulk-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:var(--white);padding:10px 14px;border-radius:999px;box-shadow:0 8px 32px rgba(0,0,0,.3);align-items:center;gap:10px;z-index:250;max-width:calc(100vw - 40px);font-size:12px;font-weight:600;display:none;}
+.bulk-bar.show{display:flex;animation:bulkBarIn .3s cubic-bezier(.2,.8,.2,1) both;}
+@keyframes bulkBarIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+/* Backstop: hide bulk bar whenever the Log page is NOT active.
    Uses :has() — supported in all modern browsers (Chrome 105+, Safari 15.4+, Firefox 121+). */
-body:not(:has(#pageLog.active)) .bulk-bar{transform:translateX(-50%) translateY(140px)!important;visibility:hidden;}
+body:not(:has(#pageLog.active)) .bulk-bar{display:none!important;}
 .bulk-bar .count{background:var(--teal);padding:4px 10px;border-radius:999px;font-weight:800;font-size:11px;}
 .bulk-bar button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:var(--white);padding:6px 12px;border-radius:999px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit;transition:background .15s,border-color .15s;}
 .bulk-bar button:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);}
