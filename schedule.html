@@ -456,7 +456,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .notif-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--g100);font-size:13px;font-weight:700;color:var(--g700);}
 .notif-list{overflow-y:auto;flex:1;}
 .notif-ftr{border-top:1px solid var(--g100);padding:8px;background:var(--g50);}
-.notif-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--g50);cursor:pointer;transition:background var(--dur-short) var(--me-standard);position:relative;}
+.notif-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--g50);cursor:pointer;transition:background var(--dur-short) var(--me-standard);position:relative;overflow:hidden;touch-action:pan-y;}
 .notif-item:hover{background:var(--teal-bg);}
 .notif-item:hover .notif-dismiss{opacity:1;}
 .notif-item.unread{background:rgba(0,121,107,.04);}
@@ -474,9 +474,22 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .notif-msg{font-size:11px;color:var(--g700);line-height:1.35;word-break:break-word;}
 .notif-time{font-size:9px;color:var(--g400);margin-top:3px;display:flex;align-items:center;gap:4px;}
 .notif-count-chip{display:inline-flex;align-items:center;justify-content:center;background:var(--amber);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;}
-.notif-dismiss{opacity:0;position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--g100);color:var(--g500);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .15s,background .15s;font-size:14px;border:none;}
+.notif-dismiss{opacity:0;position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--g100);color:var(--g500);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .15s,background .15s;font-size:14px;border:none;z-index:2;}
 .notif-dismiss:hover{background:var(--red);color:#fff;}
 .notif-dismiss .mi{font-size:12px;}
+/* Swipe-to-archive reveal (matches Shift Hub pattern) */
+.notif-swipe-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:18px;background:linear-gradient(90deg,transparent 0%,#fee2e2 40%,var(--red) 100%);color:#fff;font-weight:700;font-size:12px;gap:6px;pointer-events:none;opacity:0;transition:opacity .15s;}
+.notif-swipe-bg .mi{font-size:18px;}
+.notif-item.swiping,.notifpg-row.swiping{transition:none;}
+.notif-item.swiping .notif-swipe-bg,.notifpg-row.swiping .notif-swipe-bg{opacity:1;}
+.notif-item.swipe-release,.notifpg-row.swipe-release{transition:transform .25s var(--me-decelerate);}
+.notif-item.swipe-archiving,.notifpg-row.swipe-archiving{transition:transform .25s var(--me-decelerate),opacity .25s var(--me-decelerate);opacity:0;}
+/* Mobile: dismiss X always visible and larger */
+@media(max-width:768px){
+  .notif-dismiss{opacity:1;width:32px;height:32px;top:10px;right:10px;background:var(--g100);}
+  .notif-dismiss .mi{font-size:18px;}
+  .notif-item,.notifpg-row{padding-right:48px;}
+}
 .notif-empty{padding:28px 16px;text-align:center;font-size:12px;color:var(--g400);}
 .notif-empty .mi{font-size:28px;color:var(--g200);display:block;margin-bottom:8px;}
 
@@ -494,7 +507,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
 .notifpg-search:focus{outline:none;border-color:var(--teal);}
 .notifpg-list{background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);box-shadow:var(--shadow-1);overflow:hidden;}
 .notifpg-section-hdr{padding:8px 14px;background:var(--g50);font-size:10px;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--g200);}
-.notifpg-row{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--g100);cursor:pointer;transition:background .15s;position:relative;}
+.notifpg-row{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--g100);cursor:pointer;transition:background .15s;position:relative;overflow:hidden;touch-action:pan-y;}
 .notifpg-row:hover{background:var(--teal-bg);}
 .notifpg-row:hover .notif-dismiss{opacity:1;}
 .notifpg-row.unread{background:rgba(0,121,107,.04);}
@@ -1709,11 +1722,22 @@ async function discoverFields(ln){
   try{
     var r=await spFetch(SP_API+"/getbytitle('"+ln+"')/fields?$filter=Hidden eq false and ReadOnlyField eq false&$select=InternalName,Title,StaticName");
     var d=await r.json();var map={};
-    (d.d.results||[]).forEach(function(f){if(f.Title!==f.InternalName)map[f.Title]=f.InternalName;});
+    var fields=d.d.results||[];
+    fields.forEach(function(f){if(f.Title!==f.InternalName)map[f.Title]=f.InternalName;});
+    // Stash the full list for diagnostic access via window.spDiag()
+    _fieldMaps[ln+'__all']=fields.map(function(f){return{title:f.Title,internal:f.InternalName};});
     _fieldMaps[ln]=map;
     return map;
   }catch(e){console.error('Field discovery failed for '+ln,e);return {};}
 }
+// Diagnostic: call from browser console. Dumps every field with its internal name.
+// Usage: spDiag('ScheduleNotifications')
+window.spDiag=async function(ln){
+  await discoverFields(ln);
+  var all=_fieldMaps[ln+'__all']||[];
+  console.table(all);
+  return all;
+};
 function spVal(item,displayName,fm){
   if(item[displayName]!==undefined)return item[displayName];
   if(fm&&fm[displayName]&&item[fm[displayName]]!==undefined)return item[fm[displayName]];
@@ -5822,6 +5846,71 @@ document.addEventListener('keydown',function(e){
   }
 });
 
+// ══════════════════════════════════════════════════════════════════════
+// SWIPE TO ARCHIVE (mobile)
+//
+// Mirrors Shift Hub's pattern. Swipe left on .notif-item (bell) or
+// .notifpg-row (full page) to archive. Threshold is 40% row width or 120px.
+// Axis detection prevents conflicts with page scroll.
+// ══════════════════════════════════════════════════════════════════════
+(function(){
+  var _swState=null;
+  function _swRowFromTouch(e){
+    var t=e.target;while(t&&t!==document.body){
+      if(t.classList&&(t.classList.contains('notif-item')||t.classList.contains('notifpg-row')))return t;
+      t=t.parentNode;
+    }
+    return null;
+  }
+  document.addEventListener('touchstart',function(e){
+    if(e.touches.length!==1)return;
+    var row=_swRowFromTouch(e);
+    if(!row)return;
+    if(e.target.closest('.notif-dismiss'))return;// let X button work
+    _swState={row:row,startX:e.touches[0].clientX,startY:e.touches[0].clientY,dx:0,dy:0,decided:null,rect:row.getBoundingClientRect()};
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!_swState||e.touches.length!==1)return;
+    var t=e.touches[0];
+    _swState.dx=t.clientX-_swState.startX;
+    _swState.dy=t.clientY-_swState.startY;
+    if(_swState.decided===null){
+      if(Math.abs(_swState.dy)>10&&Math.abs(_swState.dy)>Math.abs(_swState.dx)){_swState.decided='vert';return;}
+      if(Math.abs(_swState.dx)>10&&Math.abs(_swState.dx)>Math.abs(_swState.dy)*1.5){
+        _swState.decided='horiz';_swState.row.classList.add('swiping');
+      }else return;
+    }
+    if(_swState.decided==='horiz'){
+      var dx=Math.min(0,_swState.dx);
+      _swState.row.style.transform='translateX('+dx+'px)';
+      if(e.cancelable)e.preventDefault();
+    }
+  },{passive:false});
+  document.addEventListener('touchend',function(){
+    if(!_swState)return;
+    var st=_swState;_swState=null;
+    if(st.decided!=='horiz'){if(st.row.classList.contains('swiping'))st.row.classList.remove('swiping');return;}
+    var threshold=Math.min(st.rect.width*0.4,120);
+    st.row.classList.remove('swiping');
+    st.row.classList.add('swipe-release');
+    if(st.dx<-threshold){
+      st.row.classList.add('swipe-archiving');
+      st.row.style.transform='translateX(-100%)';
+      var nid=st.row.getAttribute('data-nid');
+      var grp=st.row.getAttribute('data-group')==='1';
+      st.row.style.pointerEvents='none';
+      setTimeout(function(){try{archiveNotif(nid,grp);}catch(err){console.warn('swipe archive failed:',err);}},220);
+    }else{
+      st.row.style.transform='translateX(0)';
+      setTimeout(function(){if(st.row&&st.row.classList)st.row.classList.remove('swipe-release');},260);
+    }
+  },{passive:true});
+  document.addEventListener('touchcancel',function(){
+    if(_swState&&_swState.row){_swState.row.classList.remove('swiping');_swState.row.style.transform='';}
+    _swState=null;
+  });
+})();
+
 // ═══ ICON & CATEGORY HELPERS ═══
 function _notifCategory(type){
   if(!type)return 'system';
@@ -5928,11 +6017,17 @@ function _renderNotifItem(n,isGroup,groupCount){
   var iconName=_notifIcon(cat);
   var timeStr=formatNotifTime(n.created);
   var countChip=isGroup?'<span class="notif-count-chip">+'+(groupCount-1)+'</span>':'';
-  return '<div class="notif-item'+(n.isRead?'':' unread')+(isGroup?' grouped':'')+'" onclick="handleNotifClick(\''+escJS(n.id)+'\')">'+
+  // Pass archiveWholeGroup=true for grouped items so clicking X on the primary
+  // dismisses the entire cluster. Previously only the visible primary was
+  // archived, leaving hidden group members to take over as the next primary on
+  // re-render — user saw the notification "come back" instantly.
+  // data-nid / data-group drive the global swipe-to-archive handler.
+  return '<div class="notif-item'+(n.isRead?'':' unread')+(isGroup?' grouped':'')+'" data-nid="'+escJS(n.id)+'" data-group="'+(isGroup?'1':'0')+'" onclick="handleNotifClick(\''+escJS(n.id)+'\')">'+
+    '<div class="notif-swipe-bg"><span class="mi">archive</span>Archive</div>'+
     '<div class="notif-icon '+cat+'"><span class="mi">'+iconName+'</span></div>'+
     '<div class="notif-body"><div class="notif-msg">'+esc(n.message)+countChip+'</div>'+
     '<div class="notif-time"><span class="mi mi-xs" style="font-size:10px;">schedule</span>'+esc(timeStr)+'</div></div>'+
-    '<button class="notif-dismiss" onclick="event.stopPropagation();archiveNotif(\''+escJS(n.id)+'\')" title="Archive"><span class="mi">close</span></button>'+
+    '<button class="notif-dismiss" onclick="event.stopPropagation();archiveNotif(\''+escJS(n.id)+(isGroup?'\',true':'\'')+')" title="Archive"><span class="mi">close</span></button>'+
   '</div>';
 }
 
@@ -6042,7 +6137,8 @@ function _renderNotifpgRow(n,group){
     membersHtml+='</div>';
   }
   var archBadge=n.isArchived?'<span style="font-size:9px;background:var(--g200);color:var(--g600);padding:1px 5px;border-radius:4px;margin-left:4px;">Archived</span>':'';
-  return '<div class="notifpg-row'+(n.isRead?'':' unread')+(group?' grouped':'')+'" onclick="handleNotifClick(\''+escJS(n.id)+'\')">'+
+  return '<div class="notifpg-row'+(n.isRead?'':' unread')+(group?' grouped':'')+'" data-nid="'+escJS(n.id)+'" data-group="'+(group?'1':'0')+'" onclick="handleNotifClick(\''+escJS(n.id)+'\')">'+
+    '<div class="notif-swipe-bg"><span class="mi">archive</span>Archive</div>'+
     '<div class="notif-icon '+cat+'" style="width:32px;height:32px;"><span class="mi" style="font-size:16px;">'+iconName+'</span></div>'+
     '<div class="notif-body"><div class="notif-msg">'+esc(n.message)+countChip+archBadge+'</div>'+
     '<div class="notif-time"><span class="mi mi-xs" style="font-size:10px;">schedule</span>'+esc(timeStr)+' &middot; '+esc(_notifCatLabel(cat))+'</div>'+
@@ -6136,8 +6232,10 @@ async function archiveNotif(id,archiveWholeGroup){
     var fm=await discoverFields('ScheduleNotifications');
     var archKey=fm.IsArchived||'IsArchived';
     var readKey=fm.IsRead||'IsRead';
+    console.log('[archive] field map:',{archKey:archKey,readKey:readKey,fullMap:fm});
     for(var j=0;j<toArchive.length;j++){
       var payload={};payload[archKey]='Yes';payload[readKey]='Yes';
+      console.log('[archive] payload for '+toArchive[j].id+':',payload);
       try{
         if(toArchive[j]._spId){await spUpdate('ScheduleNotifications',toArchive[j]._spId,payload);persistOK++;}
         else{
@@ -6145,14 +6243,18 @@ async function archiveNotif(id,archiveWholeGroup){
           if(sp.length){toArchive[j]._spId=sp[0].Id;await spUpdate('ScheduleNotifications',sp[0].Id,payload);persistOK++;}
           else{persistFail++;console.warn('Archive: SP row not found for',toArchive[j].id);}
         }
-      }catch(innerErr){persistFail++;console.warn('Archive: SP write failed for',toArchive[j].id,innerErr);}
+      }catch(innerErr){
+        persistFail++;
+        console.error('Archive: SP write failed for',toArchive[j].id,'| payload:',payload,'| error:',innerErr);
+        window._lastArchiveError={id:toArchive[j].id,payload:payload,error:innerErr.message||String(innerErr)};
+      }
     }
   }catch(e){
     persistFail=toArchive.length;
-    console.warn('Archive persist failed:',e);
+    console.error('Archive persist outer failure:',e);
   }
   if(persistFail>0){
-    toast('Warning: '+persistFail+' archive write(s) failed. Check SP list columns IsArchived/IsRead exist.');
+    toast('Warning: '+persistFail+' archive write(s) failed. Run spDiag(\'ScheduleNotifications\') in console for field details.');
   }
 }
 

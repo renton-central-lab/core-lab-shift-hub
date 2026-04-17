@@ -159,11 +159,27 @@ select:focus,input[type="text"]:focus,input[type="date"]:focus,input[type="time"
 .bell-item.grouped{background:#fffbea;border-left:3px solid var(--amber);}
 .bell-item.grouped.unread{background:#fef3c7;}
 .bell-count-chip{display:inline-flex;align-items:center;justify-content:center;background:var(--amber);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;}
-.bell-item{position:relative;}
+.bell-item{position:relative;overflow:hidden;touch-action:pan-y;}
 .bell-dismiss{opacity:0;position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:var(--g100);color:var(--g500);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .15s,background .15s;border:none;font-size:14px;z-index:2;}
 .bell-item:hover .bell-dismiss{opacity:1;}
 .bell-dismiss:hover{background:var(--red);color:#fff;}
 .bell-dismiss .mi{font-size:12px;}
+/* Swipe-to-archive reveal: a red "Archive" affordance that sits UNDER the
+   notification row. The row translates left as the user swipes, revealing
+   this background. When swipe passes threshold, archiveNotif fires. */
+.bell-swipe-bg,.nfpg-swipe-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:18px;background:linear-gradient(90deg,transparent 0%,#fee2e2 40%,var(--red) 100%);color:#fff;font-weight:700;font-size:12px;gap:6px;pointer-events:none;opacity:0;transition:opacity .15s;}
+.bell-swipe-bg .mi,.nfpg-swipe-bg .mi{font-size:18px;}
+.bell-item.swiping{transition:none;}
+.bell-item.swiping .bell-swipe-bg,.nfpg-row.swiping .nfpg-swipe-bg{opacity:1;}
+.bell-item.swipe-release,.nfpg-row.swipe-release{transition:transform .25s var(--me-decelerate);}
+.bell-item.swipe-archiving,.nfpg-row.swipe-archiving{transition:transform .25s var(--me-decelerate),opacity .25s var(--me-decelerate);opacity:0;}
+/* Mobile: bell X is always visible and larger. Swipe gesture adds a second
+   interaction channel — tapping the (now larger) X still works as a fallback. */
+@media(max-width:600px){
+  .bell-dismiss{opacity:1;width:32px;height:32px;top:10px;right:10px;background:var(--g100);}
+  .bell-dismiss .mi{font-size:18px;}
+  .bell-item{padding-right:48px;}
+}
 .bell-drop-ftr{border-top:1px solid var(--g100);padding:8px;background:var(--g50);}
 .bell-drop-ftr button{width:100%;padding:8px;font-size:11px;font-weight:600;color:var(--teal);background:transparent;border:1px solid var(--teal);border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:inherit;transition:background .15s,color .15s;}
 .bell-drop-ftr button:hover{background:var(--teal);color:#fff;}
@@ -182,7 +198,7 @@ select:focus,input[type="text"]:focus,input[type="date"]:focus,input[type="time"
 .nfpg-search:focus{outline:none;border-color:var(--teal);}
 .nfpg-list{background:var(--white);border:1px solid var(--g200);border-radius:var(--rl);box-shadow:var(--shadow-1);overflow:hidden;}
 .nfpg-section-hdr{padding:8px 14px;background:var(--g50);font-size:10px;font-weight:800;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--g200);}
-.nfpg-row{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--g100);cursor:pointer;transition:background .15s;position:relative;}
+.nfpg-row{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--g100);cursor:pointer;transition:background .15s;position:relative;overflow:hidden;touch-action:pan-y;}
 .nfpg-row:hover{background:#fefce8;}
 .nfpg-row:hover .bell-dismiss{opacity:1;}
 .nfpg-row.unread{background:#fefce8;border-left:3px solid var(--amber);}
@@ -194,6 +210,12 @@ select:focus,input[type="text"]:focus,input[type="date"]:focus,input[type="time"
 .nfpg-row .nfpg-icon.followup{background:rgba(212,136,6,.1);color:var(--amber);}
 .nfpg-row .nfpg-icon.info{background:rgba(0,121,107,.1);color:var(--teal);}
 .nfpg-row .nfpg-icon.system{background:var(--g100);color:var(--g600);}
+/* Mobile: keep dismiss button visible and easier to tap on nfpg-row too */
+@media(max-width:600px){
+  .nfpg-row .bell-dismiss{opacity:1;width:32px;height:32px;top:10px;right:10px;background:var(--g100);}
+  .nfpg-row .bell-dismiss .mi{font-size:18px;}
+  .nfpg-row{padding-right:48px;}
+}
 .nfpg-body{flex:1;min-width:0;}
 .nfpg-title{font-size:12px;color:var(--g900);}
 .nfpg-desc{font-size:11px;color:var(--g500);line-height:1.4;margin-top:2px;}
@@ -3265,6 +3287,108 @@ document.addEventListener('keydown',function(e){
 });
 document.addEventListener('click',function(e){if(!e.target.closest('#bellBtn')&&!e.target.closest('#bellDrop'))$('bellDrop').classList.remove('show');});
 
+// ══════════════════════════════════════════════════════════════════════
+// SWIPE TO ARCHIVE (mobile)
+//
+// Native mobile pattern: swipe left on a notification to archive. Works on
+// both the bell dropdown (.bell-item) and the full notifications page
+// (.nfpg-row). Threshold is 40% of row width OR 120px (whichever is smaller),
+// matching iOS Mail / Gmail behavior.
+//
+// The click handler on the row is suppressed when a swipe is in progress so
+// the notif detail sheet doesn't open mid-swipe.
+// ══════════════════════════════════════════════════════════════════════
+(function(){
+  var _swState=null;
+  function _swRowFromTouch(e){
+    var t=e.target;while(t&&t!==document.body){
+      if(t.classList&&(t.classList.contains('bell-item')||t.classList.contains('nfpg-row')))return t;
+      t=t.parentNode;
+    }
+    return null;
+  }
+  document.addEventListener('touchstart',function(e){
+    if(e.touches.length!==1)return;
+    var row=_swRowFromTouch(e);
+    if(!row)return;
+    // Don't start swipe if the user is tapping the X button (let click handler run)
+    if(e.target.closest('.bell-dismiss'))return;
+    _swState={
+      row:row,
+      startX:e.touches[0].clientX,
+      startY:e.touches[0].clientY,
+      dx:0,dy:0,
+      decided:null,// 'horiz' | 'vert' | null (still deciding)
+      rect:row.getBoundingClientRect()
+    };
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!_swState||e.touches.length!==1)return;
+    var t=e.touches[0];
+    _swState.dx=t.clientX-_swState.startX;
+    _swState.dy=t.clientY-_swState.startY;
+    // Axis decision: vertical scroll wins once 10px accumulated; horizontal
+    // swipe wins when user has moved 10px sideways with less than half as much
+    // vertical movement.
+    if(_swState.decided===null){
+      if(Math.abs(_swState.dy)>10&&Math.abs(_swState.dy)>Math.abs(_swState.dx)){
+        _swState.decided='vert';return;// let page scroll
+      }
+      if(Math.abs(_swState.dx)>10&&Math.abs(_swState.dx)>Math.abs(_swState.dy)*1.5){
+        _swState.decided='horiz';
+        _swState.row.classList.add('swiping');
+      }else{
+        return;
+      }
+    }
+    if(_swState.decided==='horiz'){
+      // Only left swipes archive; cap rightward drag at 0
+      var dx=Math.min(0,_swState.dx);
+      _swState.row.style.transform='translateX('+dx+'px)';
+      // Prevent document scroll once committed to horizontal swipe
+      if(e.cancelable)e.preventDefault();
+    }
+  },{passive:false});
+  document.addEventListener('touchend',function(e){
+    if(!_swState)return;
+    var st=_swState;_swState=null;
+    if(st.decided!=='horiz'){
+      if(st.row.classList.contains('swiping'))st.row.classList.remove('swiping');
+      return;
+    }
+    var threshold=Math.min(st.rect.width*0.4,120);
+    st.row.classList.remove('swiping');
+    st.row.classList.add('swipe-release');
+    if(st.dx<-threshold){
+      // Commit archive: animate off-screen then call archiveNotif
+      st.row.classList.add('swipe-archiving');
+      st.row.style.transform='translateX(-100%)';
+      var nid=st.row.getAttribute('data-nid');
+      var grp=st.row.getAttribute('data-group')==='1';
+      // Suppress the click event that fires on touchend by temporarily blocking
+      // pointer events on the row
+      st.row.style.pointerEvents='none';
+      setTimeout(function(){
+        try{archiveNotif(nid,grp);}catch(err){console.warn('swipe archive failed:',err);}
+      },220);
+    }else{
+      // Spring back
+      st.row.style.transform='translateX(0)';
+      setTimeout(function(){
+        if(st.row&&st.row.classList)st.row.classList.remove('swipe-release');
+      },260);
+    }
+  },{passive:true});
+  // Cancel swipe if touch is interrupted
+  document.addEventListener('touchcancel',function(){
+    if(_swState&&_swState.row){
+      _swState.row.classList.remove('swiping');
+      _swState.row.style.transform='';
+    }
+    _swState=null;
+  });
+})();
+
 // Render bell dropdown — compact preview, top 8 unread-first, with grouping + dismiss
 function rBL(){
   var l=$('bellList');
@@ -3300,12 +3424,19 @@ function _shRenderBellItem(n,isGroup,groupCount){
   var iconName=_shNotifIcon(cat);
   var ts=_shFormatNotifTime(n.timestamp);
   var countChip=isGroup?'<span class="bell-count-chip">+'+(groupCount-1)+'</span>':'';
-  return '<div class="bell-item'+(n.read?'':' unread')+(isGroup?' grouped':'')+'" onclick="openND(\''+escJS(n.id)+'\')">'
+  // Pass archiveWholeGroup=true when this item represents a cluster. Previously
+  // only the primary item was archived, leaving the rest of the group visible
+  // on re-render — the user saw "I archived it but it's still there" because
+  // the next item in the cluster took over as primary.
+  // Data attrs drive the swipe handler: data-nid + data-group let the touchend
+  // logic call archiveNotif with the correct whole-group flag.
+  return '<div class="bell-item'+(n.read?'':' unread')+(isGroup?' grouped':'')+'" data-nid="'+escJS(n.id)+'" data-group="'+(isGroup?'1':'0')+'" onclick="openND(\''+escJS(n.id)+'\')">'
+    +'<div class="bell-swipe-bg"><span class="mi">archive</span>Archive</div>'
     +'<div class="bi-icon '+cat+'"><span class="mi mi-sm">'+iconName+'</span></div>'
     +'<div class="bi-body"><div class="bi-title">'+esc(n.title)+countChip+'</div>'
     +'<div class="bi-desc">'+esc(n.desc||'')+'</div>'
     +'<div class="bi-time"><span class="mi mi-xs" style="font-size:10px;">schedule</span>'+esc(ts)+'</div></div>'
-    +'<button class="bell-dismiss" onclick="event.stopPropagation();archiveNotif(\''+escJS(n.id)+'\')" title="Archive"><span class="mi">close</span></button>'
+    +'<button class="bell-dismiss" onclick="event.stopPropagation();archiveNotif(\''+escJS(n.id)+(isGroup?'\',true':'\'')+')" title="Archive"><span class="mi">close</span></button>'
     +'</div>';
 }
 
@@ -3411,7 +3542,8 @@ function _shRenderNfpgRow(n,group){
     membersHtml+='</div>';
   }
   var archBadge=n.isArchived?'<span style="font-size:9px;background:var(--g200);color:var(--g600);padding:1px 5px;border-radius:4px;margin-left:4px;">Archived</span>':'';
-  return '<div class="nfpg-row'+(n.read?'':' unread')+(group?' grouped':'')+'" onclick="openND(\''+escJS(n.id)+'\')">'
+  return '<div class="nfpg-row'+(n.read?'':' unread')+(group?' grouped':'')+'" data-nid="'+escJS(n.id)+'" data-group="'+(group?'1':'0')+'" onclick="openND(\''+escJS(n.id)+'\')">'
+    +'<div class="nfpg-swipe-bg"><span class="mi">archive</span>Archive</div>'
     +'<div class="nfpg-icon '+cat+'"><span class="mi" style="font-size:16px;">'+iconName+'</span></div>'
     +'<div class="nfpg-body">'
       +'<div class="nfpg-title">'+esc(n.title)+countChip+archBadge+'</div>'
