@@ -745,6 +745,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
     <h2><span class="mi">compare_arrows</span> Swap Requests</h2>
     <div class="tb-controls">
       <button class="tb-btn primary" onclick="openSwapModal()"><span class="mi mi-xs">add</span> New Request</button>
+      <input type="text" id="swapSearch" oninput="renderSwaps();saveUIState()" placeholder="Search name, reason, date..." style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-family:var(--font);width:180px;">
       <select id="swapFilter" onchange="renderSwaps();saveUIState()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
         <option value="">All</option>
         <option value="Pending Partner">Pending Partner</option>
@@ -764,6 +765,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
     <h2><span class="mi">event</span> PTO Requests</h2>
     <div class="tb-controls">
       <button class="tb-btn primary" onclick="openPTOModal()"><span class="mi mi-xs">add</span> New Request</button>
+      <input type="text" id="ptoSearch" oninput="renderPTO();saveUIState()" placeholder="Search name, reason, date..." style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-family:var(--font);width:180px;">
       <select id="ptoFilter" onchange="renderPTO();saveUIState()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
         <option value="">All</option>
         <option value="Pending">Pending</option>
@@ -788,7 +790,7 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
     <h2><span class="mi">emoji_events</span> Holiday Staffing</h2>
     <div class="tb-controls">
       <select id="holYear" onchange="renderHolidays()" style="padding:5px 10px;border:1px solid var(--g200);border-radius:999px;font-size:11px;font-weight:600;font-family:var(--font);">
-        <option>2026</option><option>2027</option><option>2028</option>
+        <!-- Year options populated dynamically by populateHolidayYearSelector() on load -->
       </select>
       <button class="tb-btn" onclick="autoAssignHolidays()" id="holAutoBtn" style="display:none"><span class="mi mi-xs">star</span> Auto-Assign</button>
       <button class="tb-btn" onclick="removeAllHolidays()" id="holClearBtn" style="display:none;color:var(--red);"><span class="mi mi-xs">delete</span> Remove All</button>
@@ -1010,6 +1012,16 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
       </optgroup>
     </select></div>
     <div class="form-row"><label>Notes</label><input type="text" id="aNotes" placeholder="Optional notes"></div>
+    <!-- DOUBLE-SHIFT WARNING — shown inline when the selected staff+date+shift combo
+         would create a second shift on the same day. Replaces a browser confirm() that
+         fired on save. User must check the acknowledgment box to save. -->
+    <div id="aDoubleShiftWarn" style="display:none;background:#fef3c7;border:1px solid #fbbf24;border-radius:var(--r);padding:10px 12px;margin:4px 0;">
+      <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:4px;"><span class="mi mi-xs">warning</span> Double Shift Detected</div>
+      <div id="aDoubleShiftMsg" style="font-size:11px;color:#78350f;line-height:1.5;margin-bottom:8px;"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#78350f;cursor:pointer;">
+        <input type="checkbox" id="aDoubleShiftAck" style="margin:0;"> I confirm this creates overtime hours and is intentional.
+      </label>
+    </div>
     <div id="otPanel" style="display:none;background:#fef3c7;border:1px solid #fbbf24;border-radius:var(--r);padding:10px 12px;margin:4px 0;">
       <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:4px;"><span class="mi mi-xs">warning</span> OT Pre-Approval Required (SEIU Article 10)</div>
       <div class="form-row" style="margin-bottom:8px;"><label style="font-size:11px;">Approver *</label><select id="aOTApprover"></select></div>
@@ -1022,6 +1034,13 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
         <option value="Shift extension">Shift extension</option>
       </select></div>
       <div class="form-row" style="margin-bottom:0;"><label style="font-size:11px;">Expected Hours *</label><input type="number" id="aOTHours" min="0.5" max="16" step="0.5" value="8" style="width:100px;"></div>
+      <!-- OT CONTEXT — rolling 90-day + 1-year totals for this person, with fairness
+           cue vs lab average. Helps the lead make an informed approval decision per
+           SEIU Article 10.2(a) (OT offered to lowest recent OT first). -->
+      <div id="aOTContext" style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(146,64,14,.3);display:none;">
+        <div style="font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;display:flex;align-items:center;gap:4px;"><span class="mi mi-xs">history</span> Cumulative OT for this person</div>
+        <div id="aOTContextBody" style="font-size:11px;color:#78350f;line-height:1.5;"></div>
+      </div>
     </div>
     <div class="btn-row">
       <button class="btn" onclick="closeModal('assignModal')">Cancel</button>
@@ -1148,6 +1167,37 @@ body{font-family:var(--font);background:var(--surface);color:var(--g900);min-hei
     <div class="btn-row">
       <button class="btn" onclick="closeModal('ptoModal')">Cancel</button>
       <button class="btn primary" onclick="submitPTORequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- REASON INPUT MODAL — replaces prompt() dialogs for decline/deny reasons. Same modal
+     is re-used by swap decline, swap deny, and PTO deny. _reasonCallback holds a fn to
+     call with the text value on OK; null on cancel. -->
+<div class="modal-bg" id="reasonModal" onclick="if(event.target===this)closeReasonModal()">
+  <div class="modal" style="max-width:420px;">
+    <h3 id="reasonTitle"><span class="mi">edit_note</span> Reason</h3>
+    <div id="reasonSub" style="font-size:11px;color:var(--g500);margin-bottom:10px;line-height:1.5;"></div>
+    <div class="form-row"><label id="reasonLabel">Reason</label><textarea id="reasonInput" rows="3" style="width:100%;padding:8px 10px;border:1px solid var(--g200);border-radius:var(--r);font-family:var(--font);font-size:12px;resize:vertical;min-height:70px;box-sizing:border-box;" placeholder="Type your reason..."></textarea></div>
+    <div id="reasonError" style="font-size:10px;color:var(--red);margin-top:4px;display:none;"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeReasonModal()">Cancel</button>
+      <button class="btn primary" id="reasonSubmitBtn" onclick="submitReasonModal()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- SLOTS INPUT MODAL — replaces prompt() for holiday slots-needed entry with native
+     number validation and clearer labeling. -->
+<div class="modal-bg" id="slotsModal" onclick="if(event.target===this)closeModal('slotsModal')">
+  <div class="modal" style="max-width:420px;">
+    <h3><span class="mi">tune</span> Slots Needed</h3>
+    <div id="slotsSub" style="font-size:11px;color:var(--g500);margin-bottom:10px;line-height:1.5;"></div>
+    <div class="form-row"><label>Number of slots (0-20)</label><input type="number" id="slotsInput" min="0" max="20" step="1" style="width:100%;padding:8px 10px;border:1px solid var(--g200);border-radius:var(--r);font-family:var(--font);font-size:13px;box-sizing:border-box;"></div>
+    <div id="slotsError" style="font-size:10px;color:var(--red);margin-top:4px;display:none;"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeModal('slotsModal')">Cancel</button>
+      <button class="btn primary" onclick="submitSlotsModal()">Save</button>
     </div>
   </div>
 </div>
@@ -1455,6 +1505,7 @@ async function initAuth(){
     document.getElementById('app-main').style.display='';
     updateHeaderDate();
     initViews();
+    populateHolidayYearSelector();
     // Show UI immediately with empty grid, then load data
     restoreUIState();
     hideLoad();
@@ -1986,6 +2037,111 @@ function hideLoad(){document.getElementById('loading').classList.remove('show');
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 
+// ═══ LAST-VISIT TRACKING ═══
+// Records when the user last viewed Swaps and PTO so we can show a "N new since last
+// visit" pill. Stored per user in localStorage (per-device, since SharePoint doesn't
+// fit for this kind of ephemeral UI state). The pill clears as soon as the user
+// explicitly marks-as-seen or after 2 seconds on the tab.
+function _lastVisitKey(tab){
+  var ini=(me&&me.initials)||'anon';
+  return 'rcl_sched_lastvisit_'+ini+'_'+tab;
+}
+function getLastVisit(tab){
+  try{var v=localStorage.getItem(_lastVisitKey(tab));return v?new Date(v):null;}catch(e){return null;}
+}
+function setLastVisit(tab,date){
+  try{localStorage.setItem(_lastVisitKey(tab),(date||new Date()).toISOString());}catch(e){}
+}
+// Count items created after the last-visit timestamp, excluding items the user posted
+// themselves (users aren't surprised by their own submissions).
+function countNewSince(items,lastVisit,excludeIni){
+  if(!lastVisit||!items||!items.length)return 0;
+  var cutoff=lastVisit.getTime();
+  return items.filter(function(x){
+    if(!x.createdAt)return false;
+    if(excludeIni&&x.requestBy===excludeIni)return false;
+    var t=new Date(x.createdAt).getTime();
+    return!isNaN(t)&&t>cutoff;
+  }).length;
+}
+// Builds an inline pill "3 new since [time]" shown above list views. Clicking it
+// marks-as-seen (stamps lastVisit=now) and re-renders. Returns empty string if no
+// new items.
+function newSincePill(count,tab){
+  if(!count)return '';
+  var label=count===1?'1 new since your last visit':count+' new since your last visit';
+  return '<div style="margin-bottom:10px;padding:8px 12px;background:var(--teal-bg);border:1px solid var(--teal);border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--teal);cursor:pointer;" onclick="markTabSeen(\''+tab+'\')" title="Click to dismiss"><span class="mi mi-xs">fiber_new</span>'+label+'<span class="mi mi-xs" style="opacity:.6;">close</span></div>';
+}
+function markTabSeen(tab){
+  setLastVisit(tab,new Date());
+  if(tab==='swap')renderSwaps();
+  else if(tab==='pto')renderPTO();
+}
+
+// ═══ REASON INPUT MODAL (replaces prompt() dialogs) ═══
+// Opens the shared reason modal with a title and subtitle, then calls callback(text)
+// on submit or callback(null) on cancel. Set options.required=true to enforce non-empty.
+var _reasonCallback=null;
+var _reasonRequired=false;
+function openReasonModal(opts){
+  opts=opts||{};
+  document.getElementById('reasonTitle').innerHTML='<span class="mi">'+(opts.icon||'edit_note')+'</span> '+(opts.title||'Reason');
+  document.getElementById('reasonSub').textContent=opts.subtitle||'';
+  document.getElementById('reasonLabel').textContent=opts.label||'Reason'+(opts.required?' *':' (optional)');
+  var input=document.getElementById('reasonInput');
+  input.value=opts.defaultValue||'';
+  input.placeholder=opts.placeholder||'Type your reason...';
+  document.getElementById('reasonSubmitBtn').textContent=opts.submitLabel||'Submit';
+  document.getElementById('reasonError').style.display='none';
+  _reasonRequired=!!opts.required;
+  _reasonCallback=opts.onSubmit||null;
+  openModal('reasonModal');
+  setTimeout(function(){input.focus();},100);
+}
+function closeReasonModal(){
+  closeModal('reasonModal');
+  // Invoke callback with null to signal cancel (so awaiting code can unblock)
+  if(_reasonCallback){var cb=_reasonCallback;_reasonCallback=null;cb(null);}
+}
+function submitReasonModal(){
+  var text=(document.getElementById('reasonInput').value||'').trim();
+  var errEl=document.getElementById('reasonError');
+  if(_reasonRequired&&!text){
+    errEl.textContent='A reason is required to proceed.';
+    errEl.style.display='';
+    return;
+  }
+  errEl.style.display='none';
+  closeModal('reasonModal');
+  if(_reasonCallback){var cb=_reasonCallback;_reasonCallback=null;cb(text);}
+}
+
+// ═══ SLOTS INPUT MODAL (replaces prompt() for holiday slot count) ═══
+var _slotsCallback=null;
+function openSlotsModal(opts){
+  opts=opts||{};
+  document.getElementById('slotsSub').textContent=opts.subtitle||'';
+  var input=document.getElementById('slotsInput');
+  input.value=opts.current!=null?String(opts.current):'0';
+  document.getElementById('slotsError').style.display='none';
+  _slotsCallback=opts.onSubmit||null;
+  openModal('slotsModal');
+  setTimeout(function(){input.focus();input.select();},100);
+}
+function submitSlotsModal(){
+  var raw=document.getElementById('slotsInput').value;
+  var n=parseInt(raw,10);
+  var errEl=document.getElementById('slotsError');
+  if(isNaN(n)||n<0||n>20){
+    errEl.textContent='Enter a whole number between 0 and 20.';
+    errEl.style.display='';
+    return;
+  }
+  errEl.style.display='none';
+  closeModal('slotsModal');
+  if(_slotsCallback){var cb=_slotsCallback;_slotsCallback=null;cb(n);}
+}
+
 function getSunday(d){var day=d.getDay();var s=new Date(d);s.setDate(s.getDate()-day);return s;}
 
 function initViews(){
@@ -2004,7 +2160,9 @@ function saveUIState(){
       activeShiftTab:_activeShiftTab,
       showLeads:_showLeads,
       swapFilter:(document.getElementById('swapFilter')||{}).value||'',
+      swapSearch:(document.getElementById('swapSearch')||{}).value||'',
       ptoFilter:(document.getElementById('ptoFilter')||{}).value||'',
+      ptoSearch:(document.getElementById('ptoSearch')||{}).value||'',
       ptoTypeFilter:(document.getElementById('ptoTypeFilter')||{}).value||'',
       monthShiftFilter:(document.getElementById('monthShiftFilter')||{}).value||'',
       auditTypeFilter:(document.getElementById('auditTypeFilter')||{}).value||'',
@@ -2021,7 +2179,9 @@ function restoreUIState(){
     var state=JSON.parse(raw);
     // Restore filters first
     if(state.swapFilter&&document.getElementById('swapFilter'))document.getElementById('swapFilter').value=state.swapFilter;
+    if(state.swapSearch&&document.getElementById('swapSearch'))document.getElementById('swapSearch').value=state.swapSearch;
     if(state.ptoFilter&&document.getElementById('ptoFilter'))document.getElementById('ptoFilter').value=state.ptoFilter;
+    if(state.ptoSearch&&document.getElementById('ptoSearch'))document.getElementById('ptoSearch').value=state.ptoSearch;
     if(state.ptoTypeFilter&&document.getElementById('ptoTypeFilter'))document.getElementById('ptoTypeFilter').value=state.ptoTypeFilter;
     if(state.monthShiftFilter&&document.getElementById('monthShiftFilter'))document.getElementById('monthShiftFilter').value=state.monthShiftFilter;
     if(state.auditTypeFilter&&document.getElementById('auditTypeFilter'))document.getElementById('auditTypeFilter').value=state.auditTypeFilter;
@@ -2048,9 +2208,19 @@ function switchTab(tab){
   if(tab==='week')renderWeek();
   else if(tab==='day')renderDay();
   else if(tab==='month')renderMonth();
-  else if(tab==='swap')renderSwaps();
-  else if(tab==='pto')renderPTO();
-  else if(tab==='holiday')renderHolidays();
+  else if(tab==='swap'){
+    renderSwaps();
+    // Auto-mark swaps as seen after 2s on the tab — long enough to see the pill,
+    // short enough to not nag on every revisit. User click on the pill also marks.
+    clearTimeout(window._swapSeenTimer);
+    window._swapSeenTimer=setTimeout(function(){setLastVisit('swap',new Date());},2000);
+  }
+  else if(tab==='pto'){
+    renderPTO();
+    clearTimeout(window._ptoSeenTimer);
+    window._ptoSeenTimer=setTimeout(function(){setLastVisit('pto',new Date());},2000);
+  }
+  else if(tab==='holiday'){populateHolidayYearSelector();renderHolidays();}
   else if(tab==='notifs')renderNotifPage();
   else if(tab==='stats')renderStats();else if(tab==='audit')renderAuditLog();else if(tab==='admin')renderAdmin();
   else if(tab==='roster')renderRoster();
@@ -2666,13 +2836,29 @@ function jumpToDay(ds){
 // ═══════════════════════════════════════════
 function renderSwaps(){
   var filter=document.getElementById('swapFilter').value;
+  var searchEl=document.getElementById('swapSearch');
+  var query=((searchEl&&searchEl.value)||'').trim().toLowerCase();
   var filtered=swapRequests.slice();
   if(!isLead()&&me){filtered=filtered.filter(function(s){return s.requestBy===me.initials||s.swapWith===me.initials;});}
   if(filter)filtered=filtered.filter(function(s){return s.status===filter;});
+  if(query){
+    filtered=filtered.filter(function(s){
+      var hay=[s.requestByName||'',s.swapWithName||'',s.reason||'',s.notes||'',s.requestDate||'',s.targetDate||'',s.requestShift||''].join(' ').toLowerCase();
+      return hay.indexOf(query)>=0;
+    });
+  }
   filtered.sort(function(a,b){return(b.requestDate||'').localeCompare(a.requestDate||'');});
 
+  // "N new since last visit" pill — counts items created after the user's last
+  // visit to this tab, excluding their own submissions. Cleared by click or by
+  // marking-as-seen 2 seconds after entering the tab (see switchTab hook).
+  var lv=getLastVisit('swap');
+  var newCount=countNewSince(swapRequests,lv,me?me.initials:'');
+  var pill=newSincePill(newCount,'swap');
+
   if(!filtered.length){
-    document.getElementById('swapList').innerHTML='<div class="empty"><span class="mi">compare_arrows</span><h3>No Swap Requests</h3><p>'+(filter?'No '+filter.toLowerCase()+' requests':'No swap requests yet')+'</p></div>';
+    var emptyMsg=query?'No requests match "'+query+'"':(filter?'No '+filter.toLowerCase()+' requests':'No swap requests yet');
+    document.getElementById('swapList').innerHTML=pill+'<div class="empty"><span class="mi">'+(query?'search_off':'compare_arrows')+'</span><h3>No Swap Requests</h3><p>'+emptyMsg+'</p></div>';
     return;
   }
 
@@ -2714,7 +2900,7 @@ function renderSwaps(){
       html+='</div></div>';
     }
   }
-  document.getElementById('swapList').innerHTML=html;
+  document.getElementById('swapList').innerHTML=pill+html;
 }
 
 function renderSwapCard(s){
@@ -2784,7 +2970,8 @@ async function submitSwapRequest(){
     swapWith:swapWith,swapWithName:swapWithStaff?swapWithStaff.name:'',
     targetDate:document.getElementById('swTargetDate').value,
     reason:document.getElementById('swReason').value,
-    status:'Pending Partner',approvedBy:'',approvedDate:'',notes:''
+    status:'Pending Partner',approvedBy:'',approvedDate:'',notes:'',
+    createdAt:new Date().toISOString()
   };
   swapRequests.unshift(s);
   closeModal('swapModal');
@@ -2798,7 +2985,7 @@ async function submitSwapRequest(){
 
 async function partnerAcceptSwap(id){
   var s=swapRequests.find(function(x){return x.id===id;});
-  if(!s||!confirm('Accept this swap request?'))return;
+  if(!s)return;
   s.status='Pending Lead';s.notes=(s.notes?s.notes+'; ':'')+'Partner accepted by '+me.fullName;
   logAudit('edit','swap','Partner accepted swap: '+s.requestByName+' <> '+s.swapWithName,s.id);
   renderSwaps();toast('Swap accepted, awaiting lead approval');
@@ -2812,19 +2999,29 @@ async function partnerAcceptSwap(id){
 async function partnerDeclineSwap(id){
   var s=swapRequests.find(function(x){return x.id===id;});
   if(!s)return;
-  var reason=prompt('Reason for declining (optional):');
-  s.status='Declined';s.approvedBy=me.fullName;s.approvedDate=fmtDate(new Date());
-  if(reason)s.notes=reason;
-  logAudit('deny','swap','Partner declined swap: '+s.requestByName+' <> '+s.swapWithName+(reason?' ('+reason+')':''),s.id);
-  renderSwaps();toast('Swap declined');
-  try{var sp=await spGet('SwapRequests',"Title eq '"+s.id+"'");if(sp.length)await spUpdate('SwapRequests',sp[0].Id,swapToSP(s));}catch(e){}
-  // Notify requester
-  await sendNotification(s.requestBy,'swap-status',s.swapWithName+' declined your swap request.'+(reason?' Reason: '+reason:''),s.id,'swap');
+  openReasonModal({
+    title:'Decline Swap Request',
+    icon:'block',
+    subtitle:'Declining '+s.requestByName+' <> '+s.swapWithName+' for '+s.requestDate,
+    label:'Reason (optional)',
+    placeholder:'e.g., Already have plans that day',
+    submitLabel:'Decline',
+    required:false,
+    onSubmit:async function(reason){
+      if(reason===null)return;// cancelled
+      s.status='Declined';s.approvedBy=me.fullName;s.approvedDate=fmtDate(new Date());
+      if(reason)s.notes=reason;
+      logAudit('deny','swap','Partner declined swap: '+s.requestByName+' <> '+s.swapWithName+(reason?' ('+reason+')':''),s.id);
+      renderSwaps();toast('Swap declined');
+      try{var sp=await spGet('SwapRequests',"Title eq '"+s.id+"'");if(sp.length)await spUpdate('SwapRequests',sp[0].Id,swapToSP(s));}catch(e){}
+      await sendNotification(s.requestBy,'swap-status',s.swapWithName+' declined your swap request.'+(reason?' Reason: '+reason:''),s.id,'swap');
+    }
+  });
 }
 
 async function approveSwap(id){
   var s=swapRequests.find(function(x){return x.id===id;});
-  if(!s||!confirm('Approve this swap request?'))return;
+  if(!s)return;
   s.status='Approved';s.approvedBy=me.fullName;s.approvedDate=fmtDate(new Date());
 
   // Execute the swap: swap bench assignments between the two staff
@@ -2858,15 +3055,25 @@ async function approveSwap(id){
 async function denySwap(id){
   var s=swapRequests.find(function(x){return x.id===id;});
   if(!s)return;
-  var reason=prompt('Reason for denial (optional):');
-  s.status='Denied';s.approvedBy=me.fullName;s.approvedDate=fmtDate(new Date());
-  if(reason)s.notes=reason;
-  logAudit('deny','swap','Denied swap: '+s.requestByName+' <> '+s.swapWithName+(reason?' ('+reason+')':''),s.id);
-  renderSwaps();toast('Swap denied');
-  try{var existing=await spGet('SwapRequests',"Title eq '"+s.id+"'");if(existing.length)await spUpdate('SwapRequests',existing[0].Id,swapToSP(s));}catch(e){console.error('Swap update failed:',e);}
-  // Notify both techs
-  await sendNotification(s.requestBy,'swap-status','Your swap with '+s.swapWithName+' was denied by '+me.fullName+'.'+(reason?' Reason: '+reason:''),s.id,'swap');
-  await sendNotification(s.swapWith,'swap-status','Swap between '+s.requestByName+' and you was denied by '+me.fullName+'.',s.id,'swap');
+  openReasonModal({
+    title:'Deny Swap Request',
+    icon:'gpp_bad',
+    subtitle:'Denying '+s.requestByName+' <> '+s.swapWithName+' for '+s.requestDate,
+    label:'Reason (optional but recommended)',
+    placeholder:'e.g., Coverage gap, policy conflict',
+    submitLabel:'Deny',
+    required:false,
+    onSubmit:async function(reason){
+      if(reason===null)return;
+      s.status='Denied';s.approvedBy=me.fullName;s.approvedDate=fmtDate(new Date());
+      if(reason)s.notes=reason;
+      logAudit('deny','swap','Denied swap: '+s.requestByName+' <> '+s.swapWithName+(reason?' ('+reason+')':''),s.id);
+      renderSwaps();toast('Swap denied');
+      try{var existing=await spGet('SwapRequests',"Title eq '"+s.id+"'");if(existing.length)await spUpdate('SwapRequests',existing[0].Id,swapToSP(s));}catch(e){console.error('Swap update failed:',e);}
+      await sendNotification(s.requestBy,'swap-status','Your swap with '+s.swapWithName+' was denied by '+me.fullName+'.'+(reason?' Reason: '+reason:''),s.id,'swap');
+      await sendNotification(s.swapWith,'swap-status','Swap between '+s.requestByName+' and you was denied by '+me.fullName+'.',s.id,'swap');
+    }
+  });
 }
 
 function editSwap(id){
@@ -2931,12 +3138,82 @@ function openAssignModal(userIni,dateStr,shift){
   document.getElementById('aOTReason').value=existing?existing.otReason||'':'';
   document.getElementById('aOTHours').value=existing&&existing.otHours?existing.otHours:8;
   toggleOTPanel();
+  // Wire inline double-shift warning + OT context refresh to any relevant field change
+  ['aStaff','aDate','aShift','aBench'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.onchange=function(){
+      if(id==='aBench')toggleOTPanel();
+      else{
+        checkDoubleShiftWarning();
+        if(id==='aStaff'&&document.getElementById('aBench').value==='OT')updateOTContext();
+      }
+    };
+  });
+  checkDoubleShiftWarning();
   openModal('assignModal');
 }
 function toggleOTPanel(){
   var bench=(document.getElementById('aBench')||{}).value;
   var panel=document.getElementById('otPanel');
   if(panel)panel.style.display=bench==='OT'?'block':'none';
+  // Refresh OT context whenever the panel is shown
+  if(bench==='OT')updateOTContext();
+  checkDoubleShiftWarning();
+}
+
+// Populates the "Cumulative OT for this person" block inside the OT panel with
+// 90-day + 1-year totals and a fairness cue vs the lab-wide average. Called when
+// the OT panel is shown and when the staff select changes.
+function updateOTContext(){
+  var userIni=(document.getElementById('aStaff')||{}).value;
+  var box=document.getElementById('aOTContext');
+  var body=document.getElementById('aOTContextBody');
+  if(!box||!body||!userIni){if(box)box.style.display='none';return;}
+  var totals=computeOTTotalsFor(userIni);
+  var labAvg=computeLabAvgOT90(userIni);
+  var delta=totals.h90-labAvg;
+  var cue='';
+  if(Math.abs(delta)<2){
+    cue='<span style="color:var(--g500);">(close to lab average of '+labAvg.toFixed(1)+'h)</span>';
+  }else if(delta>0){
+    cue='<span style="color:#b91c1c;font-weight:700;">('+delta.toFixed(1)+'h above lab avg of '+labAvg.toFixed(1)+'h — consider offering OT to lower-total staff first)</span>';
+  }else{
+    cue='<span style="color:#047857;font-weight:700;">('+Math.abs(delta).toFixed(1)+'h below lab avg of '+labAvg.toFixed(1)+'h — fairness-aligned)</span>';
+  }
+  var lastOT=totals.lastOT?'<div style="margin-top:4px;font-size:10px;color:var(--g500);">Last OT: '+totals.lastOT+(totals.lastReason?' ('+esc(totals.lastReason)+')':'')+'</div>':'<div style="margin-top:4px;font-size:10px;color:var(--g500);">No prior OT on record.</div>';
+  body.innerHTML='<div><strong>Last 90 days:</strong> '+totals.h90.toFixed(1)+'h across '+totals.c90+' shift'+(totals.c90===1?'':'s')+' '+cue+'</div>'+
+    '<div style="margin-top:2px;"><strong>Last 12 months:</strong> '+totals.h365.toFixed(1)+'h across '+totals.c365+' shift'+(totals.c365===1?'':'s')+'</div>'+
+    lastOT;
+  box.style.display='block';
+}
+
+// Inline warning shown the moment the user picks a staff+date+shift combination that
+// would create a second shift on the same day. Replaces a confirm() dialog that fired
+// on save. User must check the acknowledgment box to save — enforced in saveAssignment.
+function checkDoubleShiftWarning(){
+  var userIni=(document.getElementById('aStaff')||{}).value;
+  var dateStr=(document.getElementById('aDate')||{}).value;
+  var shift=(document.getElementById('aShift')||{}).value;
+  var bench=(document.getElementById('aBench')||{}).value;
+  var warn=document.getElementById('aDoubleShiftWarn');
+  var ack=document.getElementById('aDoubleShiftAck');
+  if(!warn||!ack)return;
+  // Reset ack when any dimension changes (force re-confirmation)
+  ack.checked=false;
+  if(!userIni||!dateStr||!shift||!bench||bench==='OT'||bench==='PTO'||bench==='SL'){
+    warn.style.display='none';return;
+  }
+  var otherShifts=typeof SHIFTS!=='undefined'?SHIFTS.filter(function(s){return s!==shift;}):['Morning','Evening','Night'].filter(function(s){return s!==shift;});
+  var conflicting=null;
+  for(var i=0;i<otherShifts.length;i++){
+    var oa=getAssignment(userIni,dateStr,otherShifts[i]);
+    if(oa&&oa.bench&&oa.bench!=='PTO'&&oa.bench!=='SL'){conflicting=oa;break;}
+  }
+  if(!conflicting){warn.style.display='none';return;}
+  var staff=STAFF.find(function(s){return s.ini===userIni;});
+  var msg=document.getElementById('aDoubleShiftMsg');
+  if(msg)msg.textContent=(staff?staff.name:userIni)+' already has '+conflicting.bench+' on '+dateStr+' ('+conflicting.shift+'). Adding a second shift creates OT and must be approved per SEIU Article 10.';
+  warn.style.display='block';
 }
 
 async function saveAssignment(){
@@ -2965,14 +3242,22 @@ async function saveAssignment(){
     }
   }
 
-  // Check if this would create a double shift (OT warning)
+  // Check if this would create a double shift (OT warning). The inline warning is
+  // shown live in the modal via checkDoubleShiftWarning(); here we just enforce that
+  // the user ticked the ack checkbox before saving.
   var otherShifts=SHIFTS.filter(function(s){return s!==shift;});
   var hasOtherShift=otherShifts.some(function(os){
     var oa=getAssignment(userIni,dateStr,os);
     return oa&&oa.bench&&oa.bench!=='PTO'&&oa.bench!=='SL';
   });
-  if(hasOtherShift&&bench!=='OT'){
-    if(!confirm(staff.name+' already has another shift on this date. This creates a double shift (OT). Continue?'))return;
+  if(hasOtherShift&&bench!=='OT'&&bench!=='PTO'&&bench!=='SL'){
+    var ack=document.getElementById('aDoubleShiftAck');
+    if(!ack||!ack.checked){
+      toast('Double shift detected — tick the acknowledgment box to save');
+      var warnEl=document.getElementById('aDoubleShiftWarn');
+      if(warnEl)warnEl.scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
   }
 
   var existing=getAssignment(userIni,dateStr,shift);
@@ -3545,10 +3830,18 @@ function getPTOCoverageImpact(userIni,startDate,endDate){
 function renderPTO(){
   var filter=document.getElementById('ptoFilter').value;
   var typeF=document.getElementById('ptoTypeFilter').value;
+  var searchEl=document.getElementById('ptoSearch');
+  var query=((searchEl&&searchEl.value)||'').trim().toLowerCase();
   var filtered=ptoRequests.slice();
   if(!isLead()&&me){filtered=filtered.filter(function(p){return p.requestBy===me.initials;});}
   if(filter)filtered=filtered.filter(function(p){return p.status===filter;});
   if(typeF)filtered=filtered.filter(function(p){return p.requestType===typeF;});
+  if(query){
+    filtered=filtered.filter(function(p){
+      var hay=[p.requestByName||'',p.reason||'',p.deniedReason||'',p.startDate||'',p.endDate||'',p.requestType||''].join(' ').toLowerCase();
+      return hay.indexOf(query)>=0;
+    });
+  }
   filtered.sort(function(a,b){return(b.startDate||'').localeCompare(a.startDate||'');});
 
   var bw=getBidWindow();
@@ -3569,8 +3862,14 @@ function renderPTO(){
     document.getElementById('ptoStats').innerHTML='';
   }
 
+  // "N new since last visit" pill — counts items created after the user's last
+  // visit to this tab, excluding their own submissions.
+  var lv=getLastVisit('pto');
+  var newCount=countNewSince(ptoRequests,lv,me?me.initials:'');
+  var pill=newSincePill(newCount,'pto');
+
   if(!filtered.length){
-    document.getElementById('ptoList').innerHTML='<div class="empty"><span class="mi">event</span><h3>No PTO Requests</h3><p>Click "New Request" to submit a PTO request</p></div>';
+    document.getElementById('ptoList').innerHTML=pill+'<div class="empty"><span class="mi">event</span><h3>No PTO Requests</h3><p>Click "New Request" to submit a PTO request</p></div>';
     return;
   }
 
@@ -3606,7 +3905,7 @@ function renderPTO(){
       html+='<div class="empty"><span class="mi">event</span><h3>No PTO requests</h3></div>';
     }
   }
-  document.getElementById('ptoList').innerHTML=html;
+  document.getElementById('ptoList').innerHTML=pill+html;
 }
 
 function renderPTOGrouped(items){
@@ -3756,7 +4055,8 @@ async function submitPTORequest(){
     status:'Pending',priority:String(getSeniorityRank(me.initials)),
     conflictsWith:conflicts.map(function(c){return c.requestByName;}).join(', '),
     coverageImpact:gaps.length?gaps.length+' day(s) short-staffed':'None',
-    approvedBy:'',approvedDate:'',deniedReason:''
+    approvedBy:'',approvedDate:'',deniedReason:'',
+    createdAt:new Date().toISOString()
   };
   ptoRequests.unshift(p);
   logAudit('add','pto','PTO requested: '+me.fullName+' '+s+' to '+e,p.id);
@@ -3768,7 +4068,7 @@ async function submitPTORequest(){
 
 async function approvePTO(id){
   var p=ptoRequests.find(function(x){return x.id===id;});
-  if(!p||!confirm('Approve PTO for '+p.requestByName+'?'))return;
+  if(!p)return;
   showLoad('Approving PTO...');
   p.status='Approved';p.approvedBy=me.fullName;p.approvedDate=fmtDate(new Date());
   renderPTO();
@@ -3806,18 +4106,29 @@ async function approvePTO(id){
 
 async function denyPTO(id){
   var p=ptoRequests.find(function(x){return x.id===id;});if(!p)return;
-  var reason=prompt('Reason for denial:');if(reason===null)return;
-  p.status='Denied';p.approvedBy=me.fullName;p.approvedDate=fmtDate(new Date());p.deniedReason=reason;
-  var gaps=getPTOCoverageImpact(p.requestBy,p.startDate,p.endDate);
-  if(gaps.length){
-    var altStart=new Date(p.endDate+'T12:00:00');altStart.setDate(altStart.getDate()+7);
-    var altEnd=new Date(altStart);altEnd.setDate(altEnd.getDate()+countWorkdays(p.startDate,p.endDate)-1);
-    toast('Consider suggesting '+fmtDate(altStart)+' to '+fmtDate(altEnd)+' as alternative');
-  }
-  logAudit('deny','pto','Denied PTO: '+p.requestByName+(reason?' ('+reason+')':''),p.id);
-  renderPTO();toast('PTO denied');
-  try{var sp=await spGet('PTORequests',"Title eq '"+id+"'");if(sp.length)await spUpdate('PTORequests',sp[0].Id,ptoToSP(p));}catch(er){}
-  await sendNotification(p.requestBy,'pto-status','Your PTO ('+p.startDate+' to '+p.endDate+') was denied.'+(reason?' Reason: '+reason:''),p.id,'pto');
+  openReasonModal({
+    title:'Deny PTO Request',
+    icon:'event_busy',
+    subtitle:'Denying '+p.requestByName+' ('+p.startDate+' to '+p.endDate+'). A reason is required so the requester understands why.',
+    label:'Reason *',
+    placeholder:'e.g., Coverage gap, bidding window closed',
+    submitLabel:'Deny PTO',
+    required:true,
+    onSubmit:async function(reason){
+      if(reason===null)return;
+      p.status='Denied';p.approvedBy=me.fullName;p.approvedDate=fmtDate(new Date());p.deniedReason=reason;
+      var gaps=getPTOCoverageImpact(p.requestBy,p.startDate,p.endDate);
+      if(gaps.length){
+        var altStart=new Date(p.endDate+'T12:00:00');altStart.setDate(altStart.getDate()+7);
+        var altEnd=new Date(altStart);altEnd.setDate(altEnd.getDate()+countWorkdays(p.startDate,p.endDate)-1);
+        toast('Consider suggesting '+fmtDate(altStart)+' to '+fmtDate(altEnd)+' as alternative');
+      }
+      logAudit('deny','pto','Denied PTO: '+p.requestByName+' ('+reason+')',p.id);
+      renderPTO();toast('PTO denied');
+      try{var sp=await spGet('PTORequests',"Title eq '"+id+"'");if(sp.length)await spUpdate('PTORequests',sp[0].Id,ptoToSP(p));}catch(er){}
+      await sendNotification(p.requestBy,'pto-status','Your PTO ('+p.startDate+' to '+p.endDate+') was denied. Reason: '+reason,p.id,'pto');
+    }
+  });
 }
 
 function editPTO(id){
@@ -3883,6 +4194,22 @@ async function deletePTO(id){
 // ═══════════════════════════════════════════
 // HOLIDAY STAFFING & ROTATION
 // ═══════════════════════════════════════════
+
+// Populates the holiday year selector with a rolling 5-year window (currentYear ± 2).
+// Called on load and before showing the Holiday tab. Preserves the previous selection
+// if it still falls inside the range; otherwise defaults to the current calendar year.
+function populateHolidayYearSelector(){
+  var sel=document.getElementById('holYear');
+  if(!sel)return;
+  var cur=new Date().getFullYear();
+  var prev=sel.value;
+  var years=[];
+  for(var y=cur-2;y<=cur+2;y++)years.push(y);
+  sel.innerHTML=years.map(function(y){return'<option value="'+y+'">'+y+'</option>';}).join('');
+  // Preserve prior selection if still in range; otherwise default to current year
+  if(prev&&years.indexOf(parseInt(prev,10))>=0)sel.value=prev;
+  else sel.value=String(cur);
+}
 
 function renderHolidays(){
   var year=parseInt(document.getElementById('holYear').value);
@@ -4150,12 +4477,15 @@ async function withdrawVolunteer(id){
 async function editSlotsNeeded(year,holidayName){
   if(!isLead()){toast('Leads only');return;}
   var cur=getSlotsNeeded(year,holidayName);
-  var input=prompt('How many slots needed for '+holidayName+' ('+year+')?\n\nEnter a number between 0 and 20. Current value: '+cur,String(cur));
-  if(input===null)return;
-  var n=parseInt(input);
-  if(isNaN(n)||n<0||n>20){toast('Invalid: enter 0-20');return;}
-  await setSlotsNeeded(year,holidayName,n);
-  toast('Slots set to '+n);
+  openSlotsModal({
+    subtitle:'How many slots needed for '+holidayName+' ('+year+')? Enter 0 to pause enrollment.',
+    current:cur,
+    onSubmit:async function(n){
+      if(n===null)return;
+      await setSlotsNeeded(year,holidayName,n);
+      toast('Slots set to '+n);
+    }
+  });
 }
 
 // Cat 3: when volunteers <= slots, auto-select all (no draw needed)
@@ -4924,6 +5254,39 @@ function renderStaffHeatmap(dr,p){
 }
 
 // ═══ CUMULATIVE OT TRACKING (re-themed for card) ═══
+// Computes 90-day and 1-year rolling OT totals for a given staff member. Used by the
+// OT panel in the assignment modal to show leads cumulative context at approval time.
+// Returns { h90, h365, c90, c365, lastOT, lastApprover, lastReason }.
+function computeOTTotalsFor(userIni){
+  var today=new Date();
+  var d90=new Date(today);d90.setDate(d90.getDate()-90);
+  var d365=new Date(today);d365.setDate(d365.getDate()-365);
+  var t90=fmtDate(d90),t365=fmtDate(d365),tToday=fmtDate(today);
+  var data={h90:0,h365:0,c90:0,c365:0,lastOT:'',lastApprover:'',lastReason:''};
+  (schedEntries||[]).forEach(function(e){
+    if(e.bench!=='OT'||e.userIni!==userIni)return;
+    var hrs=parseFloat(e.otHours)||8;
+    if(e.date>=t365&&e.date<=tToday){
+      data.h365+=hrs;data.c365++;
+      if(!data.lastOT||e.date>data.lastOT){
+        data.lastOT=e.date;data.lastApprover=e.otApprover||'';data.lastReason=e.otReason||'';
+      }
+    }
+    if(e.date>=t90&&e.date<=tToday){data.h90+=hrs;data.c90++;}
+  });
+  return data;
+}
+
+// Computes the lab-wide average 90-day OT so a lead can eyeball whether this person
+// is above/below the fairness line. Excludes the person we're approving for.
+function computeLabAvgOT90(excludeIni){
+  var activeStaff=(STAFF||[]).filter(function(s){return s.active!==false&&s.benchEligible&&s.ini!==excludeIni;});
+  if(!activeStaff.length)return 0;
+  var total=0;
+  activeStaff.forEach(function(s){total+=computeOTTotalsFor(s.ini).h90;});
+  return total/activeStaff.length;
+}
+
 function renderOTTracking(){
   var container=document.getElementById('statsOTTracking');
   if(!container)return;
