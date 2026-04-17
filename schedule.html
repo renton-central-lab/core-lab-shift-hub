@@ -1490,11 +1490,25 @@ async function spAdd(ln,data){
 async function spUpdate(ln,id,data){
   var digest=await getDigest(),meta=await getListItemType(ln);
   data.__metadata={type:meta};
-  await spFetch(SP_API+"/getbytitle('"+ln+"')/items("+id+")",{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':digest,'IF-MATCH':'*','X-HTTP-Method':'MERGE'},body:JSON.stringify(data)});
+  // Critical: spFetch doesn't throw on non-2xx by itself, so without an explicit
+  // res.ok check here a 400 "field not found" would look like success to callers
+  // — exactly the silent-failure pattern that let archived notifications reappear
+  // after refresh. Now we surface the SP error body so the caller can toast it.
+  var r=await spFetch(SP_API+"/getbytitle('"+ln+"')/items("+id+")",{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':digest,'IF-MATCH':'*','X-HTTP-Method':'MERGE'},body:JSON.stringify(data)});
+  if(!r.ok){
+    var errBody='';try{errBody=await r.text();}catch(_){}
+    console.error('spUpdate fail',r.status,ln,id,errBody);
+    throw new Error('SP '+r.status+': '+errBody.slice(0,200));
+  }
 }
 async function spDelete(ln,id){
   var digest=await getDigest();
-  await spFetch(SP_API+"/getbytitle('"+ln+"')/items("+id+")",{method:'POST',headers:{'X-RequestDigest':digest,'IF-MATCH':'*','X-HTTP-Method':'DELETE'}});
+  var r=await spFetch(SP_API+"/getbytitle('"+ln+"')/items("+id+")",{method:'POST',headers:{'X-RequestDigest':digest,'IF-MATCH':'*','X-HTTP-Method':'DELETE'}});
+  if(!r.ok){
+    var errBody='';try{errBody=await r.text();}catch(_){}
+    console.error('spDelete fail',r.status,ln,id,errBody);
+    throw new Error('SP '+r.status+': '+errBody.slice(0,200));
+  }
 }
 
 function signIn(){msalInstance.loginRedirect({scopes:['https://uwnetid.sharepoint.com/AllSites.Write','User.Read']});}
@@ -6113,20 +6127,33 @@ async function archiveNotif(id,archiveWholeGroup){
   updateNavBadges();
   if(document.getElementById('pageNotifs')&&document.getElementById('pageNotifs').classList.contains('active'))renderNotifPage();
   else renderNotifList();
-  // Persist: best-effort SP update
+  // Persist: best-effort SP update. If the IsArchived/IsRead columns don't
+  // exist on the SharePoint list, the writes silently succeed against the REST
+  // API but the values don't round-trip — causing archived notifications to
+  // reappear on refresh. We surface failures loudly now.
+  var persistFail=0,persistOK=0;
   try{
     var fm=await discoverFields('ScheduleNotifications');
     var archKey=fm.IsArchived||'IsArchived';
     var readKey=fm.IsRead||'IsRead';
     for(var j=0;j<toArchive.length;j++){
       var payload={};payload[archKey]='Yes';payload[readKey]='Yes';
-      if(toArchive[j]._spId){await spUpdate('ScheduleNotifications',toArchive[j]._spId,payload);}
-      else{
-        var sp=await spGet('ScheduleNotifications',"Title eq '"+toArchive[j].id+"'");
-        if(sp.length){toArchive[j]._spId=sp[0].Id;await spUpdate('ScheduleNotifications',sp[0].Id,payload);}
-      }
+      try{
+        if(toArchive[j]._spId){await spUpdate('ScheduleNotifications',toArchive[j]._spId,payload);persistOK++;}
+        else{
+          var sp=await spGet('ScheduleNotifications',"Title eq '"+toArchive[j].id+"'");
+          if(sp.length){toArchive[j]._spId=sp[0].Id;await spUpdate('ScheduleNotifications',sp[0].Id,payload);persistOK++;}
+          else{persistFail++;console.warn('Archive: SP row not found for',toArchive[j].id);}
+        }
+      }catch(innerErr){persistFail++;console.warn('Archive: SP write failed for',toArchive[j].id,innerErr);}
     }
-  }catch(e){console.warn('Archive persist failed:',e);}
+  }catch(e){
+    persistFail=toArchive.length;
+    console.warn('Archive persist failed:',e);
+  }
+  if(persistFail>0){
+    toast('Warning: '+persistFail+' archive write(s) failed. Check SP list columns IsArchived/IsRead exist.');
+  }
 }
 
 async function markAllRead(e){

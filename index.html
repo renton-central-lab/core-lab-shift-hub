@@ -2127,7 +2127,10 @@ function spToAnn(item,fm) {
 
 function userToSP(ini, u) {
   var fm=_fieldMaps['HubUsers']||{};
-  return spSet(fm,[['Title',ini],['FullName',u.fullName||_msalName||ini],['Role',u.role||'MLS1'],['IsAdmin',u.isAdmin?'Yes':'No'],['Nickname',u.nickname||''],['PictureData',u.picture||'']]);
+  // NotifStateJSON stores archive/read state per-user so it survives refresh and
+  // syncs across devices. Stored as a single JSON blob because notifs are never
+  // searched on and the per-user volume is small (capped at NOTIF_STATE_MAX).
+  return spSet(fm,[['Title',ini],['FullName',u.fullName||_msalName||ini],['Role',u.role||'MLS1'],['IsAdmin',u.isAdmin?'Yes':'No'],['Nickname',u.nickname||''],['PictureData',u.picture||''],['NotifStateJSON',u.notifStateJSON||'']]);
 }
 function spSetUser(ini,u){return userToSP(ini,u);}
 
@@ -2137,7 +2140,7 @@ function spToUser(item,fm) {
   var admin=g('IsAdmin');
   var pic=g('PictureData')||'';
   if(pic==='n/a'||pic==='0'||pic==='null'||pic.length<20)pic='';
-  return {fullName:g('FullName')||'',role:g('Role')||'MLS1',isAdmin:admin==='Yes'||admin===true,nickname:g('Nickname')||'',picture:pic,password:'',_spId:item.Id};
+  return {fullName:g('FullName')||'',role:g('Role')||'MLS1',isAdmin:admin==='Yes'||admin===true,nickname:g('Nickname')||'',picture:pic,password:'',notifStateJSON:g('NotifStateJSON')||'',_spId:item.Id};
 }
 
 function auditToSP(h) {
@@ -3219,6 +3222,10 @@ function nLeads(tp,ti,de,eid){
 function myN(){return me?(notifs[me.initials]||[]):[];}
 
 function uBell(){
+  // Apply persisted archive/read mask BEFORE counting. Handles the case where
+  // notifs were regenerated (new pNot calls after sync) but the user had already
+  // archived the same IDs in a previous session.
+  applyNotifState();
   var active=myN().filter(function(n){return!n.read&&!n.isArchived;});
   var c=active.length;
   var b=$('bellBadge');
@@ -3262,6 +3269,7 @@ document.addEventListener('click',function(e){if(!e.target.closest('#bellBtn')&&
 function rBL(){
   var l=$('bellList');
   if(!l)return;
+  applyNotifState();
   var ns=myN().filter(function(n){return!n.isArchived;});
   var hdr=$('bellDrop').querySelector('.bell-drop-hdr h4');
   if(!ns.length){
@@ -3315,6 +3323,7 @@ function renderNotifPage(){
   var tabs=$('nfpg-tabs');
   var countEl=$('nfpg-count');
   if(!list)return;
+  applyNotifState();
   var searchEl=$('nfpgSearch');
   var sortEl=$('nfpgSort');
   var archEl=$('nfpgShowArchived');
@@ -3417,6 +3426,75 @@ function _shRenderNfpgRow(n,group){
 function _shSetNotifCat(cat){_nfpgState.category=cat;renderNotifPage();}
 function _shToggleGroup(id){_nfpgState.expandedGroups[id]=!_nfpgState.expandedGroups[id];renderNotifPage();}
 
+// ══════════════════════════════════════════════════════════════════════
+// NOTIFICATION STATE PERSISTENCE
+//
+// Shift Hub generates notifications in memory (pNot on entry save, followup,
+// comment). Without persistence, archive-flag flips only lived until refresh,
+// then delta sync regenerated them and they reappeared in the bell.
+//
+// Fix: persist per-user JSON { archivedIds, readIds } on the user's HubUsers
+// row (NotifStateJSON column). On first load, applyNotifState masks archived
+// IDs. On archive/read, the mask is updated and saved back.
+//
+// Requires a HubUsers column called NotifStateJSON (multi-line plain text).
+// If the column is missing, writes fail gracefully and a toast warns the user.
+// ══════════════════════════════════════════════════════════════════════
+var NOTIF_STATE_MAX=500;
+var _notifStateSaveTimer=null;
+
+function getMyNotifState(){
+  if(!me)return{archivedIds:[],readIds:[]};
+  var u=users[me.initials];
+  if(!u)return{archivedIds:[],readIds:[]};
+  if(!u._notifState){
+    try{u._notifState=JSON.parse(u.notifStateJSON||'{}');}catch(e){u._notifState={};}
+    if(!u._notifState.archivedIds)u._notifState.archivedIds=[];
+    if(!u._notifState.readIds)u._notifState.readIds=[];
+  }
+  return u._notifState;
+}
+
+// Apply persisted state to the in-memory notifs array. Called after any event
+// that may have (re)generated notifs: first load, delta sync, push receive.
+function applyNotifState(){
+  if(!me)return;
+  var s=getMyNotifState();
+  var archSet={};s.archivedIds.forEach(function(id){archSet[id]=1;});
+  var readSet={};s.readIds.forEach(function(id){readSet[id]=1;});
+  var list=notifs[me.initials]||[];
+  list.forEach(function(n){
+    if(archSet[n.id]){n.isArchived=true;n.read=true;}
+    else if(readSet[n.id])n.read=true;
+  });
+}
+
+// Debounced SP save so a burst of archives (archiveAllRead) results in a single
+// PATCH. 600ms is shorter than the fastest manual re-click.
+function persistNotifState(){
+  if(!me)return;
+  clearTimeout(_notifStateSaveTimer);
+  _notifStateSaveTimer=setTimeout(async function(){
+    try{
+      var u=users[me.initials];if(!u||!u._spId)return;
+      var s=u._notifState||{archivedIds:[],readIds:[]};
+      // Cap & prune: keep the most recent NOTIF_STATE_MAX ids. In-memory notifs
+      // are already capped at 200 per user (see pNot), so this is safety for
+      // long-term accumulation across months.
+      if(s.archivedIds.length>NOTIF_STATE_MAX)s.archivedIds=s.archivedIds.slice(-NOTIF_STATE_MAX);
+      if(s.readIds.length>NOTIF_STATE_MAX)s.readIds=s.readIds.slice(-NOTIF_STATE_MAX);
+      u.notifStateJSON=JSON.stringify(s);
+      var fm=await discoverFields('HubUsers');
+      var archKey=(fm&&fm.NotifStateJSON)||'NotifStateJSON';
+      var payload={};payload[archKey]=u.notifStateJSON;
+      await spUpdate('HubUsers',u._spId,payload);
+    }catch(e){
+      console.warn('[notif] state save failed:',e);
+      toast('Archive state could not be saved to SharePoint');
+    }
+  },600);
+}
+
 // Archive / dismiss a single notification (or its entire group)
 function archiveNotif(id,archiveWholeGroup){
   if(!me)return;
@@ -3437,6 +3515,15 @@ function archiveNotif(id,archiveWholeGroup){
   }
   toArchive.forEach(function(x){x.isArchived=true;x.read=true;});
   notifs[me.initials]=ns;
+  // Persist archive IDs to SP so the mask survives refresh. Previously saveAll()
+  // was a no-op; the in-memory flags were lost on reload and delta sync re-
+  // generated the entries, so archived notifications "reappeared" in the bell.
+  var state=getMyNotifState();
+  toArchive.forEach(function(x){
+    if(state.archivedIds.indexOf(x.id)<0)state.archivedIds.push(x.id);
+    if(state.readIds.indexOf(x.id)<0)state.readIds.push(x.id);
+  });
+  persistNotifState();
   saveAll();
   uBell();
   if($('pageNotifs')&&$('pageNotifs').classList.contains('active'))renderNotifPage();
@@ -3452,6 +3539,13 @@ function archiveAllRead(){
   if(!readOnes.length){toast('No read notifications to archive');return;}
   readOnes.forEach(function(n){n.isArchived=true;});
   notifs[me.initials]=ns;
+  // Persist archived IDs (all in one batch via debounced save)
+  var state=getMyNotifState();
+  readOnes.forEach(function(x){
+    if(state.archivedIds.indexOf(x.id)<0)state.archivedIds.push(x.id);
+    if(state.readIds.indexOf(x.id)<0)state.readIds.push(x.id);
+  });
+  persistNotifState();
   saveAll();
   uBell();
   renderNotifPage();
@@ -3465,6 +3559,10 @@ function openND(nid){
   if(!n)return;
   n.read=true;
   notifs[me.initials]=ns;
+  // Persist read state so the notification doesn't come back unread after refresh
+  var state=getMyNotifState();
+  if(state.readIds.indexOf(n.id)<0)state.readIds.push(n.id);
+  persistNotifState();
   saveAll();
   uBell();
   if($('pageNotifs')&&$('pageNotifs').classList.contains('active'))renderNotifPage();
@@ -3511,6 +3609,12 @@ function markAllRead(e){
   if(!unread.length){toast('Nothing to mark');return;}
   unread.forEach(function(n){n.read=true;});
   notifs[me.initials]=ns;
+  // Persist read state (batched save via debounce)
+  var state=getMyNotifState();
+  unread.forEach(function(x){
+    if(state.readIds.indexOf(x.id)<0)state.readIds.push(x.id);
+  });
+  persistNotifState();
   saveAll();
   uBell();
   if($('pageNotifs')&&$('pageNotifs').classList.contains('active'))renderNotifPage();
